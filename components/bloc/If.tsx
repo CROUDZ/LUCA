@@ -1,17 +1,10 @@
 import React, {/*useState*/} from 'react';
-import { StyleSheet, Text, View, LayoutRectangle } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { useDraggable } from './useDraggable';
-import { Pressable } from 'react-native';
 
-interface IfBlocProps {
-  id: string;
-  onAnchorPress: (anchor: { blocId: string; anchorId: string }) => void;
-  onAnchorLayout: (anchor: { blocId: string; anchorId: string }, layout: LayoutRectangle) => void;
-}
-
-const IfBloc: React.FC<IfBlocProps> = ({ id, onAnchorPress, onAnchorLayout }) => {
+const IfBloc = () => {
   //const [showElse, setShowElse] = useState(false);
 
   const { panGesture, animatedStyle } = useDraggable();
@@ -22,25 +15,13 @@ const IfBloc: React.FC<IfBlocProps> = ({ id, onAnchorPress, onAnchorLayout }) =>
         <Animated.View style={[styles.bloc, animatedStyle]}>
           <View style={styles.conditionDiv}>
             <Text>If</Text>
-            <Pressable
-              style={styles.frontAnchor}
-              onPress={() => onAnchorPress({ blocId: id, anchorId: 'if' })}
-              onLayout={(event) => onAnchorLayout({ blocId: id, anchorId: 'if' }, event.nativeEvent.layout)}
-            />
+            <View style={styles.frontAnchor}/>
           </View>
           <View style={styles.conditionDiv}>
             <Text>Else</Text>
-            <Pressable
-              style={styles.frontAnchor}
-              onPress={() => onAnchorPress({ blocId: id, anchorId: 'else' })}
-              onLayout={(event) => onAnchorLayout({ blocId: id, anchorId: 'else' }, event.nativeEvent.layout)}
-            />
+            <View style={styles.frontAnchor}/>
           </View>
-          <Pressable
-            style={styles.backAnchor}
-            onPress={() => onAnchorPress({ blocId: id, anchorId: 'back' })}
-            onLayout={(event) => onAnchorLayout({ blocId: id, anchorId: 'back' }, event.nativeEvent.layout)}
-          />
+          <View style={styles.backAnchor}/>
         </Animated.View>
       </GestureDetector>
   );

@@ -1,11 +1,9 @@
-import { StatusBar, useColorScheme, View, StyleSheet, LayoutRectangle } from 'react-native';
+import { StatusBar, useColorScheme, View, StyleSheet } from 'react-native';
 import {
   SafeAreaProvider,
 } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import IfBloc from './components/bloc/If';
-import Link from './components/Link';
-import { useState } from 'react';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
