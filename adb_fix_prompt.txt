@@ -1,0 +1,53 @@
+# Prompt pour IA : Résoudre le problème ADB dans React Native sur Fedora
+
+## Problème décrit :
+L'utilisateur rencontre une erreur lors de l'exécution de `npm run android` dans un projet React Native :
+- Erreur : "/bin/sh: ligne 1: /snap/androidsdk/current/platform-tools/adb: Aucun fichier ou dossier de ce nom"
+- ADB n'est pas trouvé, même si installé
+- Le build Gradle réussit, mais la connexion à l'émulateur échoue
+- Après redémarrage, le problème revient
+
+## Contexte système :
+- OS : Fedora Linux
+- Shell : fish
+- SDK Android installé via snap (incomplet) et manuellement dans /opt/android-sdk
+- ADB installé via dnf (android-tools)
+
+## Cause racine :
+- ANDROID_HOME pointe vers /snap/androidsdk/current qui n'a pas platform-tools
+- Le snap androidsdk est incomplet (manque platform-tools)
+- PATH priorise les chemins snap défaillants
+
+## Solution étape par étape :
+
+1. **Vérifier les installations :**
+   - Confirmer que /opt/android-sdk existe et contient platform-tools, build-tools, cmdline-tools
+   - Vérifier que android-tools est installé via dnf
+
+2. **Définir les variables d'environnement :**
+   - Définir ANDROID_HOME=/opt/android-sdk
+   - Ajouter /opt/android-sdk/platform-tools au PATH
+
+3. **Pour Fish shell :**
+   - Ajouter à ~/.config/fish/config.fish :
+     set -x ANDROID_HOME /opt/android-sdk
+     set -x PATH /opt/android-sdk/platform-tools $PATH
+
+4. **Nettoyer les conflits :**
+   - Désinstaller le snap androidsdk : snap remove androidsdk
+   - Supprimer les chemins snap du PATH si présents
+
+5. **Tester :**
+   - which adb doit retourner /opt/android-sdk/platform-tools/adb
+   - npm run android doit réussir sans erreurs ADB
+
+## Commandes clés :
+- set -x ANDROID_HOME /opt/android-sdk
+- set -x PATH /opt/android-sdk/platform-tools $PATH
+- snap remove androidsdk
+- adb devices (pour vérifier la connexion)
+
+## Prévention :
+- Éviter d'installer Android SDK via snap (incomplet)
+- Utiliser une installation complète dans /opt ou ~/Android/Sdk
+- Configurer correctement les variables d'environnement dans le shell
