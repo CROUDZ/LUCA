@@ -76,3 +76,5 @@ yarn-error.log
 
 
 /.bundle/
+
+package-lock.json
