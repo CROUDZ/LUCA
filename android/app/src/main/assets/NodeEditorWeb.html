@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Node Editor</title>
+    <!-- Drawflow CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/drawflow@0.0.60/dist/drawflow.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/drawflow@0.0.60/dist/drawflow.min.js"></script>
+    <style>
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            overflow: hidden;
+            touch-action: pan-x pan-y;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        #drawflow { 
+            width: 100vw; 
+            height: 100vh; 
+            background: linear-gradient(180deg, #0a0a0a 0%, #1a1d29 100%);
+            position: relative;
+            touch-action: pan-x pan-y;
+        }
+        
+        /* Grille de fond */
+        .drawflow {
+            background-image: 
+                linear-gradient(rgba(139, 92, 246, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(139, 92, 246, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        .drawflow .parent-drawflow {
+            cursor: grab;
+        }
+        
+        .drawflow .parent-drawflow:active {
+            cursor: grabbing;
+        }
+        
+        /* Style moderne pour les nœuds */
+        .drawflow .drawflow-node {
+            background: linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(17, 24, 39, 0.95) 100%);
+            border: 1.5px solid rgba(139, 92, 246, 0.4);
+            border-radius: 16px;
+            padding: 16px;
+            min-width: 180px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.1);
+            transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: move;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            position: absolute;
+        }
+        
+        .drawflow .drawflow-node:active {
+            border-color: rgba(139, 92, 246, 0.6);
+            box-shadow: 0 12px 48px rgba(139, 92, 246, 0.3), 0 0 0 1px rgba(139, 92, 246, 0.2);
+            cursor: move;
+            z-index: 9999;
+        }
+        
+        .drawflow .drawflow-node.selected {
+            border-color: rgba(139, 92, 246, 0.8);
+            box-shadow: 0 12px 48px rgba(139, 92, 246, 0.4), 0 0 32px rgba(139, 92, 246, 0.2);
+            background: linear-gradient(135deg, rgba(31, 41, 55, 1) 0%, rgba(17, 24, 39, 1) 100%);
+            cursor: move;
+        }
+        
+        .drawflow .drawflow-node.dragging {
+            opacity: 0.8;
+            z-index: 9999 !important;
+            box-shadow: 0 16px 64px rgba(139, 92, 246, 0.5), 0 0 48px rgba(139, 92, 246, 0.3);
+        }
+        
+        .drawflow .drawflow-node .title {
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #f9fafb;
+            font-size: 15px;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .drawflow .drawflow-node .title .node-icon {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+        
+        .drawflow .drawflow-node .content {
+            color: #9ca3af;
+            font-size: 12px;
+            font-weight: 400;
+            line-height: 1.5;
+        }
+        
+        /* Style des connexions */
+        .drawflow .connection .main-path {
+            stroke: rgba(139, 92, 246, 0.6);
+            stroke-width: 2.5;
+            fill: none;
+            filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.4));
+        }
+        
+        .drawflow .connection .main-path:hover {
+            stroke: rgba(139, 92, 246, 0.9);
+            stroke-width: 3;
+        }
+        
+        /* Style des points de connexion */
+        .drawflow .drawflow-node .input,
+        .drawflow .drawflow-node .output {
+            border: 2px solid rgba(139, 92, 246, 0.5);
+            background: #1a1d29;
+            width: 14px;
+            height: 14px;
+            transition: all 0.2s ease;
+        }
+        
+        .drawflow .drawflow-node .input:hover,
+        .drawflow .drawflow-node .output:hover {
+            background: rgba(139, 92, 246, 0.8);
+            border-color: #8b5cf6;
+            transform: scale(1.3);
+            box-shadow: 0 0 12px rgba(139, 92, 246, 0.6);
+        }
+        
+        /* Contrôles de zoom */
+        .zoom-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 1000;
+        }
+        
+        .zoom-btn {
+            width: 44px;
+            height: 44px;
+            background: rgba(139, 92, 246, 0.9);
+            border: 1px solid rgba(139, 92, 246, 0.5);
+            border-radius: 12px;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+        
+        .zoom-btn:active {
+            background: rgba(139, 92, 246, 1);
+            transform: scale(0.95);
+        }
+        
+        .zoom-level {
+            width: 44px;
+            padding: 8px 4px;
+            background: rgba(17, 24, 39, 0.9);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 8px;
+            color: #f9fafb;
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="drawflow"></div>
+    
+    <!-- Contrôles de zoom -->
+    <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoomIn()">+</button>
+        <div class="zoom-level" id="zoom-level">100%</div>
+        <button class="zoom-btn" onclick="zoomOut()">−</button>
+        <button class="zoom-btn" onclick="resetZoom()">⊙</button>
+    </div>
+    
+    <script>
+        // Variables de zoom
+        let currentZoom = 1;
+        const zoomStep = 0.1;
+        const minZoom = 0.5;
+        const maxZoom = 3;
+        
+        // Init Drawflow
+        const container = document.getElementById('drawflow');
+        const editor = new Drawflow(container);
+        editor.reroute = true;
+        editor.curvature = 0.5;
+        editor.reroute_curvature_start_end = 0.5;
+        editor.reroute_curvature = 0.5;
+        editor.force_first_input = false;
+        editor.editor_mode = 'edit';
+        editor.zoom = currentZoom;
+        editor.zoom_max = maxZoom;
+        editor.zoom_min = minZoom;
+        editor.zoom_value = zoomStep;
+        editor.start();
+        
+        // Amélioration de la gestion tactile pour le déplacement des nœuds
+        let isDraggingNode = false;
+        let draggedNode = null;
+        let startX = 0;
+        let startY = 0;
+        let nodeStartX = 0;
+        let nodeStartY = 0;
+        
+        // Intercepter les événements tactiles pour les nœuds
+        document.addEventListener('touchstart', function(e) {
+            const target = e.target.closest('.drawflow-node');
+            if (target && !e.target.closest('.input') && !e.target.closest('.output')) {
+                isDraggingNode = true;
+                draggedNode = target;
+                draggedNode.classList.add('dragging');
+                const touch = e.touches[0];
+                startX = touch.clientX;
+                startY = touch.clientY;
+                
+                // Récupérer la position actuelle du nœud
+                const nodeId = target.id.replace('node-', '');
+                const nodeData = editor.drawflow.drawflow.Home.data[nodeId];
+                if (nodeData) {
+                    nodeStartX = nodeData.pos_x;
+                    nodeStartY = nodeData.pos_y;
+                }
+                
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }, { passive: false });
+        
+        document.addEventListener('touchmove', function(e) {
+            if (isDraggingNode && draggedNode) {
+                const touch = e.touches[0];
+                const deltaX = (touch.clientX - startX) / currentZoom;
+                const deltaY = (touch.clientY - startY) / currentZoom;
+                
+                const newX = nodeStartX + deltaX;
+                const newY = nodeStartY + deltaY;
+                
+                // Mettre à jour la position du nœud
+                draggedNode.style.left = newX + 'px';
+                draggedNode.style.top = newY + 'px';
+                
+                // Mettre à jour les connexions
+                const nodeId = draggedNode.id.replace('node-', '');
+                if (editor.drawflow.drawflow.Home.data[nodeId]) {
+                    editor.drawflow.drawflow.Home.data[nodeId].pos_x = newX;
+                    editor.drawflow.drawflow.Home.data[nodeId].pos_y = newY;
+                    editor.updateConnectionNodes('node-' + nodeId);
+                }
+                
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }, { passive: false });
+        
+        document.addEventListener('touchend', function(e) {
+            if (isDraggingNode && draggedNode) {
+                draggedNode.classList.remove('dragging');
+                isDraggingNode = false;
+                draggedNode = null;
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }, { passive: false });
+        
+        document.addEventListener('touchcancel', function(e) {
+            if (isDraggingNode && draggedNode) {
+                draggedNode.classList.remove('dragging');
+                isDraggingNode = false;
+                draggedNode = null;
+            }
+        }, { passive: false });
+        
+        // Empêcher le comportement par défaut du navigateur
+        document.addEventListener('touchmove', function(e) {
+            if (e.target.closest('.drawflow-node') || e.target.closest('.zoom-controls')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        // Fonctions de zoom
+        function zoomIn() {
+            if (currentZoom < maxZoom) {
+                currentZoom = Math.min(currentZoom + zoomStep, maxZoom);
+                applyZoom();
+            }
+        }
+        
+        function zoomOut() {
+            if (currentZoom > minZoom) {
+                currentZoom = Math.max(currentZoom - zoomStep, minZoom);
+                applyZoom();
+            }
+        }
+        
+        function resetZoom() {
+            currentZoom = 1;
+            applyZoom();
+            // Recentrer la vue
+            editor.canvas_x = 0;
+            editor.canvas_y = 0;
+            editor.precanvas.style.transform = `translate(0px, 0px) scale(1)`;
+        }
+        
+        function applyZoom() {
+            editor.zoom = currentZoom;
+            const transform = editor.precanvas.style.transform;
+            const translateMatch = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+            const translateX = translateMatch ? translateMatch[1] : '0px';
+            const translateY = translateMatch ? translateMatch[2] : '0px';
+            editor.precanvas.style.transform = `translate(${translateX}, ${translateY}) scale(${currentZoom})`;
+            updateZoomDisplay();
+        }
+        
+        function updateZoomDisplay() {
+            document.getElementById('zoom-level').textContent = Math.round(currentZoom * 100) + '%';
+        }
+
+        // Notify RN that WebView is ready
+        if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'READY',
+                payload: { timestamp: Date.now() }
+            }));
+        }
+
+        // Add node helper - coordonnées auto-centrées
+        function addNode(type) {
+            const nodeData = getNodeTemplate(type);
+            const x = Math.random() * 300 + 100; // Position aléatoire
+            const y = Math.random() * 200 + 100;
+            
+            const nodeId = editor.addNode(
+                nodeData.name,
+                nodeData.inputs,
+                nodeData.outputs,
+                x,
+                y,
+                nodeData.class,
+                nodeData.data,
+                nodeData.html
+            );
+            
+            console.log(`Node ${type} added with ID: ${nodeId}`);
+        }
+
+        // Templates de nœuds
+        function getNodeTemplate(type) {
+            switch(type) {
+                case 'texture':
+                    return {
+                        name: 'texture',
+                        inputs: 0,
+                        outputs: 1,
+                        class: 'texture-node',
+                        data: { type: 'texture', filepath: 'texture.png' },
+                        html: '<div class="title"><span class="node-icon">🖼</span> Texture</div><div class="content">Output: RGB</div>'
+                    };
+                case 'mix':
+                    return {
+                        name: 'mix',
+                        inputs: 2,
+                        outputs: 1,
+                        class: 'mix-node',
+                        data: { type: 'mix', factor: 0.5 },
+                        html: '<div class="title"><span class="node-icon">🎨</span> Mix</div><div class="content">Factor: 0.5</div>'
+                    };
+                case 'color':
+                    return {
+                        name: 'color',
+                        inputs: 0,
+                        outputs: 1,
+                        class: 'color-node',
+                        data: { type: 'color', r: 1.0, g: 1.0, b: 1.0 },
+                        html: '<div class="title"><span class="node-icon">🌈</span> Color</div><div class="content">RGB (1, 1, 1)</div>'
+                    };
+                case 'math':
+                    return {
+                        name: 'math',
+                        inputs: 2,
+                        outputs: 1,
+                        class: 'math-node',
+                        data: { type: 'math', operation: 'add' },
+                        html: '<div class="title"><span class="node-icon">∑</span> Math</div><div class="content">Operation: Add</div>'
+                    };
+                case 'output':
+                    return {
+                        name: 'output',
+                        inputs: 1,
+                        outputs: 0,
+                        class: 'output-node',
+                        data: { type: 'output' },
+                        html: '<div class="title"><span class="node-icon">⇥</span> Output</div><div class="content">Final Result</div>'
+                    };
+                default:
+                    return {
+                        name: 'node',
+                        inputs: 1,
+                        outputs: 1,
+                        class: 'default-node',
+                        data: { type: 'default' },
+                        html: '<div class="title">Node</div>'
+                    };
+            }
+        }
+
+        // Export graph vers RN
+        function exportGraph() {
+            const data = editor.export();
+            if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'EXPORT',
+                    payload: data
+                }));
+                console.log('Graph exported to RN');
+            }
+        }
+
+        // Import graph (demande à RN de fournir les données)
+        function importGraph() {
+            if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'REQUEST_IMPORT',
+                    payload: {}
+                }));
+            }
+        }
+
+        // Clear graph
+        function clearGraph() {
+            editor.clear();
+            console.log('Graph cleared');
+        }
+
+        // Écoute des messages depuis RN (supporte window et document)
+        function setupMessageListener() {
+            const messageHandler = function(event) {
+                try {
+                    const message = JSON.parse(event.data);
+                    handleRNMessage(message);
+                } catch (e) {
+                    console.error('Failed to parse message:', e);
+                }
+            };
+            
+            // Pour React Native WebView
+            document.addEventListener('message', messageHandler);
+            // Pour web standard
+            window.addEventListener('message', messageHandler);
+            
+            console.log('Message listeners set up');
+        }
+        
+        setupMessageListener();
+
+        // Handler des messages RN
+        function handleRNMessage(message) {
+            console.log('Received from RN:', message.type);
+            
+            switch(message.type) {
+                case 'LOAD_GRAPH':
+                    // Charger un graph complet
+                    if (message.payload && message.payload.drawflow) {
+                        editor.import(message.payload);
+                        if (window.ReactNativeWebView) {
+                            window.ReactNativeWebView.postMessage(JSON.stringify({
+                                type: 'IMPORTED',
+                                payload: { success: true }
+                            }));
+                        }
+                    }
+                    break;
+                    
+                case 'ADD_NODE':
+                    // Ajouter un nœud avec paramètres
+                    const { nodeType, x, y, data } = message.payload;
+                    const template = getNodeTemplate(nodeType || 'texture');
+                    editor.addNode(
+                        template.name,
+                        template.inputs,
+                        template.outputs,
+                        x || Math.random() * 300 + 100,
+                        y || Math.random() * 200 + 100,
+                        template.class,
+                        data || template.data,
+                        template.html
+                    );
+                    break;
+                    
+                case 'CLEAR':
+                    clearGraph();
+                    break;
+                    
+                case 'REQUEST_EXPORT':
+                    exportGraph();
+                    break;
+                    
+                default:
+                    console.warn('Unknown message type:', message.type);
+            }
+        }
+
+        // Log pour debug
+        editor.on('nodeCreated', function(id) {
+            console.log('Node created:', id);
+        });
+
+        editor.on('nodeRemoved', function(id) {
+            console.log('Node removed:', id);
+        });
+
+        editor.on('connectionCreated', function(connection) {
+            console.log('Connection created:', connection);
+        });
+    </script>
+</body>
+</html>
