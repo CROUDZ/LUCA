@@ -3,24 +3,12 @@
  * Convertit le JSON Drawflow en modèle de graphe et effectue tri topologique
  */
 
-export interface Node {
-  id: number;
-  name: string;
-  type: string;
-  data: any;
-  inputs: number[];  // IDs des nœuds sources
-  outputs: number[]; // IDs des nœuds cibles
-}
-
-export interface Graph {
-  nodes: Map<number, Node>;
-  edges: Array<{ from: number; to: number }>;
-}
+import type { Graph, GraphNode, DrawflowExport, DrawflowNodeData } from '../types';
 
 /**
  * Parse un export Drawflow JSON vers un modèle de graphe
  */
-export function parseDrawflowGraph(drawflowData: any): Graph {
+export function parseDrawflowGraph(drawflowData: DrawflowExport): Graph {
   const graph: Graph = {
     nodes: new Map(),
     edges: [],
@@ -31,19 +19,20 @@ export function parseDrawflowGraph(drawflowData: any): Graph {
 
   // Construire les nœuds
   for (const [nodeId, nodeData] of Object.entries(moduleData)) {
-    const node: Node = {
+    const typedNodeData = nodeData as DrawflowNodeData;
+    const node: GraphNode = {
       id: parseInt(nodeId, 10),
-      name: (nodeData as any).name || 'unknown',
-      type: (nodeData as any).data?.type || 'default',
-      data: (nodeData as any).data || {},
+      name: typedNodeData.name || 'unknown',
+      type: typedNodeData.data?.type || 'default',
+      data: typedNodeData.data || {},
       inputs: [],
       outputs: [],
     };
 
     // Parser les outputs pour construire les edges
-    const outputs = (nodeData as any).outputs || {};
+    const outputs = typedNodeData.outputs || {};
     for (const [_outputKey, outputData] of Object.entries(outputs)) {
-      const connections = (outputData as any).connections || [];
+      const connections = outputData.connections || [];
       for (const conn of connections) {
         const targetNodeId = parseInt(conn.node, 10);
         node.outputs.push(targetNodeId);
@@ -72,7 +61,7 @@ export function parseDrawflowGraph(drawflowData: any): Graph {
 export function topologicalSort(graph: Graph): number[] | null {
   const sorted: number[] = [];
   const inDegree = new Map<number, number>();
-  
+
   // Init in-degree
   for (const [nodeId] of graph.nodes) {
     inDegree.set(nodeId, 0);
@@ -109,13 +98,13 @@ export function topologicalSort(graph: Graph): number[] | null {
 /**
  * Exporte le graphe vers le format Drawflow (minimal)
  */
-export function exportToDrawflow(graph: Graph): any {
-  const data: any = {};
+export function exportToDrawflow(graph: Graph): DrawflowExport {
+  const data: Record<string, any> = {};
 
   for (const [nodeId, node] of graph.nodes) {
-    const outputs: any = {};
+    const outputs: Record<string, any> = {};
     let outputIndex = 1;
-    
+
     for (const targetId of node.outputs) {
       outputs[`output_${outputIndex}`] = {
         connections: [{ node: targetId.toString(), output: 'input_1' }],
@@ -123,7 +112,7 @@ export function exportToDrawflow(graph: Graph): any {
       outputIndex++;
     }
 
-    const inputs: any = {};
+    const inputs: Record<string, any> = {};
     let inputIndex = 1;
     for (const sourceId of node.inputs) {
       inputs[`input_${inputIndex}`] = {
@@ -154,10 +143,48 @@ export function exportToDrawflow(graph: Graph): any {
 }
 
 /**
- * Exemple d'utilisation:
- * 
- * import exampleGraph from '../exampleGraph.json';
- * const graph = parseDrawflowGraph(exampleGraph);
- * const order = topologicalSort(graph);
- * console.log('Evaluation order:', order);
+ * Valider un graphe (vérifier qu'il n'y a pas de cycles)
  */
+export function validateGraph(graph: Graph): { valid: boolean; error?: string } {
+  const order = topologicalSort(graph);
+
+  if (order === null) {
+    return { valid: false, error: 'Cycle detected in graph' };
+  }
+
+  if (order.length !== graph.nodes.size) {
+    return { valid: false, error: 'Graph contains disconnected nodes' };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Trouver les nœuds sources (sans inputs)
+ */
+export function findSourceNodes(graph: Graph): GraphNode[] {
+  const sources: GraphNode[] = [];
+
+  for (const node of graph.nodes.values()) {
+    if (node.inputs.length === 0) {
+      sources.push(node);
+    }
+  }
+
+  return sources;
+}
+
+/**
+ * Trouver les nœuds de sortie (sans outputs)
+ */
+export function findOutputNodes(graph: Graph): GraphNode[] {
+  const outputs: GraphNode[] = [];
+
+  for (const node of graph.nodes.values()) {
+    if (node.outputs.length === 0) {
+      outputs.push(node);
+    }
+  }
+
+  return outputs;
+}
