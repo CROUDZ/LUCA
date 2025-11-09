@@ -2,6 +2,9 @@
  * Types centralisés pour l'application LUCA
  */
 
+// Export des types de nodes
+export * from './node.types';
+
 // ============================================================================
 // Types de messages WebView
 // ============================================================================
@@ -14,7 +17,10 @@ export type WebViewMessageType =
   | 'LOAD_GRAPH'
   | 'ADD_NODE'
   | 'CLEAR'
-  | 'REQUEST_EXPORT';
+  | 'REQUEST_EXPORT'
+  | 'NODE_ADDED'
+  | 'NODE_REMOVED'
+  | 'NODES_LIST';
 
 export interface WebViewMessage<T = any> {
   type: WebViewMessageType;

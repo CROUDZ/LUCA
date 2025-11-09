@@ -3,7 +3,16 @@
  * Convertit le JSON Drawflow en modèle de graphe et effectue tri topologique
  */
 
-import type { Graph, GraphNode, DrawflowExport, DrawflowNodeData } from '../types';
+import type { 
+  Graph, 
+  GraphNode, 
+  DrawflowExport, 
+  DrawflowNodeData,
+  NodeExecutionContext,
+  NodeExecutionResult,
+  EvaluationResult,
+} from '../types';
+import { nodeRegistry } from './NodeRegistry';
 
 /**
  * Parse un export Drawflow JSON vers un modèle de graphe
@@ -187,4 +196,93 @@ export function findOutputNodes(graph: Graph): GraphNode[] {
   }
 
   return outputs;
+}
+
+/**
+ * Exécuter le graphe en utilisant le NodeRegistry
+ */
+export async function executeGraph(graph: Graph): Promise<EvaluationResult> {
+  const result: EvaluationResult = {
+    success: true,
+    values: new Map(),
+    errors: new Map(),
+    executionOrder: [],
+  };
+
+  // Obtenir l'ordre d'exécution (tri topologique)
+  const order = topologicalSort(graph);
+
+  if (!order) {
+    result.success = false;
+    return result;
+  }
+
+  result.executionOrder = order;
+
+  // Exécuter chaque node dans l'ordre
+  for (const nodeId of order) {
+    const node = graph.nodes.get(nodeId);
+    if (!node) continue;
+
+    // Récupérer la définition de la node depuis le registry
+    const nodeDefinition = nodeRegistry.getNode(node.type);
+    
+    if (!nodeDefinition) {
+      result.errors.set(nodeId, new Error(`Node type "${node.type}" not found in registry`));
+      result.success = false;
+      continue;
+    }
+
+    try {
+      // Préparer les inputs de la node
+      const inputs: Record<string, any> = {};
+      
+      for (const inputNodeId of node.inputs) {
+        const inputValue = result.values.get(inputNodeId);
+        if (inputValue !== undefined) {
+          // Pour simplifier, on utilise la première sortie
+          inputs[`input_${inputNodeId}`] = inputValue;
+        }
+      }
+
+      // Créer le contexte d'exécution
+      const context: NodeExecutionContext = {
+        nodeId: node.id,
+        inputs,
+        settings: node.data || {},
+        log: (message: string) => {
+          console.log(`[Node ${nodeId}] ${message}`);
+        },
+      };
+
+      // Valider si une fonction de validation existe
+      if (nodeDefinition.validate) {
+        const validation = nodeDefinition.validate(context);
+        if (validation !== true) {
+          throw new Error(typeof validation === 'string' ? validation : 'Validation failed');
+        }
+      }
+
+      // Exécuter la node
+      const executionResult: NodeExecutionResult = await Promise.resolve(
+        nodeDefinition.execute(context)
+      );
+
+      if (!executionResult.success) {
+        throw new Error(executionResult.error || 'Execution failed');
+      }
+
+      // Stocker les résultats
+      // Pour simplifier, on stocke la première sortie
+      const outputValue = executionResult.outputs[Object.keys(executionResult.outputs)[0]];
+      result.values.set(nodeId, outputValue);
+
+    } catch (error) {
+      result.errors.set(nodeId, error as Error);
+      result.success = false;
+      console.error(`Error executing node ${nodeId}:`, error);
+    }
+  }
+
+  return result;
 }

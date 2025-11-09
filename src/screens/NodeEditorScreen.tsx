@@ -25,6 +25,7 @@ import type { DrawflowExport } from '../types';
 import styles from './NodeEditorScreenStyles';
 import SaveMenu from '../components/SaveMenu';
 import NodePicker from '../components/NodePicker';
+import { nodeInstanceTracker } from '../engine/NodeInstanceTracker';
 
 const NodeEditorScreen: React.FC = () => {
   // États locaux pour l'UI
@@ -110,6 +111,8 @@ const NodeEditorScreen: React.FC = () => {
     (saveId: string) => {
       const save = loadSave(saveId);
       if (save) {
+        // Reset le tracker avant de charger
+        nodeInstanceTracker.reset();
         loadGraph(save.data);
         setShowSaveMenu(false);
         Alert.alert('Loaded', `Loaded "${save.name}"`);
@@ -148,6 +151,7 @@ const NodeEditorScreen: React.FC = () => {
       const y =
         Math.random() * APP_CONFIG.nodes.randomOffsetRange + APP_CONFIG.nodes.defaultPosition.y;
 
+      console.log('➕ Adding node:', nodeType);
       addNode(nodeType, x, y, { type: nodeType });
     },
     [addNode]
@@ -165,6 +169,8 @@ const NodeEditorScreen: React.FC = () => {
         onPress: () => {
           clearWebViewGraph();
           setCurrentSaveId(null);
+          nodeInstanceTracker.reset(); // Reset tous les compteurs
+          console.log('🗑️ Graph cleared');
         },
       },
     ]);
@@ -269,7 +275,10 @@ const NodeEditorScreen: React.FC = () => {
         onLoadSave={handleLoadSave}
         onDeleteSave={handleDeleteSave}
       />
-      <NodePicker isReady={isReady} onAddNode={handleAddNode} />
+      <NodePicker 
+        isReady={isReady} 
+        onAddNode={handleAddNode}
+      />
     </View>
   );
 };
