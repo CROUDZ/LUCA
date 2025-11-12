@@ -1,11 +1,11 @@
 /**
  * TriggerNode - Node déclencheur de signal
- * 
+ *
  * Catégorie: Input
- * 
+ *
  * Cette node permet de déclencher manuellement un signal dans le graphe.
  * C'est le point de départ pour tester les chaînes de nodes avec le système de signaux.
- * 
+ *
  * Fonctionnement:
  * - N'a pas d'anchor d'entrée (node source)
  * - Possède un anchor de sortie
@@ -14,10 +14,10 @@
  */
 
 import { registerNode } from '../NodeRegistry';
-import type { 
-  NodeDefinition, 
-  NodeExecutionContext, 
-  NodeExecutionResult 
+import type {
+  NodeDefinition,
+  NodeExecutionContext,
+  NodeExecutionResult,
 } from '../../types/node.types';
 import { getSignalSystem } from '../SignalSystem';
 
@@ -29,7 +29,7 @@ const triggerNodes = new Map<number, () => void>();
  */
 export function triggerNode(nodeId: number, data?: any): void {
   console.log(`[Trigger] Déclenchement manuel de la node ${nodeId}`);
-  
+
   const signalSystem = getSignalSystem();
   if (!signalSystem) {
     console.error('[Trigger] Signal system not initialized');
@@ -45,7 +45,7 @@ export function triggerNode(nodeId: number, data?: any): void {
  */
 export function triggerAll(data?: any): void {
   console.log('[Trigger] Déclenchement de toutes les nodes trigger');
-  
+
   const signalSystem = getSignalSystem();
   if (!signalSystem) {
     console.error('[Trigger] Signal system not initialized');
@@ -116,7 +116,9 @@ const TriggerNode: NodeDefinition = {
 
       // Auto-déclenchement si activé
       if (autoTrigger) {
-        console.log(`[Trigger Node ${context.nodeId}] Auto-déclenchement dans ${autoTriggerDelay}ms`);
+        console.log(
+          `[Trigger Node ${context.nodeId}] Auto-déclenchement dans ${autoTriggerDelay}ms`
+        );
         setTimeout(() => {
           triggerNode(context.nodeId, triggerData);
         }, autoTriggerDelay);

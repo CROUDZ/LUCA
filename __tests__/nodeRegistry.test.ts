@@ -135,7 +135,7 @@ describe('NodeRegistry', () => {
 
       const mathNodes = nodeRegistry.getNodesByCategory('Math');
       expect(mathNodes.length).toBe(2);
-      expect(mathNodes.every(node => node.category === 'Math')).toBe(true);
+      expect(mathNodes.every((node) => node.category === 'Math')).toBe(true);
 
       const textNodes = nodeRegistry.getNodesByCategory('Text');
       expect(textNodes.length).toBe(1);
@@ -216,12 +216,8 @@ describe('Node Execution', () => {
       category: 'Test',
       icon: 'test',
       iconFamily: 'material',
-      inputs: [
-        { name: 'value', type: 'number', label: 'Value' },
-      ],
-      outputs: [
-        { name: 'result', type: 'number', label: 'Result' },
-      ],
+      inputs: [{ name: 'value', type: 'number', label: 'Value' }],
+      outputs: [{ name: 'result', type: 'number', label: 'Result' }],
       execute: (context) => {
         const result = context.inputs.value * 2;
         return { outputs: { result }, success: true };
@@ -279,9 +275,7 @@ describe('Node Execution', () => {
       category: 'Test',
       icon: 'test',
       iconFamily: 'material',
-      inputs: [
-        { name: 'value', type: 'number', label: 'Value', required: true },
-      ],
+      inputs: [{ name: 'value', type: 'number', label: 'Value', required: true }],
       outputs: [],
       validate: (context) => {
         if (!context.inputs.value) {

@@ -17,7 +17,17 @@ describe('Signal System', () => {
     graph = {
       nodes: new Map([
         [1, { id: 1, name: 'Trigger', type: 'input.trigger', data: {}, inputs: [], outputs: [2] }],
-        [2, { id: 2, name: 'FlashLight', type: 'condition.flashlight', data: {}, inputs: [1], outputs: [3] }],
+        [
+          2,
+          {
+            id: 2,
+            name: 'FlashLight',
+            type: 'condition.flashlight',
+            data: {},
+            inputs: [1],
+            outputs: [3],
+          },
+        ],
         [3, { id: 3, name: 'Ping', type: 'action.ping', data: {}, inputs: [2], outputs: [] }],
       ]),
       edges: [
@@ -43,7 +53,7 @@ describe('Signal System', () => {
     triggerNode(1, { test: 'data' });
 
     // Attendre la propagation
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Vérifier que le ping a été exécuté
     expect(getPingCount()).toBe(1);
@@ -57,7 +67,7 @@ describe('Signal System', () => {
     triggerNode(1, { test: 'data' });
 
     // Attendre
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Vérifier que le ping n'a PAS été exécuté
     expect(getPingCount()).toBe(0);
@@ -72,7 +82,7 @@ describe('Signal System', () => {
     triggerNode(1);
 
     // Attendre
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     // Vérifier le compteur
     expect(getPingCount()).toBe(3);

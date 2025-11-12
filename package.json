@@ -12,7 +12,7 @@
     "android:clean": "cd android && ./gradlew clean && cd ..",
     "android:install": "npm run android:clean && npm run android",
     "android:release": "cd android && ./gradlew assembleRelease && cd ..",
-    "build":"./scripts/build-debug-apk.sh",
+    "build": "./scripts/build-debug-apk.sh",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",

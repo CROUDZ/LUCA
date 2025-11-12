@@ -1,9 +1,9 @@
 /**
  * Hook React pour utiliser le système de signaux
- * 
+ *
  * Utilisation:
- * 
- * const { 
+ *
+ * const {
  *   initSystem,
  *   triggerSignal,
  *   setFlashlight,
@@ -73,7 +73,7 @@ export function useSignalSystem(): UseSignalSystemReturn {
 
       return graph;
     } catch (error) {
-      console.error('[useSignalSystem] Erreur lors de l\'initialisation:', error);
+      console.error("[useSignalSystem] Erreur lors de l'initialisation:", error);
       return null;
     }
   }, []);
@@ -98,21 +98,24 @@ export function useSignalSystem(): UseSignalSystemReturn {
   }, []);
 
   // Déclencher un signal
-  const triggerSignal = useCallback((nodeId: number, data?: any) => {
-    if (!isInitialized) {
-      console.warn('[useSignalSystem] Système non initialisé');
-      return;
-    }
+  const triggerSignal = useCallback(
+    (nodeId: number, data?: any) => {
+      if (!isInitialized) {
+        console.warn('[useSignalSystem] Système non initialisé');
+        return;
+      }
 
-    triggerNode(nodeId, data);
-    console.log('[useSignalSystem] Signal déclenché depuis node', nodeId);
+      triggerNode(nodeId, data);
+      console.log('[useSignalSystem] Signal déclenché depuis node', nodeId);
 
-    // Rafraîchir les stats après un délai
-    setTimeout(() => {
-      setPingCount(getPingCount());
-      refreshStats();
-    }, 100);
-  }, [isInitialized, refreshStats]);
+      // Rafraîchir les stats après un délai
+      setTimeout(() => {
+        setPingCount(getPingCount());
+        refreshStats();
+      }, 100);
+    },
+    [isInitialized, refreshStats]
+  );
 
   // Contrôler la lampe torche
   const setFlashlight = useCallback((enabled: boolean) => {

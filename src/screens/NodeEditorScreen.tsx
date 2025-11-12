@@ -4,12 +4,7 @@
  */
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import {
-  View,
-  TouchableOpacity,
-  Text,
-  Alert,
-} from 'react-native';
+import { View, TouchableOpacity, Text, Alert } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -34,10 +29,7 @@ import { parseDrawflowGraph } from '../engine/engine';
 import { initializeSignalSystem, resetSignalSystem } from '../engine/SignalSystem';
 import { nodeRegistry } from '../engine/NodeRegistry';
 
-type NodeEditorScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'NodeEditor'
->;
+type NodeEditorScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'NodeEditor'>;
 
 interface NodeEditorScreenProps {
   navigation: NodeEditorScreenNavigationProp;
@@ -102,20 +94,20 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
     if (!currentGraph) return;
 
     console.log('🔄 Initializing signal system...');
-    
+
     // Reset le système
     resetSignalSystem();
-    
+
     // Parser le graphe
     const graph = parseDrawflowGraph(currentGraph);
     console.log(`📊 Parsed graph: ${graph.nodes.size} nodes, ${graph.edges.length} connections`);
-    
+
     // Initialiser le système avec le graphe
     initializeSignalSystem(graph);
-    
+
     // Exécuter tous les nœuds pour enregistrer leurs handlers
     let handlersRegistered = 0;
-    graph.nodes.forEach(node => {
+    graph.nodes.forEach((node) => {
       const nodeDef = nodeRegistry.getNode(node.type);
       if (nodeDef) {
         try {
@@ -130,13 +122,13 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
         }
       }
     });
-    
+
     console.log(`✅ Registered ${handlersRegistered} signal handlers`);
-    
+
     // Trouver tous les nœuds Trigger
     const triggers = Array.from(graph.nodes.values())
-      .filter(n => n.type === 'input.trigger')
-      .map(n => n.id);
+      .filter((n) => n.type === 'input.trigger')
+      .map((n) => n.id);
     setTriggerNodeIds(triggers);
     console.log(`🎯 Found ${triggers.length} trigger nodes:`, triggers);
   }, [currentGraph]);
@@ -275,9 +267,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
       />
 
       {/* Contrôles du système de signaux */}
-      {currentGraph && (
-        <SignalControls visible={true} triggerNodeIds={triggerNodeIds} />
-      )}
+      {currentGraph && <SignalControls visible={true} triggerNodeIds={triggerNodeIds} />}
 
       {/* Contrôles React Native */}
       <View style={styles.controls}>

@@ -42,16 +42,10 @@ const SaveMenu: React.FC<SaveMenuProps> = ({
   onLoadSave,
   onDeleteSave,
 }) => {
-
   return (
     <>
       {/* Menu de gestion des sauvegardes */}
-      <Modal
-        visible={visible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={onClose}
-      >
+      <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalTitleRow}>
@@ -112,10 +106,7 @@ const SaveMenu: React.FC<SaveMenuProps> = ({
                     key={save.id}
                     style={[styles.saveItem, currentSaveId === save.id && styles.saveItemActive]}
                   >
-                    <Pressable
-                      style={styles.saveItemContent}
-                      onPress={() => onLoadSave(save.id)}
-                    >
+                    <Pressable style={styles.saveItemContent} onPress={() => onLoadSave(save.id)}>
                       <View style={styles.saveNameRow}>
                         {currentSaveId === save.id && (
                           <Icon

@@ -1,6 +1,6 @@
 /**
  * DemoNode - Node d'exemple démontrant TOUTES les fonctionnalités disponibles
- * 
+ *
  * Cette node démontre :
  * - Tous les types d'inputs/outputs possibles
  * - Plusieurs modes de fonctionnement
@@ -13,10 +13,10 @@
  */
 
 import { registerNode } from '../NodeRegistry';
-import type { 
-  NodeDefinition, 
-  NodeExecutionContext, 
-  NodeExecutionResult 
+import type {
+  NodeDefinition,
+  NodeExecutionContext,
+  NodeExecutionResult,
 } from '../../types/node.types';
 
 const DemoNode: NodeDefinition = {
@@ -25,7 +25,8 @@ const DemoNode: NodeDefinition = {
   // ============================================================================
   id: 'demo.complete',
   name: 'Demo Complete',
-  description: 'Demonstrates all available node features: inputs/outputs, modes, validation, limits, async execution',
+  description:
+    'Demonstrates all available node features: inputs/outputs, modes, validation, limits, async execution',
   category: 'Demo',
 
   // ============================================================================
@@ -38,7 +39,7 @@ const DemoNode: NodeDefinition = {
   // ============================================================================
   // LIMITES (OPTIONNELLES)
   // ============================================================================
-  maxInstances: 5,      // Maximum 5 instances de cette node dans le graphe
+  maxInstances: 5, // Maximum 5 instances de cette node dans le graphe
 
   // ============================================================================
   // INPUTS - Tous les types possibles
@@ -133,10 +134,10 @@ const DemoNode: NodeDefinition = {
   // CONFIGURATION - Paramètres par défaut
   // ============================================================================
   defaultSettings: {
-    mode: 'uppercase',        // Mode de traitement
-    multiplier: 2,            // Multiplicateur pour le mode repeat
-    async: false,             // Mode asynchrone
-    delay: 1000,              // Délai en ms pour le mode async
+    mode: 'uppercase', // Mode de traitement
+    multiplier: 2, // Multiplicateur pour le mode repeat
+    async: false, // Mode asynchrone
+    delay: 1000, // Délai en ms pour le mode async
   },
 
   // ============================================================================
@@ -200,7 +201,7 @@ const DemoNode: NodeDefinition = {
       // Si mode async, attendre
       if (isAsync) {
         console.log(`⏳ DemoNode: Waiting ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
 
       // Traiter selon le mode
@@ -268,10 +269,9 @@ const DemoNode: NodeDefinition = {
           timestamp: Date.now(),
         },
       };
-
     } catch (error) {
       console.error('❌ DemoNode error:', error);
-      
+
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),

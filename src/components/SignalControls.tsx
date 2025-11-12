@@ -1,6 +1,6 @@
 /**
  * SignalControls - Composant de contrôle du système de signaux
- * 
+ *
  * Permet de :
  * - Activer/désactiver la flashlight
  * - Déclencher des signaux manuellement
@@ -10,16 +10,9 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { 
-  setFlashlightState, 
-  getFlashlightState 
-} from '../engine/nodes/FlashLightNode';
-import { 
-  triggerNode 
-} from '../engine/nodes/TriggerNode';
-import { 
-  getPingCount 
-} from '../engine/nodes/PingNode';
+import { setFlashlightState, getFlashlightState } from '../engine/nodes/FlashLightNode';
+import { triggerNode } from '../engine/nodes/TriggerNode';
+import { getPingCount } from '../engine/nodes/PingNode';
 
 interface SignalControlsProps {
   visible: boolean;
@@ -54,7 +47,7 @@ const SignalControls: React.FC<SignalControlsProps> = ({ visible, triggerNodeIds
     }
 
     // Déclencher toutes les nodes trigger
-    triggerNodeIds.forEach(nodeId => {
+    triggerNodeIds.forEach((nodeId) => {
       console.log('🚀 Triggering node:', nodeId);
       triggerNode(nodeId, { timestamp: Date.now() });
     });
@@ -72,21 +65,16 @@ const SignalControls: React.FC<SignalControlsProps> = ({ visible, triggerNodeIds
       <View style={styles.controls}>
         {/* Flashlight Toggle */}
         <TouchableOpacity
-          style={[
-            styles.controlButton,
-            flashlightOn ? styles.flashlightOn : styles.flashlightOff
-          ]}
+          style={[styles.controlButton, flashlightOn ? styles.flashlightOn : styles.flashlightOff]}
           onPress={toggleFlashlight}
           activeOpacity={0.7}
         >
-          <Icon 
-            name={flashlightOn ? 'flashlight-on' : 'flashlight-off'} 
-            size={20} 
-            color="#ffffff" 
+          <Icon
+            name={flashlightOn ? 'flashlight-on' : 'flashlight-off'}
+            size={20}
+            color="#ffffff"
           />
-          <Text style={styles.controlButtonText}>
-            Flashlight {flashlightOn ? 'ON' : 'OFF'}
-          </Text>
+          <Text style={styles.controlButtonText}>Flashlight {flashlightOn ? 'ON' : 'OFF'}</Text>
         </TouchableOpacity>
 
         {/* Trigger Button */}
@@ -97,9 +85,7 @@ const SignalControls: React.FC<SignalControlsProps> = ({ visible, triggerNodeIds
             activeOpacity={0.7}
           >
             <Icon name="play-arrow" size={20} color="#ffffff" />
-            <Text style={styles.controlButtonText}>
-              Trigger Signal
-            </Text>
+            <Text style={styles.controlButtonText}>Trigger Signal</Text>
           </TouchableOpacity>
         )}
       </View>

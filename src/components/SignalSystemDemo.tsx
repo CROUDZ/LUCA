@@ -1,6 +1,6 @@
 /**
  * Exemple de composant React utilisant le système de signaux
- * 
+ *
  * Ce composant démontre comment intégrer le système de signaux
  * dans une application React Native.
  */
@@ -73,14 +73,8 @@ const exampleGraph: DrawflowExport = {
 };
 
 export default function SignalSystemDemo() {
-  const {
-    isInitialized,
-    initSystem,
-    resetSystem,
-    triggerSignal,
-    resetPings,
-    systemStats,
-  } = useSignalSystem();
+  const { isInitialized, initSystem, resetSystem, triggerSignal, resetPings, systemStats } =
+    useSignalSystem();
 
   const { isOn: flashlightOn, toggle: toggleFlashlight } = useFlashlight();
   const pingCount = usePingCount();
@@ -113,11 +107,7 @@ export default function SignalSystemDemo() {
             value={flashlightOn ? 'ON' : 'OFF'}
             color={flashlightOn ? '#FFC107' : '#9E9E9E'}
           />
-          <StatusItem
-            label="Ping Count"
-            value={pingCount.toString()}
-            color="#2196F3"
-          />
+          <StatusItem label="Ping Count" value={pingCount.toString()} color="#2196F3" />
         </View>
       </View>
 
@@ -126,12 +116,8 @@ export default function SignalSystemDemo() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>📈 System Stats</Text>
           <View style={styles.statsContainer}>
-            <Text style={styles.statText}>
-              Handlers: {systemStats.registeredHandlers}
-            </Text>
-            <Text style={styles.statText}>
-              Queued: {systemStats.queuedSignals}
-            </Text>
+            <Text style={styles.statText}>Handlers: {systemStats.registeredHandlers}</Text>
+            <Text style={styles.statText}>Queued: {systemStats.queuedSignals}</Text>
             <Text style={styles.statText}>
               Processing: {systemStats.isProcessing ? 'Yes' : 'No'}
             </Text>
@@ -180,18 +166,10 @@ export default function SignalSystemDemo() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>ℹ️ How it works</Text>
         <View style={styles.instructionsContainer}>
-          <Text style={styles.instructionText}>
-            1. Toggle the flashlight ON or OFF
-          </Text>
-          <Text style={styles.instructionText}>
-            2. Trigger a signal
-          </Text>
-          <Text style={styles.instructionText}>
-            3. If flashlight is ON, signal reaches Ping
-          </Text>
-          <Text style={styles.instructionText}>
-            4. If flashlight is OFF, signal is blocked
-          </Text>
+          <Text style={styles.instructionText}>1. Toggle the flashlight ON or OFF</Text>
+          <Text style={styles.instructionText}>2. Trigger a signal</Text>
+          <Text style={styles.instructionText}>3. If flashlight is ON, signal reaches Ping</Text>
+          <Text style={styles.instructionText}>4. If flashlight is OFF, signal is blocked</Text>
         </View>
       </View>
     </ScrollView>

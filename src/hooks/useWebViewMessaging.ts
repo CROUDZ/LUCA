@@ -117,7 +117,7 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
     (nodeType: string, x?: number, y?: number, data?: Record<string, any>) => {
       // Récupérer les informations de la node depuis le registry
       const nodeDefinition = nodeRegistry.getNode(nodeType);
-      
+
       let nodeData = null;
       if (nodeDefinition) {
         // Préparer les données pour la WebView
@@ -129,14 +129,16 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
           outputs: nodeDefinition.outputs.length,
           class: `${nodeDefinition.category.toLowerCase()}-node`,
           data: { type: nodeType, ...data },
-          html: nodeDefinition.generateHTML 
+          html: nodeDefinition.generateHTML
             ? nodeDefinition.generateHTML(data || {})
-            : `<div class="title"><span class="node-icon">${nodeDefinition.icon || '📦'}</span> ${nodeDefinition.name}</div><div class="content">${nodeDefinition.description}</div>`
+            : `<div class="title"><span class="node-icon">${nodeDefinition.icon || '📦'}</span> ${
+                nodeDefinition.name
+              }</div><div class="content">${nodeDefinition.description}</div>`,
         };
-        
+
         console.log('📦 Node data prepared:', nodeData);
       }
-      
+
       return sendMessage({
         type: 'ADD_NODE',
         payload: { nodeType, x, y, data, nodeData },

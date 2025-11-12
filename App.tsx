@@ -17,11 +17,17 @@ function App() {
     const stats = nodeRegistry.getStats();
     console.log(`✅ Loaded ${stats.total} nodes across ${stats.categories} categories`);
     console.log('📊 Nodes by category:', stats.byCategory);
-    console.log('📝 All nodes:', nodeRegistry.getAllNodes().map(n => n.name).join(', '));
-    
+    console.log(
+      '📝 All nodes:',
+      nodeRegistry
+        .getAllNodes()
+        .map((n) => n.name)
+        .join(', ')
+    );
+
     // Afficher les détails de chaque node
     const allNodes = nodeRegistry.getAllNodes();
-    allNodes.forEach(node => {
+    allNodes.forEach((node) => {
       console.log(`  - ${node.id} (${node.name}) - Category: ${node.category}`);
     });
   }, []);

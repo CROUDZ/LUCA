@@ -81,18 +81,18 @@ class NodeRegistry {
    * @param nodeTypeId - ID du type de node
    * @returns { canAdd: boolean, reason?: string, currentCount?: number, maxInstances?: number }
    */
-  canAddNode(nodeTypeId: string): { 
-    canAdd: boolean; 
-    reason?: string; 
-    currentCount?: number; 
+  canAddNode(nodeTypeId: string): {
+    canAdd: boolean;
+    reason?: string;
+    currentCount?: number;
     maxInstances?: number;
   } {
     const nodeDefinition = this.getNode(nodeTypeId);
-    
+
     if (!nodeDefinition) {
-      return { 
-        canAdd: false, 
-        reason: `Node type "${nodeTypeId}" not found in registry` 
+      return {
+        canAdd: false,
+        reason: `Node type "${nodeTypeId}" not found in registry`,
       };
     }
 
@@ -119,7 +119,7 @@ class NodeRegistry {
       };
     }
 
-    return { 
+    return {
       canAdd: true,
       currentCount,
       maxInstances: nodeDefinition.maxInstances,
@@ -162,19 +162,19 @@ export function loadAllNodes(): void {
   // Import automatique de tous les fichiers dans le dossier nodes/
   // Note: React Native nécessite des imports explicites, on ne peut pas faire de require.context
   // Donc on va importer manuellement depuis un fichier index.ts dans nodes/
-  
+
   try {
     // Import du fichier index qui charge toutes les nodes
     // Le chemin doit être relatif à ce fichier
     require('./nodes/index');
-    
+
     const stats = nodeRegistry.getStats();
     console.log(`✅ Loaded ${stats.total} nodes across ${stats.categories} categories`);
     console.log('📊 Nodes by category:', stats.byCategory);
-    
+
     // Afficher toutes les nodes chargées
     const allNodes = nodeRegistry.getAllNodes();
-    console.log('📝 Nodes loaded:', allNodes.map(n => n.id).join(', '));
+    console.log('📝 Nodes loaded:', allNodes.map((n) => n.id).join(', '));
   } catch (error) {
     console.error('❌ Error loading nodes:', error);
     console.error('Error details:', error);

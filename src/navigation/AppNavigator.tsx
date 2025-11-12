@@ -19,15 +19,15 @@ const AppNavigator: React.FC = () => {
           contentStyle: { backgroundColor: '#0f1117' },
         }}
       >
-        <Stack.Screen 
-          name="NodeEditor" 
+        <Stack.Screen
+          name="NodeEditor"
           component={NodeEditorScreen}
           options={{
             title: 'Node Editor',
           }}
         />
-        <Stack.Screen 
-          name="NodePicker" 
+        <Stack.Screen
+          name="NodePicker"
           component={NodePickerScreen}
           options={{
             title: 'Add Node',

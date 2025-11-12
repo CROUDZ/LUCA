@@ -1,11 +1,11 @@
 /**
  * FlashLightNode - Node de condition qui vérifie l'état de la lampe torche
- * 
+ *
  * Catégorie: Condition
- * 
+ *
  * Cette node surveille l'état de la lampe torche du téléphone et propage
  * le signal uniquement lorsque la lampe torche est activée.
- * 
+ *
  * Fonctionnement:
  * - Reçoit un signal sur son anchor d'entrée
  * - Vérifie si la lampe torche est activée
@@ -14,10 +14,10 @@
  */
 
 import { registerNode } from '../NodeRegistry';
-import type { 
-  NodeDefinition, 
-  NodeExecutionContext, 
-  NodeExecutionResult 
+import type {
+  NodeDefinition,
+  NodeExecutionContext,
+  NodeExecutionResult,
 } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 
@@ -60,7 +60,7 @@ const FlashLightNode: NodeDefinition = {
       name: 'signal_in',
       type: 'any',
       label: 'Signal In',
-      description: 'Signal d\'entrée',
+      description: "Signal d'entrée",
       required: false,
     },
   ],
@@ -88,32 +88,39 @@ const FlashLightNode: NodeDefinition = {
     try {
       // Enregistrer le handler de signal pour cette node
       const signalSystem = getSignalSystem();
-      
+
       if (signalSystem) {
-        signalSystem.registerHandler(context.nodeId, async (signal: Signal): Promise<SignalPropagation> => {
-          console.log(`[FlashLight Node ${context.nodeId}] Signal reçu:`, signal);
-          
-          // Vérifier l'état de la lampe torche
-          const isFlashlightOn = getFlashlightState();
-          
-          if (isFlashlightOn) {
-            console.log(`[FlashLight Node ${context.nodeId}] ✓ Lampe torche ACTIVÉE - Signal propagé`);
-            return {
-              propagate: true,
-              data: {
-                ...signal.data,
-                flashlightChecked: true,
-                flashlightState: true,
-              },
-            };
-          } else {
-            console.log(`[FlashLight Node ${context.nodeId}] ✗ Lampe torche DÉSACTIVÉE - Signal bloqué`);
-            return {
-              propagate: false,
-              data: signal.data,
-            };
+        signalSystem.registerHandler(
+          context.nodeId,
+          async (signal: Signal): Promise<SignalPropagation> => {
+            console.log(`[FlashLight Node ${context.nodeId}] Signal reçu:`, signal);
+
+            // Vérifier l'état de la lampe torche
+            const isFlashlightOn = getFlashlightState();
+
+            if (isFlashlightOn) {
+              console.log(
+                `[FlashLight Node ${context.nodeId}] ✓ Lampe torche ACTIVÉE - Signal propagé`
+              );
+              return {
+                propagate: true,
+                data: {
+                  ...signal.data,
+                  flashlightChecked: true,
+                  flashlightState: true,
+                },
+              };
+            } else {
+              console.log(
+                `[FlashLight Node ${context.nodeId}] ✗ Lampe torche DÉSACTIVÉE - Signal bloqué`
+              );
+              return {
+                propagate: false,
+                data: signal.data,
+              };
+            }
           }
-        });
+        );
       }
 
       return {

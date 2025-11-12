@@ -3,10 +3,10 @@
  * Convertit le JSON Drawflow en modèle de graphe et effectue tri topologique
  */
 
-import type { 
-  Graph, 
-  GraphNode, 
-  DrawflowExport, 
+import type {
+  Graph,
+  GraphNode,
+  DrawflowExport,
   DrawflowNodeData,
   NodeExecutionContext,
   NodeExecutionResult,
@@ -226,7 +226,7 @@ export async function executeGraph(graph: Graph): Promise<EvaluationResult> {
 
     // Récupérer la définition de la node depuis le registry
     const nodeDefinition = nodeRegistry.getNode(node.type);
-    
+
     if (!nodeDefinition) {
       result.errors.set(nodeId, new Error(`Node type "${node.type}" not found in registry`));
       result.success = false;
@@ -236,7 +236,7 @@ export async function executeGraph(graph: Graph): Promise<EvaluationResult> {
     try {
       // Préparer les inputs de la node
       const inputs: Record<string, any> = {};
-      
+
       for (const inputNodeId of node.inputs) {
         const inputValue = result.values.get(inputNodeId);
         if (inputValue !== undefined) {
@@ -276,7 +276,6 @@ export async function executeGraph(graph: Graph): Promise<EvaluationResult> {
       // Pour simplifier, on stocke la première sortie
       const outputValue = executionResult.outputs[Object.keys(executionResult.outputs)[0]];
       result.values.set(nodeId, outputValue);
-
     } catch (error) {
       result.errors.set(nodeId, error as Error);
       result.success = false;

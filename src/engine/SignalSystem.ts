@@ -1,9 +1,9 @@
 /**
  * SignalSystem - Système de propagation de signaux dans le graphe
- * 
+ *
  * Ce système permet aux nodes de communiquer entre elles via des signaux
  * qui se propagent à travers les connexions du graphe.
- * 
+ *
  * Fonctionnement :
  * - Les nodes "Condition" vérifient une condition et propagent le signal si elle est vraie
  * - Les nodes "Action" reçoivent le signal et exécutent une action
@@ -116,11 +116,11 @@ export class SignalSystem {
 
     for (const outputNodeId of outputNodes) {
       const handler = this.handlers.get(outputNodeId);
-      
+
       if (handler) {
         try {
           console.log(`[SignalSystem] Propagation du signal vers node ${outputNodeId}`);
-          
+
           // Exécuter le handler
           const result = await Promise.resolve(handler(signal));
 
@@ -137,7 +137,10 @@ export class SignalSystem {
             await this.propagateSignal(newSignal, outputNodeId);
           }
         } catch (error) {
-          console.error(`[SignalSystem] Erreur lors du traitement du signal par node ${outputNodeId}:`, error);
+          console.error(
+            `[SignalSystem] Erreur lors du traitement du signal par node ${outputNodeId}:`,
+            error
+          );
         }
       } else {
         // Si pas de handler, propager directement

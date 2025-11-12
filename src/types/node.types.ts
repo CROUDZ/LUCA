@@ -6,13 +6,7 @@
 // Types pour les inputs/outputs des nodes
 // ============================================================================
 
-export type NodeDataType =
-  | 'string'
-  | 'number'
-  | 'boolean'
-  | 'object'
-  | 'array'
-  | 'any';
+export type NodeDataType = 'string' | 'number' | 'boolean' | 'object' | 'array' | 'any';
 
 export interface NodePortDefinition {
   name: string;
@@ -72,7 +66,7 @@ export interface NodeDefinition {
 
   // Limites et contraintes
   maxInstances?: number; // Nombre maximum d'instances de CE TYPE de node dans le graphe (undefined = illimité)
-  
+
   // Ports
   inputs: NodePortDefinition[];
   outputs: NodePortDefinition[];
