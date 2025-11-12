@@ -1,70 +1,74 @@
 import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
-  fabButton: {
-    position: 'absolute',
-    bottom: 15,
-    right: 20,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#8b5cf6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 6,
-    shadowColor: '#8b5cf6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    zIndex: 2000,
-  },
-  fabButtonDisabled: {
-    opacity: 0.5,
-    backgroundColor: '#6b7280',
-  },
-  modalOverlay: {
+  container: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    backgroundColor: '#0f1117',
   },
-  nodePickerContent: {
-    width: '100%',
-    maxWidth: 400,
-    maxHeight: '70%',
-    backgroundColor: '#1a1d29',
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
-    elevation: 10,
+  pageContainer: {
+    flex: 1,
+    backgroundColor: '#0f1117',
   },
-  modalTitleRow: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: '#1a1d29',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(139, 92, 246, 0.2)',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
-  modalTitle: {
-    fontSize: 22,
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitleContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  headerTitle: {
+    fontSize: 20,
     fontWeight: '700',
     color: '#f9fafb',
   },
-  nodePickerSubtitle: {
+  headerSpacer: {
+    width: 40,
+  },
+  headerSubtitle: {
     fontSize: 14,
     color: '#9ca3af',
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    textAlign: 'center',
+    backgroundColor: '#1a1d29',
   },
-  nodeTypesList: {
-    maxHeight: 350,
+  contentScroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 24,
   },
   categoryTitle: {
     fontSize: 16,
     fontWeight: '700',
     color: '#8b5cf6',
-    marginTop: 12,
-    marginBottom: 8,
+    marginTop: 16,
+    marginBottom: 12,
     marginLeft: 4,
   },
   nodeTypeItem: {
@@ -99,22 +103,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9ca3af',
   },
-  closePickerButton: {
-    marginTop: 16,
-    padding: 14,
-    backgroundColor: 'rgba(75, 85, 99, 0.6)',
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  closePickerButtonText: {
-    color: '#f9fafb',
-    fontSize: 15,
-    fontWeight: '600',
-  },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 40,
+    marginTop: 60,
   },
   emptyStateText: {
     fontSize: 16,
@@ -172,19 +165,6 @@ const styles = StyleSheet.create({
   },
   badgeTextDisabled: {
     color: '#ef4444',
-  },
-  nodeBadge: {
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#8b5cf6',
-  },
-  nodeBadgeDisabled: {
-    backgroundColor: 'rgba(107, 114, 128, 0.2)',
-    color: '#9ca3af',
   },
   nodeTypeLimitWarning: {
     fontSize: 11,

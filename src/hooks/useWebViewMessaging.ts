@@ -8,6 +8,7 @@ import type { WebViewMessageEvent } from 'react-native-webview';
 import type { WebViewMessage, DrawflowExport } from '../types';
 import { ErrorCode } from '../types';
 import { logError, createAppError } from '../utils/errorHandler';
+import { nodeRegistry } from '../engine/NodeRegistry';
 
 interface UseWebViewMessagingOptions {
   onReady?: () => void;
@@ -114,9 +115,31 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
    */
   const addNode = useCallback(
     (nodeType: string, x?: number, y?: number, data?: Record<string, any>) => {
+      // Récupérer les informations de la node depuis le registry
+      const nodeDefinition = nodeRegistry.getNode(nodeType);
+      
+      let nodeData = null;
+      if (nodeDefinition) {
+        // Préparer les données pour la WebView
+        nodeData = {
+          name: nodeDefinition.name,
+          description: nodeDefinition.description,
+          icon: nodeDefinition.icon,
+          inputs: nodeDefinition.inputs.length,
+          outputs: nodeDefinition.outputs.length,
+          class: `${nodeDefinition.category.toLowerCase()}-node`,
+          data: { type: nodeType, ...data },
+          html: nodeDefinition.generateHTML 
+            ? nodeDefinition.generateHTML(data || {})
+            : `<div class="title"><span class="node-icon">${nodeDefinition.icon || '📦'}</span> ${nodeDefinition.name}</div><div class="content">${nodeDefinition.description}</div>`
+        };
+        
+        console.log('📦 Node data prepared:', nodeData);
+      }
+      
       return sendMessage({
         type: 'ADD_NODE',
-        payload: { nodeType, x, y, data },
+        payload: { nodeType, x, y, data, nodeData },
       });
     },
     [sendMessage]

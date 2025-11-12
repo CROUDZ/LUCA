@@ -2,61 +2,6 @@
   "drawflow": {
     "Home": {
       "data": {
-        "1": {
-          "id": 1,
-          "name": "texture",
-          "data": {
-            "type": "texture",
-            "filepath": "example_texture.png"
-          },
-          "class": "texture-node",
-          "html": "<div class=\"title\">🖼️ Texture</div><div class=\"content\">Output: RGB</div>",
-          "typenode": false,
-          "inputs": {},
-          "outputs": {
-            "output_1": {
-              "connections": [
-                {
-                  "node": "2",
-                  "output": "input_1"
-                }
-              ]
-            }
-          },
-          "pos_x": 150,
-          "pos_y": 100
-        },
-        "2": {
-          "id": 2,
-          "name": "mix",
-          "data": {
-            "type": "mix",
-            "factor": 0.5
-          },
-          "class": "mix-node",
-          "html": "<div class=\"title\">🎨 Mix</div><div class=\"content\">Factor: 0.5</div>",
-          "typenode": false,
-          "inputs": {
-            "input_1": {
-              "connections": [
-                {
-                  "node": "1",
-                  "input": "output_1"
-                }
-              ]
-            },
-            "input_2": {
-              "connections": []
-            }
-          },
-          "outputs": {
-            "output_1": {
-              "connections": []
-            }
-          },
-          "pos_x": 450,
-          "pos_y": 120
-        }
       }
     }
   }

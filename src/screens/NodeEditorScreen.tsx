@@ -3,7 +3,7 @@
  * Utilise les hooks personnalisés pour une meilleure organisation du code
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   TouchableOpacity,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 // Import des hooks personnalisés
 import { useWebViewMessaging } from '../hooks/useWebViewMessaging';
@@ -21,17 +22,34 @@ import { useGraphStorage } from '../hooks/useGraphStorage';
 import { APP_CONFIG } from '../config/constants';
 import exampleGraph from '../../exampleGraph.json';
 import type { DrawflowExport } from '../types';
+import type { RootStackParamList } from '../types/navigation.types';
 
 import styles from './NodeEditorScreenStyles';
 import SaveMenu from '../components/SaveMenu';
-import NodePicker from '../components/NodePicker';
+import SignalControls from '../components/SignalControls';
 import { nodeInstanceTracker } from '../engine/NodeInstanceTracker';
 
-const NodeEditorScreen: React.FC = () => {
+// Import du système de signaux
+import { parseDrawflowGraph } from '../engine/engine';
+import { initializeSignalSystem, resetSignalSystem } from '../engine/SignalSystem';
+import { nodeRegistry } from '../engine/NodeRegistry';
+
+type NodeEditorScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'NodeEditor'
+>;
+
+interface NodeEditorScreenProps {
+  navigation: NodeEditorScreenNavigationProp;
+}
+
+const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
   // États locaux pour l'UI
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [showNewSaveInput, setShowNewSaveInput] = useState(false);
   const [newSaveName, setNewSaveName] = useState('');
+  const [currentGraph, setCurrentGraph] = useState<DrawflowExport | null>(null);
+  const [triggerNodeIds, setTriggerNodeIds] = useState<number[]>([]);
 
   // Hook de stockage des graphes
   const {
@@ -68,12 +86,60 @@ const NodeEditorScreen: React.FC = () => {
     onExport: async (data: DrawflowExport) => {
       // Auto-sauvegarde
       await autoSave(data);
+      // Mettre à jour le graphe actuel pour le système de signaux
+      setCurrentGraph(data);
     },
     onRequestImport: () => {
       // Charger l'exemple
       loadGraph(exampleGraph as DrawflowExport);
     },
   });
+
+  /**
+   * Initialiser le système de signaux quand le graphe change
+   */
+  useEffect(() => {
+    if (!currentGraph) return;
+
+    console.log('🔄 Initializing signal system...');
+    
+    // Reset le système
+    resetSignalSystem();
+    
+    // Parser le graphe
+    const graph = parseDrawflowGraph(currentGraph);
+    console.log(`📊 Parsed graph: ${graph.nodes.size} nodes, ${graph.edges.length} connections`);
+    
+    // Initialiser le système avec le graphe
+    initializeSignalSystem(graph);
+    
+    // Exécuter tous les nœuds pour enregistrer leurs handlers
+    let handlersRegistered = 0;
+    graph.nodes.forEach(node => {
+      const nodeDef = nodeRegistry.getNode(node.type);
+      if (nodeDef) {
+        try {
+          nodeDef.execute({
+            nodeId: node.id,
+            inputs: {},
+            settings: node.data || {},
+          });
+          handlersRegistered++;
+        } catch (error) {
+          console.error(`❌ Error executing node ${node.id} (${node.type}):`, error);
+        }
+      }
+    });
+    
+    console.log(`✅ Registered ${handlersRegistered} signal handlers`);
+    
+    // Trouver tous les nœuds Trigger
+    const triggers = Array.from(graph.nodes.values())
+      .filter(n => n.type === 'input.trigger')
+      .map(n => n.id);
+    setTriggerNodeIds(triggers);
+    console.log(`🎯 Found ${triggers.length} trigger nodes:`, triggers);
+  }, [currentGraph]);
 
   /**
    * Créer une nouvelle sauvegarde
@@ -208,6 +274,11 @@ const NodeEditorScreen: React.FC = () => {
         onLoad={() => console.log('📄 WebView loaded')}
       />
 
+      {/* Contrôles du système de signaux */}
+      {currentGraph && (
+        <SignalControls visible={true} triggerNodeIds={triggerNodeIds} />
+      )}
+
       {/* Contrôles React Native */}
       <View style={styles.controls}>
         <TouchableOpacity
@@ -275,10 +346,15 @@ const NodeEditorScreen: React.FC = () => {
         onLoadSave={handleLoadSave}
         onDeleteSave={handleDeleteSave}
       />
-      <NodePicker 
-        isReady={isReady} 
-        onAddNode={handleAddNode}
-      />
+      {/* Bouton FAB pour ouvrir le NodePicker */}
+      <TouchableOpacity
+        style={[styles.fabButton, !isReady && styles.fabButtonDisabled]}
+        onPress={() => navigation.navigate('NodePicker', { onAddNode: handleAddNode })}
+        disabled={!isReady}
+        activeOpacity={0.8}
+      >
+        <Icon name="add" size={32} color="#ffffff" />
+      </TouchableOpacity>
     </View>
   );
 };

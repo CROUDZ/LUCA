@@ -19,8 +19,14 @@
 // ============================================================================
 
 import './DemoNode';
+import './FlashLightNode';
+import './PingNode';
+import './TriggerNode';
 
-console.log('✅ All nodes loaded (1 demo node with all features)');
+console.log('✅ All nodes loaded (4 nodes: Demo, FlashLight, Ping, Trigger)');
 
-// Export de la node pour utilisation directe
+// Export des nodes pour utilisation directe
 export { default as DemoNode } from './DemoNode';
+export { default as FlashLightNode } from './FlashLightNode';
+export { default as PingNode } from './PingNode';
+export { default as TriggerNode } from './TriggerNode';

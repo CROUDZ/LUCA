@@ -327,6 +327,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
+  signalControls: {
+    bottom: 130,
+  },
+  buttonWarning: {
+    borderColor: 'rgba(251, 191, 36, 0.4)',
+    backgroundColor: 'rgba(251, 191, 36, 0.2)',
+  },
+  buttonSecondary: {
+    borderColor: 'rgba(75, 85, 99, 0.4)',
+    backgroundColor: 'rgba(75, 85, 99, 0.2)',
+  },
+  buttonInfo: {
+    borderColor: 'rgba(59, 130, 246, 0.4)',
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+  },
+  statusWarningText: {
+    color: '#fbbf24',
+  },
 });
 
 export default styles;

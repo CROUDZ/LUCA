@@ -43,6 +43,25 @@
             user-select: none;
             touch-action: none;
             position: absolute;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .drawflow .drawflow-node.node-start {
+            border: 2px solid rgba(34, 197, 94, 0.8);
+            box-shadow: 0 8px 32px rgba(34, 197, 94, 0.3);
+        }
+        .drawflow .drawflow-node.node-end {
+            border: 2px solid rgba(239, 68, 68, 0.8);
+            box-shadow: 0 8px 32px rgba(239, 68, 68, 0.3);
+        }
+        .drawflow .drawflow-node.node-connected {
+            border: 1.5px solid rgba(139, 92, 246, 0.6);
+            box-shadow: 0 8px 32px rgba(139, 92, 246, 0.4);
+        }
+        .drawflow .drawflow-node.node-disconnected {
+            border: 1.5px solid rgba(107, 114, 128, 0.4);
+            background: linear-gradient(135deg, rgba(31, 41, 55, 0.6) 0%, rgba(17, 24, 39, 0.6) 100%);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            opacity: 0.7;
         }
         .drawflow .drawflow-node.dragging {
             opacity: 0.8;
@@ -58,6 +77,10 @@
             align-items: center;
             gap: 6px;
         }
+        .drawflow .drawflow-node .title .node-icon {
+            font-size: 18px;
+            line-height: 1;
+        }
         .drawflow .drawflow-node .content {
             color: #9ca3af;
             font-size: 12px;
@@ -70,10 +93,45 @@
         }
         .drawflow .drawflow-node .input,
         .drawflow .drawflow-node .output {
-            border: 2px solid rgba(139, 92, 246, 0.5);
+            border: 3px solid rgba(139, 92, 246, 0.6);
             background: #1a1d29;
-            width: 14px;
-            height: 14px;
+            width: 22px;
+            height: 22px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .drawflow .drawflow-node .input.connected {
+            border-color: rgba(139, 92, 246, 0.8);
+            background: rgba(139, 92, 246, 0.15);
+        }
+        .drawflow .drawflow-node .input:active,
+        .drawflow .drawflow-node .output:active {
+            transform: scale(1.3);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.8);
+        }
+        .drawflow .drawflow-node .output.connection-active {
+            transform: scale(1.4);
+            border-color: rgba(139, 92, 246, 0.9);
+            background: rgba(139, 92, 246, 0.3);
+            box-shadow: 0 0 25px rgba(139, 92, 246, 0.9);
+        }
+        body.creating-connection .drawflow .drawflow-node .input {
+            border-color: rgba(34, 197, 94, 0.8);
+            background: rgba(34, 197, 94, 0.2);
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.6);
+            animation: pulse-input 1.2s ease-in-out infinite;
+        }
+        @keyframes pulse-input {
+            0%, 100% { 
+                transform: scale(1); 
+                opacity: 1;
+                box-shadow: 0 0 15px rgba(34, 197, 94, 0.6);
+            }
+            50% { 
+                transform: scale(1.3); 
+                opacity: 0.9;
+                box-shadow: 0 0 25px rgba(34, 197, 94, 0.9);
+            }
         }
         .zoom-controls {
             position: fixed;
@@ -271,10 +329,156 @@
         let dragStartY = 0;
         let nodeStartX = 0;
         let nodeStartY = 0;
+        let activeOutput = null;
+        let longPressTimer = null;
+        let isReconnecting = false;
+        let reconnectSourceNode = null;
+        let reconnectSourceOutput = null;
+        let reconnectOriginalTarget = null;
+        
+        // Variables pour le double-tap
+        let lastTapTime = 0;
+        let lastTapNode = null;
+        const DOUBLE_TAP_DELAY = 300; // ms
+        const LONG_PRESS_DELAY = 400; // ms
         
         document.addEventListener('touchstart', (e) => {
             const node = e.target.closest('.drawflow-node');
-            if (node && !e.target.closest('.input') && !e.target.closest('.output')) {
+            const input = e.target.closest('.input');
+            const output = e.target.closest('.output');
+            
+            // Si on touche un input connecté, démarrer le timer pour déplacer la connexion
+            if (input && node) {
+                const nodeId = node.id.replace('node-', '');
+                const nodeData = editor.drawflow.drawflow.Home.data[nodeId];
+                
+                // Vérifier si cet input a une connexion
+                let hasConnection = false;
+                let inputName = 'input_1';
+                const inputClasses = input.className.split(' ');
+                for (const cls of inputClasses) {
+                    if (cls.startsWith('input_')) {
+                        inputName = cls;
+                        break;
+                    }
+                }
+                
+                if (nodeData.inputs && nodeData.inputs[inputName] && 
+                    nodeData.inputs[inputName].connections && 
+                    nodeData.inputs[inputName].connections.length > 0) {
+                    hasConnection = true;
+                }
+                
+                if (hasConnection) {
+                    // Démarrer le timer pour le long appui
+                    longPressTimer = setTimeout(() => {
+                        // Récupérer la connexion existante
+                        const connection = nodeData.inputs[inputName].connections[0];
+                        const sourceNodeId = connection.node;
+                        const sourceOutputName = connection.input; // Dans drawflow, c'est inversé
+                        
+                        // Supprimer la connexion existante
+                        try {
+                            editor.removeSingleConnection(
+                                sourceNodeId,
+                                parseInt(nodeId),
+                                sourceOutputName,
+                                inputName
+                            );
+                            
+                            // Activer le mode reconnexion
+                            isReconnecting = true;
+                            reconnectSourceNode = document.getElementById('node-' + sourceNodeId);
+                            reconnectSourceOutput = reconnectSourceNode?.querySelector('.' + sourceOutputName);
+                            reconnectOriginalTarget = { 
+                                nodeId, 
+                                inputName,
+                                sourceNodeId: sourceNodeId.toString(),
+                                sourceOutputName
+                            };
+                            
+                            if (reconnectSourceOutput) {
+                                document.body.classList.add('creating-connection');
+                                reconnectSourceOutput.classList.add('connection-active');
+                                activeOutput = reconnectSourceOutput;
+                                
+                                // Simuler un événement mousedown sur l'output pour que Drawflow prenne le relais
+                                const touch = e.touches[0];
+                                const rect = reconnectSourceOutput.getBoundingClientRect();
+                                
+                                // Créer un événement mousedown synthétique
+                                const mouseDownEvent = new MouseEvent('mousedown', {
+                                    bubbles: true,
+                                    cancelable: true,
+                                    view: window,
+                                    clientX: rect.left + rect.width / 2,
+                                    clientY: rect.top + rect.height / 2
+                                });
+                                
+                                reconnectSourceOutput.dispatchEvent(mouseDownEvent);
+                                
+                                // Ensuite créer un mousemove pour initier le drag
+                                setTimeout(() => {
+                                    const mouseMoveEvent = new MouseEvent('mousemove', {
+                                        bubbles: true,
+                                        cancelable: true,
+                                        view: window,
+                                        clientX: touch.clientX,
+                                        clientY: touch.clientY
+                                    });
+                                    document.dispatchEvent(mouseMoveEvent);
+                                }, 10);
+                                
+                                if (navigator.vibrate) {
+                                    navigator.vibrate([40, 30, 40]);
+                                }
+                            }
+                            
+                            analyzeGraph();
+                            updateConnectedInputs();
+                        } catch (err) {
+                            console.error('Erreur suppression connexion:', err);
+                        }
+                    }, LONG_PRESS_DELAY);
+                }
+            }
+            
+            // Si on touche un output, activer le mode création de connexion
+            if (output) {
+                document.body.classList.add('creating-connection');
+                output.classList.add('connection-active');
+                activeOutput = output;
+                
+                if (navigator.vibrate) {
+                    navigator.vibrate(40);
+                }
+                return;
+            }
+            
+            // Gestion du double-tap pour supprimer
+            if (node && !input && !output) {
+                const now = Date.now();
+                const nodeId = node.id.replace('node-', '');
+                
+                if (lastTapNode === nodeId && now - lastTapTime < DOUBLE_TAP_DELAY) {
+                    // Double-tap détecté
+                    if (confirm('Supprimer ce nœud ?')) {
+                        editor.removeNodeId('node-' + nodeId);
+                        analyzeGraph();
+                    }
+                    lastTapNode = null;
+                    lastTapTime = 0;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                } else {
+                    lastTapNode = nodeId;
+                    lastTapTime = now;
+                }
+            }
+            
+            // Gestion normale du nœud (déplacement)
+            if (node && !input && !output) {
                 isDraggingNode = true;
                 dragNode = node;
                 dragNode.classList.add('dragging');
@@ -295,6 +499,27 @@
         }, { passive: false });
         
         document.addEventListener('touchmove', (e) => {
+            // Annuler le timer de long appui si le doigt bouge
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+            
+            // Si on est en mode reconnexion, transmettre les mouvements à Drawflow
+            if (isReconnecting && e.touches.length > 0) {
+                const touch = e.touches[0];
+                const mouseMoveEvent = new MouseEvent('mousemove', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window,
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                document.dispatchEvent(mouseMoveEvent);
+                e.preventDefault();
+                return;
+            }
+            
             if (isDraggingNode && dragNode) {
                 const dx = (e.touches[0].clientX - dragStartX) / zoom;
                 const dy = (e.touches[0].clientY - dragStartY) / zoom;
@@ -319,6 +544,91 @@
         }, { passive: false });
         
         document.addEventListener('touchend', (e) => {
+            // Annuler le timer de long appui
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+            
+            // Si on est en mode reconnexion, envoyer un mouseup à Drawflow
+            if (isReconnecting && e.changedTouches.length > 0) {
+                const touch = e.changedTouches[0];
+                const mouseUpEvent = new MouseEvent('mouseup', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window,
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                document.dispatchEvent(mouseUpEvent);
+                
+                // Vérifier si une connexion a été créée
+                const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                const targetInput = element?.closest('.input');
+                const targetNode = element?.closest('.drawflow-node');
+                
+                if (targetInput && targetNode && reconnectOriginalTarget) {
+                    // Une nouvelle connexion a été faite, c'est bon
+                    if (navigator.vibrate) {
+                        navigator.vibrate(30);
+                    }
+                } else {
+                    // Pas de nouvelle connexion, restaurer l'ancienne
+                    if (reconnectOriginalTarget) {
+                        setTimeout(() => {
+                            try {
+                                editor.addConnection(
+                                    parseInt(reconnectOriginalTarget.sourceNodeId),
+                                    parseInt(reconnectOriginalTarget.nodeId),
+                                    reconnectOriginalTarget.sourceOutputName,
+                                    reconnectOriginalTarget.inputName
+                                );
+                                analyzeGraph();
+                                updateConnectedInputs();
+                            } catch (err) {
+                                console.error('Erreur restauration connexion:', err);
+                            }
+                        }, 50);
+                    }
+                }
+                
+                document.body.classList.remove('creating-connection');
+                if (activeOutput) {
+                    activeOutput.classList.remove('connection-active');
+                }
+                activeOutput = null;
+                isReconnecting = false;
+                reconnectSourceNode = null;
+                reconnectSourceOutput = null;
+                reconnectOriginalTarget = null;
+                
+                setTimeout(() => {
+                    analyzeGraph();
+                    updateConnectedInputs();
+                }, 100);
+                
+                e.preventDefault();
+                return;
+            }
+            
+            // Nettoyer l'état de création de connexion normale
+            if (activeOutput) {
+                document.body.classList.remove('creating-connection');
+                activeOutput.classList.remove('connection-active');
+                
+                // Vibration de confirmation si connexion réussie
+                const target = e.changedTouches[0];
+                if (target) {
+                    const element = document.elementFromPoint(target.clientX, target.clientY);
+                    const targetInput = element?.closest('.input');
+                    if (targetInput && navigator.vibrate) {
+                        navigator.vibrate(30);
+                    }
+                }
+                
+                activeOutput = null;
+            }
+            
             if (isDraggingNode && dragNode) {
                 dragNode.classList.remove('dragging');
                 isDraggingNode = false;
@@ -328,11 +638,286 @@
             }
         }, { passive: false });
         
+        document.addEventListener('touchcancel', (e) => {
+            // Annuler le timer de long appui
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+            
+            // Restaurer la connexion si on était en mode reconnexion
+            if (isReconnecting && reconnectOriginalTarget) {
+                setTimeout(() => {
+                    try {
+                        editor.addConnection(
+                            parseInt(reconnectOriginalTarget.sourceNodeId),
+                            parseInt(reconnectOriginalTarget.nodeId),
+                            reconnectOriginalTarget.sourceOutputName,
+                            reconnectOriginalTarget.inputName
+                        );
+                        analyzeGraph();
+                        updateConnectedInputs();
+                    } catch (err) {
+                        console.error('Erreur restauration connexion:', err);
+                    }
+                }, 50);
+            }
+            
+            // Nettoyer l'état de création de connexion
+            if (activeOutput) {
+                document.body.classList.remove('creating-connection');
+                activeOutput.classList.remove('connection-active');
+                activeOutput = null;
+            }
+            
+            isReconnecting = false;
+            reconnectSourceNode = null;
+            reconnectSourceOutput = null;
+            reconnectOriginalTarget = null;
+            
+            if (isDraggingNode && dragNode) {
+                dragNode.classList.remove('dragging');
+                isDraggingNode = false;
+                dragNode = null;
+            }
+        }, { passive: false });
+        
+        // ============================================
+        // ANALYSE DU GRAPHE ET COLORATION DES NŒUDS
+        // ============================================
+        
+        function analyzeGraph() {
+            const data = editor.drawflow.drawflow.Home.data;
+            const nodeIds = Object.keys(data);
+            
+            // Réinitialiser les classes
+            nodeIds.forEach(id => {
+                const node = document.getElementById('node-' + id);
+                if (node) {
+                    node.classList.remove('node-start', 'node-end', 'node-connected', 'node-disconnected');
+                }
+            });
+            
+            if (nodeIds.length === 0) return;
+            
+            // Construire le graphe de connexions
+            const graph = {};
+            const reverseGraph = {};
+            nodeIds.forEach(id => {
+                graph[id] = [];
+                reverseGraph[id] = [];
+            });
+            
+            // Remplir les connexions
+            nodeIds.forEach(id => {
+                const node = data[id];
+                Object.values(node.outputs || {}).forEach(output => {
+                    (output.connections || []).forEach(conn => {
+                        const targetId = String(conn.node);
+                        graph[id].push(targetId);
+                        reverseGraph[targetId].push(id);
+                    });
+                });
+            });
+            
+            // Trouver les nœuds de départ (sans entrées)
+            const startNodes = nodeIds.filter(id => reverseGraph[id].length === 0);
+            
+            // Trouver les nœuds de fin (sans sorties)
+            const endNodes = nodeIds.filter(id => graph[id].length === 0);
+            
+            // Détecter les boucles avec DFS
+            const visited = new Set();
+            const recStack = new Set();
+            let hasCycle = false;
+            
+            function detectCycle(nodeId) {
+                visited.add(nodeId);
+                recStack.add(nodeId);
+                
+                for (const neighbor of graph[nodeId]) {
+                    if (!visited.has(neighbor)) {
+                        if (detectCycle(neighbor)) return true;
+                    } else if (recStack.has(neighbor)) {
+                        return true;
+                    }
+                }
+                
+                recStack.delete(nodeId);
+                return false;
+            }
+            
+            for (const id of nodeIds) {
+                if (!visited.has(id)) {
+                    if (detectCycle(id)) {
+                        hasCycle = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Si boucle détectée, pas de nœuds de départ/fin
+            if (hasCycle) {
+                // Tous les nœuds connectés sont violets
+                const allConnected = new Set();
+                nodeIds.forEach(id => {
+                    if (graph[id].length > 0 || reverseGraph[id].length > 0) {
+                        allConnected.add(id);
+                    }
+                });
+                
+                allConnected.forEach(id => {
+                    const node = document.getElementById('node-' + id);
+                    if (node) node.classList.add('node-connected');
+                });
+                
+                // Les nœuds isolés sont gris
+                nodeIds.forEach(id => {
+                    if (!allConnected.has(id)) {
+                        const node = document.getElementById('node-' + id);
+                        if (node) node.classList.add('node-disconnected');
+                    }
+                });
+                
+                return;
+            }
+            
+            // Trouver la plus grande chaîne connectée
+            function getConnectedChain(startId) {
+                const chain = new Set();
+                const queue = [startId];
+                
+                while (queue.length > 0) {
+                    const current = queue.shift();
+                    if (chain.has(current)) continue;
+                    chain.add(current);
+                    
+                    // Ajouter les successeurs
+                    graph[current].forEach(next => {
+                        if (!chain.has(next)) queue.push(next);
+                    });
+                    
+                    // Ajouter les prédécesseurs
+                    reverseGraph[current].forEach(prev => {
+                        if (!chain.has(prev)) queue.push(prev);
+                    });
+                }
+                
+                return chain;
+            }
+            
+            // Trouver la plus grande chaîne
+            let largestChain = new Set();
+            startNodes.forEach(startId => {
+                const chain = getConnectedChain(startId);
+                if (chain.size > largestChain.size) {
+                    largestChain = chain;
+                }
+            });
+            
+            // Si aucun nœud de départ, prendre le premier nœud connecté
+            if (largestChain.size === 0 && nodeIds.length > 0) {
+                largestChain = getConnectedChain(nodeIds[0]);
+            }
+            
+            // Appliquer les couleurs
+            if (startNodes.length > 0) {
+                startNodes.forEach(id => {
+                    if (largestChain.has(id)) {
+                        const node = document.getElementById('node-' + id);
+                        if (node) node.classList.add('node-start');
+                    }
+                });
+            }
+            
+            if (endNodes.length > 0) {
+                endNodes.forEach(id => {
+                    if (largestChain.has(id)) {
+                        const node = document.getElementById('node-' + id);
+                        if (node) node.classList.add('node-end');
+                    }
+                });
+            }
+            
+            // Nœuds connectés dans la chaîne principale (ni début ni fin)
+            largestChain.forEach(id => {
+                const node = document.getElementById('node-' + id);
+                if (node && !node.classList.contains('node-start') && !node.classList.contains('node-end')) {
+                    node.classList.add('node-connected');
+                }
+            });
+            
+            // Nœuds déconnectés (pas dans la chaîne principale)
+            nodeIds.forEach(id => {
+                if (!largestChain.has(id)) {
+                    const node = document.getElementById('node-' + id);
+                    if (node) node.classList.add('node-disconnected');
+                }
+            });
+        }
+        
+        // Fonction pour marquer les inputs connectés
+        function updateConnectedInputs() {
+            const data = editor.drawflow.drawflow.Home.data;
+            
+            // Retirer toutes les classes connected
+            document.querySelectorAll('.input').forEach(input => {
+                input.classList.remove('connected');
+            });
+            
+            // Ajouter la classe aux inputs qui ont des connexions
+            Object.keys(data).forEach(nodeId => {
+                const node = data[nodeId];
+                const nodeElement = document.getElementById('node-' + nodeId);
+                
+                if (node.inputs && nodeElement) {
+                    Object.keys(node.inputs).forEach(inputName => {
+                        const input = node.inputs[inputName];
+                        if (input.connections && input.connections.length > 0) {
+                            const inputElement = nodeElement.querySelector('.' + inputName);
+                            if (inputElement) {
+                                inputElement.classList.add('connected');
+                            }
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Écouter les changements du graphe
+        editor.on('nodeCreated', () => {
+            setTimeout(() => {
+                analyzeGraph();
+                updateConnectedInputs();
+            }, 100);
+        });
+        
+        editor.on('nodeRemoved', () => {
+            setTimeout(() => {
+                analyzeGraph();
+                updateConnectedInputs();
+            }, 100);
+        });
+        
+        editor.on('connectionCreated', () => {
+            setTimeout(() => {
+                analyzeGraph();
+                updateConnectedInputs();
+            }, 100);
+        });
+        
+        editor.on('connectionRemoved', () => {
+            setTimeout(() => {
+                analyzeGraph();
+                updateConnectedInputs();
+            }, 100);
+        });
+        
         // ============================================
         // FONCTIONS UTILITAIRES
         // ============================================
         
-        function addNode(type) {
+        function addNode(type, nodeData) {
             const templates = {
                 texture: {
                     name: 'texture', inputs: 0, outputs: 1, class: 'texture-node',
@@ -361,11 +946,29 @@
                 }
             };
             
-            const tmpl = templates[type] || {
-                name: 'node', inputs: 1, outputs: 1, class: 'default-node',
-                data: { type: 'default' },
-                html: '<div class="title">Node</div>'
-            };
+            let tmpl;
+            
+            // Si nodeData est fourni, l'utiliser
+            if (nodeData && nodeData.name) {
+                tmpl = {
+                    name: nodeData.name || type,
+                    inputs: nodeData.inputs || 1,
+                    outputs: nodeData.outputs || 1,
+                    class: nodeData.class || type + '-node',
+                    data: nodeData.data || { type: type },
+                    html: nodeData.html || `<div class="title"><span class="node-icon">${nodeData.icon || '📦'}</span> ${nodeData.name || type}</div><div class="content">${nodeData.description || ''}</div>`
+                };
+            } else {
+                // Sinon, utiliser les templates existants ou le défaut
+                tmpl = templates[type] || {
+                    name: type,
+                    inputs: 1,
+                    outputs: 1,
+                    class: type + '-node',
+                    data: { type: type },
+                    html: `<div class="title"><span class="node-icon">📦</span> ${type}</div><div class="content">Node</div>`
+                };
+            }
             
             const x = Math.random() * 300 + 100;
             const y = Math.random() * 200 + 100;
@@ -385,6 +988,7 @@
         
         function clearGraph() {
             editor.clear();
+            setTimeout(analyzeGraph, 100);
         }
         
         // Communication React Native
@@ -396,6 +1000,10 @@
                         case 'LOAD_GRAPH':
                             if (msg.payload && msg.payload.drawflow) {
                                 editor.import(msg.payload);
+                                setTimeout(() => {
+                                    analyzeGraph();
+                                    updateConnectedInputs();
+                                }, 200);
                                 if (window.ReactNativeWebView) {
                                     window.ReactNativeWebView.postMessage(JSON.stringify({
                                         type: 'IMPORTED',
@@ -405,7 +1013,7 @@
                             }
                             break;
                         case 'ADD_NODE':
-                            addNode(msg.payload.nodeType || 'texture');
+                            addNode(msg.payload.nodeType || 'texture', msg.payload.nodeData);
                             break;
                         case 'CLEAR':
                             clearGraph();
@@ -437,6 +1045,10 @@
             addNode('texture');
             addNode('mix');
             addNode('output');
+            setTimeout(() => {
+                analyzeGraph();
+                updateConnectedInputs();
+            }, 200);
         }, 100);
     </script>
 </body>
