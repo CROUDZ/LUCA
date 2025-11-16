@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
   },
   fabButton: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 100, // Ajusté pour être au-dessus du bouton Run Program
     right: 20,
     width: 56,
     height: 56,
@@ -327,9 +327,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
-  signalControls: {
-    bottom: 130,
-  },
+  // signalControls removed — was used by SignalControls component
   buttonWarning: {
     borderColor: 'rgba(251, 191, 36, 0.4)',
     backgroundColor: 'rgba(251, 191, 36, 0.2)',

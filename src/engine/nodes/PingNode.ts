@@ -19,6 +19,7 @@ import type {
   NodeExecutionResult,
 } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
+import { logger } from '../../utils/logger';
 import { Alert } from 'react-native';
 
 // Compteur de pings pour les statistiques
@@ -32,7 +33,7 @@ export function getPingCount(): number {
 // Fonction helper pour réinitialiser le compteur
 export function resetPingCount(): void {
   pingCount = 0;
-  console.log('[Ping] Compteur de pings réinitialisé');
+  logger.debug('[Ping] Compteur de pings réinitialisé');
 }
 
 const PingNode: NodeDefinition = {
@@ -86,7 +87,7 @@ const PingNode: NodeDefinition = {
   // EXÉCUTION
   // ============================================================================
   execute: async (context: NodeExecutionContext): Promise<NodeExecutionResult> => {
-    try {
+            try {
       const settings = context.settings || {};
       const showAlert = settings.showAlert !== false;
       const propagateSignal = settings.propagateSignal !== false;
@@ -99,21 +100,21 @@ const PingNode: NodeDefinition = {
         signalSystem.registerHandler(
           context.nodeId,
           async (signal: Signal): Promise<SignalPropagation> => {
-            console.log(`[Ping Node ${context.nodeId}] Signal reçu:`, signal);
+            logger.debug(`[Ping Node ${context.nodeId}] Signal reçu:`, signal);
 
             // Incrémenter le compteur
             pingCount++;
 
-            // Afficher dans la console
-            console.log(`\n${'='.repeat(50)}`);
-            console.log(`🔔 ${message.toUpperCase()} #${pingCount}`);
-            console.log(`Node ID: ${context.nodeId}`);
-            console.log(`Timestamp: ${new Date(signal.timestamp).toISOString()}`);
-            console.log(`Source Node: ${signal.sourceNodeId}`);
+            // Log messages
+            logger.debug(`\n${'='.repeat(50)}`);
+            logger.info(`🔔 ${message.toUpperCase()} #${pingCount}`);
+            logger.debug(`Node ID: ${context.nodeId}`);
+            logger.debug(`Timestamp: ${new Date(signal.timestamp).toISOString()}`);
+            logger.debug(`Source Node: ${signal.sourceNodeId}`);
             if (signal.data) {
-              console.log(`Data:`, JSON.stringify(signal.data, null, 2));
+              logger.debug(`Data:`, JSON.stringify(signal.data, null, 2));
             }
-            console.log(`${'='.repeat(50)}\n`);
+            logger.debug(`${'='.repeat(50)}\n`);
 
             // Afficher une alerte native si activé
             if (showAlert) {
@@ -124,13 +125,13 @@ const PingNode: NodeDefinition = {
                   [{ text: 'OK', style: 'default' }]
                 );
               } catch (error) {
-                console.warn('[Ping] Alert non disponible (probablement en mode test):', error);
+                logger.warn('[Ping] Alert non disponible (probablement en mode test):', error);
               }
             }
 
             // Décider si on propage le signal
             if (propagateSignal) {
-              console.log(`[Ping Node ${context.nodeId}] ✓ Signal propagé`);
+              logger.debug(`[Ping Node ${context.nodeId}] ✓ Signal propagé`);
               return {
                 propagate: true,
                 data: {
@@ -141,7 +142,7 @@ const PingNode: NodeDefinition = {
                 },
               };
             } else {
-              console.log(`[Ping Node ${context.nodeId}] ⊗ Signal arrêté (propagation désactivée)`);
+              logger.debug(`[Ping Node ${context.nodeId}] ⊗ Signal arrêté (propagation désactivée)`);
               return {
                 propagate: false,
                 data: signal.data,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, Text, ScrollView, Alert, SafeAreaView } from 'react-native';
+import { View, TouchableOpacity, Text, ScrollView, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import FAIcon from 'react-native-vector-icons/FontAwesome6';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -10,15 +11,14 @@ import { nodeRegistry } from '../engine/NodeRegistry';
 import { nodeInstanceTracker } from '../engine/NodeInstanceTracker';
 
 import styles from './NodePickerScreenStyles';
+import type { RootStackParamList } from '../types/navigation.types';
+import { emitNodeAdded } from '../utils/NodePickerEvents';
+import { logger } from '../utils/logger';
 
-type RootStackParamList = {
-  NodeEditor: undefined;
-  NodePicker: {
-    onAddNode: (nodeType: string) => void;
-  };
-};
-
-type NodePickerScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'NodePicker'>;
+type NodePickerScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'NodePicker'
+>;
 
 type NodePickerScreenRouteProp = RouteProp<RootStackParamList, 'NodePicker'>;
 
@@ -27,9 +27,8 @@ interface NodePickerScreenProps {
   route: NodePickerScreenRouteProp;
 }
 
-const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation, route }) => {
+const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
   const [categories, setCategories] = useState<string[]>([]);
-  const { onAddNode } = route.params;
 
   // Charger les catégories depuis le registry
   useEffect(() => {
@@ -38,21 +37,11 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation, route }
       const stats = nodeRegistry.getStats();
       const allNodes = nodeRegistry.getAllNodes();
 
-      console.log('📦 NodePickerScreen: Loaded categories:', cats);
-      console.log('📊 NodeRegistry stats:', stats);
-      console.log(
-        '📝 All registered nodes:',
-        allNodes.map((n) => `${n.id} (${n.name})`).join(', ')
-      );
-      console.log('🔍 Total nodes registered:', allNodes.length);
-
-      // Log détaillé de chaque node
-      allNodes.forEach((node) => {
-        console.log(`  Node: ${node.id}`);
-        console.log(`    - Name: ${node.name}`);
-        console.log(`    - Category: ${node.category}`);
-        console.log(`    - Icon: ${node.icon}`);
-      });
+  // Keep minimal debug logs — emit only in development
+  logger.debug('📦 NodePickerScreen: Loaded categories:', cats);
+  logger.debug('📊 NodeRegistry stats:', stats);
+  logger.debug('📝 All registered nodes:', allNodes.map((n) => `${n.id} (${n.name})`).join(', '));
+  logger.debug('🔍 Total nodes registered:', allNodes.length);
 
       setCategories(cats);
     };
@@ -70,10 +59,10 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation, route }
    * Ajouter un nœud avec vérification des limites
    */
   const handleAddNode = (nodeType: string) => {
-    console.log('🔍 handleAddNode called for:', nodeType);
+    logger.debug('🔍 handleAddNode called for:', nodeType);
 
     const checkResult = nodeRegistry.canAddNode(nodeType);
-    console.log('✅ canAddNode result:', checkResult);
+    logger.debug('✅ canAddNode result:', checkResult);
 
     if (!checkResult.canAdd) {
       // Afficher une alerte si la limite est atteinte
@@ -87,8 +76,8 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation, route }
     // Incrémenter le compteur
     nodeInstanceTracker.addInstance(nodeType);
 
-    // Ajouter la node via le callback
-    onAddNode(nodeType);
+  // Emit the event so the editor can handle it
+  emitNodeAdded(nodeType);
 
     // Retourner à l'écran précédent
     navigation.goBack();

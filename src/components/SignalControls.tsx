@@ -8,10 +8,11 @@
  */
 
 import React from 'react';
+import { logger } from '../utils/logger';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { setFlashlightState, getFlashlightState } from '../engine/nodes/FlashLightNode';
-import { triggerNode } from '../engine/nodes/TriggerNode';
+import { Alert } from 'react-native';
+import { setFlashlightState, getFlashlightState } from '../engine/nodes/FlashLightConditionNode';
 import { getPingCount } from '../engine/nodes/PingNode';
 
 interface SignalControlsProps {
@@ -35,22 +36,16 @@ const SignalControls: React.FC<SignalControlsProps> = ({ visible, triggerNodeIds
 
   const toggleFlashlight = () => {
     const newState = !flashlightOn;
-    setFlashlightState(newState);
-    setFlashlightOn(newState);
-    console.log('🔦 Flashlight:', newState ? 'ON' : 'OFF');
-  };
-
-  const handleTrigger = () => {
-    if (triggerNodeIds.length === 0) {
-      console.warn('⚠️ No Trigger nodes in graph');
-      return;
-    }
-
-    // Déclencher toutes les nodes trigger
-    triggerNodeIds.forEach((nodeId) => {
-      console.log('🚀 Triggering node:', nodeId);
-      triggerNode(nodeId, { timestamp: Date.now() });
+    setFlashlightState(newState).catch((err: any) => {
+      // Afficher une alerte si la permission est refusée
+      try {
+        Alert.alert('Permission requise', err?.message || 'Impossible de changer la lampe torche');
+      } catch {
+        /* ignore */
+      }
     });
+    setFlashlightOn(newState);
+    logger.info('🔦 Flashlight:', newState ? 'ON' : 'OFF');
   };
 
   if (!visible) return null;
@@ -76,18 +71,6 @@ const SignalControls: React.FC<SignalControlsProps> = ({ visible, triggerNodeIds
           />
           <Text style={styles.controlButtonText}>Flashlight {flashlightOn ? 'ON' : 'OFF'}</Text>
         </TouchableOpacity>
-
-        {/* Trigger Button */}
-        {triggerNodeIds.length > 0 && (
-          <TouchableOpacity
-            style={[styles.controlButton, styles.triggerButton]}
-            onPress={handleTrigger}
-            activeOpacity={0.7}
-          >
-            <Icon name="play-arrow" size={20} color="#ffffff" />
-            <Text style={styles.controlButtonText}>Trigger Signal</Text>
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* Stats */}

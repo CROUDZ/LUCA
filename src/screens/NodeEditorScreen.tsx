@@ -15,14 +15,16 @@ import { useGraphStorage } from '../hooks/useGraphStorage';
 
 // Import des configurations
 import { APP_CONFIG } from '../config/constants';
-import exampleGraph from '../../exampleGraph.json';
 import type { DrawflowExport } from '../types';
 import type { RootStackParamList } from '../types/navigation.types';
 
 import styles from './NodeEditorScreenStyles';
 import SaveMenu from '../components/SaveMenu';
-import SignalControls from '../components/SignalControls';
+// SignalControls removed — component considered unnecessary
+import RunProgramButton from '../components/RunProgramButton';
 import { nodeInstanceTracker } from '../engine/NodeInstanceTracker';
+import { subscribeNodeAdded } from '../utils/NodePickerEvents';
+import { logger } from '../utils/logger';
 
 // Import du système de signaux
 import { parseDrawflowGraph } from '../engine/engine';
@@ -34,6 +36,15 @@ type NodeEditorScreenNavigationProp = NativeStackNavigationProp<RootStackParamLi
 interface NodeEditorScreenProps {
   navigation: NodeEditorScreenNavigationProp;
 }
+
+// Graphe vide par défaut
+const EMPTY_GRAPH: DrawflowExport = {
+  drawflow: {
+    Home: {
+      data: {},
+    },
+  },
+};
 
 const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
   // États locaux pour l'UI
@@ -66,7 +77,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
     clearGraph: clearWebViewGraph,
   } = useWebViewMessaging({
     onReady: () => {
-      console.log('✅ WebView ready');
+      logger.debug('✅ WebView ready');
       // Charger la dernière sauvegarde si disponible
       if (currentSaveId) {
         const save = saves.find((s) => s.id === currentSaveId);
@@ -81,26 +92,22 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
       // Mettre à jour le graphe actuel pour le système de signaux
       setCurrentGraph(data);
     },
-    onRequestImport: () => {
-      // Charger l'exemple
-      loadGraph(exampleGraph as DrawflowExport);
-    },
   });
 
   /**
    * Initialiser le système de signaux quand le graphe change
    */
   useEffect(() => {
-    if (!currentGraph) return;
+  if (!currentGraph) return;
 
-    console.log('🔄 Initializing signal system...');
+  logger.debug('🔄 Initializing signal system...');
 
     // Reset le système
     resetSignalSystem();
 
     // Parser le graphe
     const graph = parseDrawflowGraph(currentGraph);
-    console.log(`📊 Parsed graph: ${graph.nodes.size} nodes, ${graph.edges.length} connections`);
+  logger.debug(`📊 Parsed graph: ${graph.nodes.size} nodes, ${graph.edges.length} connections`);
 
     // Initialiser le système avec le graphe
     initializeSignalSystem(graph);
@@ -118,19 +125,19 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
           });
           handlersRegistered++;
         } catch (error) {
-          console.error(`❌ Error executing node ${node.id} (${node.type}):`, error);
+          logger.error(`❌ Error executing node ${node.id} (${node.type}):`, error);
         }
       }
     });
 
-    console.log(`✅ Registered ${handlersRegistered} signal handlers`);
+  logger.debug(`✅ Registered ${handlersRegistered} signal handlers`);
 
     // Trouver tous les nœuds Trigger
     const triggers = Array.from(graph.nodes.values())
       .filter((n) => n.type === 'input.trigger')
       .map((n) => n.id);
-    setTriggerNodeIds(triggers);
-    console.log(`🎯 Found ${triggers.length} trigger nodes:`, triggers);
+  setTriggerNodeIds(triggers);
+  logger.debug(`🎯 Found ${triggers.length} trigger nodes:`, triggers);
   }, [currentGraph]);
 
   /**
@@ -150,7 +157,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
       setTimeout(async () => {
         const save = await createSave(
           newSaveName,
-          exampleGraph as DrawflowExport // Sera remplacé par les vraies données
+          EMPTY_GRAPH // Graphe vide par défaut
         );
 
         if (save) {
@@ -209,11 +216,24 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
       const y =
         Math.random() * APP_CONFIG.nodes.randomOffsetRange + APP_CONFIG.nodes.defaultPosition.y;
 
-      console.log('➕ Adding node:', nodeType);
+  logger.info('➕ Adding node:', nodeType);
       addNode(nodeType, x, y, { type: nodeType });
+      
+      // Forcer l'export après ajout pour mettre à jour le graphe
+      setTimeout(() => {
+        requestExport();
+      }, 300);
     },
-    [addNode]
+    [addNode, requestExport]
   );
+
+    // Subscribe to NodePicker events instead of passing callback through navigation params
+    useEffect(() => {
+      const unsubscribe = subscribeNodeAdded((nodeType: string) => {
+        handleAddNode(nodeType);
+      });
+      return unsubscribe;
+    }, [handleAddNode]);
 
   /**
    * Effacer le graphe
@@ -228,7 +248,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
           clearWebViewGraph();
           setCurrentSaveId(null);
           nodeInstanceTracker.reset(); // Reset tous les compteurs
-          console.log('🗑️ Graph cleared');
+          logger.info('🗑️ Graph cleared');
         },
       },
     ]);
@@ -261,13 +281,15 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
         androidLayerType="hardware"
         onError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
-          console.error('❌ WebView error:', nativeEvent);
+          logger.error('❌ WebView error:', nativeEvent);
         }}
-        onLoad={() => console.log('📄 WebView loaded')}
+  onLoad={() => logger.debug('📄 WebView loaded')}
       />
 
-      {/* Contrôles du système de signaux */}
-      {currentGraph && <SignalControls visible={true} triggerNodeIds={triggerNodeIds} />}
+  {/* Contrôles du système de signaux — component removed */}
+
+      {/* Bouton Run Program en bas de l'écran */}
+      <RunProgramButton triggerNodeIds={triggerNodeIds} isReady={isReady} />
 
       {/* Contrôles React Native */}
       <View style={styles.controls}>
@@ -339,7 +361,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
       {/* Bouton FAB pour ouvrir le NodePicker */}
       <TouchableOpacity
         style={[styles.fabButton, !isReady && styles.fabButtonDisabled]}
-        onPress={() => navigation.navigate('NodePicker', { onAddNode: handleAddNode })}
+  onPress={() => navigation.navigate('NodePicker')}
         disabled={!isReady}
         activeOpacity={0.8}
       >
@@ -350,3 +372,4 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
 };
 
 export default NodeEditorScreen;
+

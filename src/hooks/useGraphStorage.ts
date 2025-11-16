@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SavedGraph, DrawflowExport } from '../types';
 import { ErrorCode } from '../types';
 import { APP_CONFIG } from '../config/constants';
+import { logger } from '../utils/logger';
 import {
   withErrorHandling,
   confirmDestructiveAction,
@@ -91,7 +92,7 @@ export function useGraphStorage() {
 
       if (success) {
         setCurrentSaveId(newSave.id);
-        console.log('💾 Created save:', newSave.name);
+  logger.info('💾 Created save:', newSave.name);
         return newSave;
       }
 
@@ -112,7 +113,7 @@ export function useGraphStorage() {
       const success = await savesToStorage(updatedSaves);
 
       if (success) {
-        console.log('💾 Updated save:', saveId);
+  logger.info('💾 Updated save:', saveId);
         return true;
       }
 
@@ -127,7 +128,7 @@ export function useGraphStorage() {
   const autoSave = useCallback(
     async (data: DrawflowExport) => {
       if (!currentSaveId) {
-        console.log('💾 No active save for auto-save');
+  logger.debug('💾 No active save for auto-save');
         return false;
       }
 
@@ -152,7 +153,7 @@ export function useGraphStorage() {
           if (currentSaveId === saveId) {
             setCurrentSaveId(null);
           }
-          console.log('🗑️ Deleted save:', save.name);
+          logger.info('🗑️ Deleted save:', save.name);
           return true;
         }
 
@@ -219,7 +220,7 @@ export function useGraphStorage() {
       const save = getSave(saveId);
       if (save) {
         setCurrentSaveId(saveId);
-        console.log('📂 Loaded save:', save.name);
+  logger.info('📂 Loaded save:', save.name);
         return save;
       }
       return null;

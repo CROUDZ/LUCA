@@ -24,6 +24,7 @@ import {
   resetPingCount,
 } from '../signalSystem';
 import { parseDrawflowGraph } from '../engine/engine';
+import { logger } from '../utils/logger';
 import type { Graph, DrawflowExport } from '../types';
 
 export interface UseSignalSystemReturn {
@@ -69,11 +70,11 @@ export function useSignalSystem(): UseSignalSystemReturn {
       initializeSignalSystem(graph);
 
       setIsInitialized(true);
-      console.log('[useSignalSystem] Système initialisé avec', graph.nodes.size, 'nodes');
+    logger.debug('[useSignalSystem] Système initialisé avec', graph.nodes.size, 'nodes');
 
       return graph;
     } catch (error) {
-      console.error("[useSignalSystem] Erreur lors de l'initialisation:", error);
+    logger.error("[useSignalSystem] Erreur lors de l'initialisation:", error);
       return null;
     }
   }, []);
@@ -94,19 +95,19 @@ export function useSignalSystem(): UseSignalSystemReturn {
     setIsInitialized(false);
     setPingCount(0);
     setSystemStats(null);
-    console.log('[useSignalSystem] Système réinitialisé');
+  logger.debug('[useSignalSystem] Système réinitialisé');
   }, []);
 
   // Déclencher un signal
   const triggerSignal = useCallback(
     (nodeId: number, data?: any) => {
       if (!isInitialized) {
-        console.warn('[useSignalSystem] Système non initialisé');
+  logger.warn('[useSignalSystem] Système non initialisé');
         return;
       }
 
       triggerNode(nodeId, data);
-      console.log('[useSignalSystem] Signal déclenché depuis node', nodeId);
+  logger.debug('[useSignalSystem] Signal déclenché depuis node', nodeId);
 
       // Rafraîchir les stats après un délai
       setTimeout(() => {
@@ -119,16 +120,16 @@ export function useSignalSystem(): UseSignalSystemReturn {
 
   // Contrôler la lampe torche
   const setFlashlight = useCallback((enabled: boolean) => {
-    setFlashlightState(enabled);
+    setFlashlightState(enabled).catch(() => {});
     setFlashlightStateLocal(enabled);
-    console.log('[useSignalSystem] Lampe torche:', enabled ? 'ON' : 'OFF');
+  logger.debug('[useSignalSystem] Lampe torche:', enabled ? 'ON' : 'OFF');
   }, []);
 
   // Réinitialiser le compteur de pings
   const resetPings = useCallback(() => {
     resetPingCount();
     setPingCount(0);
-    console.log('[useSignalSystem] Compteur de pings réinitialisé');
+  logger.debug('[useSignalSystem] Compteur de pings réinitialisé');
   }, []);
 
   // Mettre à jour les stats périodiquement
@@ -212,17 +213,17 @@ export function useFlashlight() {
 
   const toggle = useCallback(() => {
     const newState = !isOn;
-    setFlashlightState(newState);
+    setFlashlightState(newState).catch(() => {});
     setIsOn(newState);
   }, [isOn]);
 
   const turnOn = useCallback(() => {
-    setFlashlightState(true);
+    setFlashlightState(true).catch(() => {});
     setIsOn(true);
   }, []);
 
   const turnOff = useCallback(() => {
-    setFlashlightState(false);
+    setFlashlightState(false).catch(() => {});
     setIsOn(false);
   }, []);
 

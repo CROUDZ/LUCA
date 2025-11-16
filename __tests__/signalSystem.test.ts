@@ -2,16 +2,20 @@
  * Tests du système de signaux
  */
 
-import { initializeSignalSystem, resetSignalSystem } from '../src/engine/SignalSystem';
-import { setFlashlightState } from '../src/engine/nodes/FlashLightNode';
-import { triggerNode } from '../src/engine/nodes/TriggerNode';
-import { getPingCount, resetPingCount } from '../src/engine/nodes/PingNode';
+// Mocker 'react-native' pour Jest (Alert utilisé par PingNode)
+jest.resetModules();
+jest.mock('react-native', () => ({ Alert: { alert: jest.fn() } }));
+
+const { initializeSignalSystem, resetSignalSystem } = require('../src/engine/SignalSystem');
+const { setFlashlightState } = require('../src/engine/nodes/FlashLightConditionNode');
+const { triggerNode } = require('../src/engine/nodes/TriggerNode');
+const { getPingCount, resetPingCount } = require('../src/engine/nodes/PingNode');
 import type { Graph } from '../src/types';
 
 describe('Signal System', () => {
   let graph: Graph;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Créer un graphe de test simple
     // Trigger (1) -> FlashLight (2) -> Ping (3)
     graph = {
@@ -23,7 +27,11 @@ describe('Signal System', () => {
             id: 2,
             name: 'FlashLight',
             type: 'condition.flashlight',
-            data: {},
+            // Par défaut on ne veut pas que le toggle de la lampe émette
+            // automatiquement un signal dans ce test (cela causerait
+            // des pings supplémentaires). On teste ici la chaîne
+            // Trigger -> FlashLight -> Ping uniquement.
+            data: { autoEmitOnChange: false },
             inputs: [1],
             outputs: [3],
           },
@@ -36,8 +44,19 @@ describe('Signal System', () => {
       ],
     };
 
-    // Initialiser le système
-    initializeSignalSystem(graph);
+  // Initialiser le système
+  initializeSignalSystem(graph);
+
+  // Charger toutes les nodes et exécuter le graphe pour que les handlers
+  // des nodes (ex: FlashLight, Ping) s'enregistrent dans le SignalSystem.
+  const { loadAllNodes } = require('../src/engine/NodeRegistry');
+  loadAllNodes();
+
+  const { executeGraph } = require('../src/engine/engine');
+  // Exécuter le graphe afin d'enregistrer les handlers des nodes
+  // (les nodes font des registerHandler dans leur exécution)
+  // Nous ignorons le résultat d'évaluation dans ces tests
+  await executeGraph(graph);
     resetPingCount();
   });
 
@@ -46,8 +65,8 @@ describe('Signal System', () => {
   });
 
   it('should propagate signal when flashlight is on', async () => {
-    // Activer la lampe torche
-    setFlashlightState(true);
+  // Activer la lampe torche
+  await setFlashlightState(true);
 
     // Déclencher le signal
     triggerNode(1, { test: 'data' });
@@ -61,7 +80,7 @@ describe('Signal System', () => {
 
   it('should block signal when flashlight is off', async () => {
     // Désactiver la lampe torche
-    setFlashlightState(false);
+  await setFlashlightState(false);
 
     // Déclencher le signal
     triggerNode(1, { test: 'data' });
@@ -74,7 +93,7 @@ describe('Signal System', () => {
   });
 
   it('should handle multiple signals', async () => {
-    setFlashlightState(true);
+  await setFlashlightState(true);
 
     // Déclencher plusieurs signaux
     triggerNode(1);
@@ -88,3 +107,5 @@ describe('Signal System', () => {
     expect(getPingCount()).toBe(3);
   });
 });
+
+export {};

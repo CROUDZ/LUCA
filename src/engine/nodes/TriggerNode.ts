@@ -20,6 +20,7 @@ import type {
   NodeExecutionResult,
 } from '../../types/node.types';
 import { getSignalSystem } from '../SignalSystem';
+import { logger } from '../../utils/logger';
 
 // Map pour stocker les références aux nodes trigger
 const triggerNodes = new Map<number, () => void>();
@@ -28,11 +29,11 @@ const triggerNodes = new Map<number, () => void>();
  * Fonction helper pour déclencher manuellement une node trigger
  */
 export function triggerNode(nodeId: number, data?: any): void {
-  console.log(`[Trigger] Déclenchement manuel de la node ${nodeId}`);
+  logger.info(`[Trigger] Déclenchement manuel de la node ${nodeId}`);
 
   const signalSystem = getSignalSystem();
   if (!signalSystem) {
-    console.error('[Trigger] Signal system not initialized');
+  logger.error('[Trigger] Signal system not initialized');
     return;
   }
 
@@ -44,11 +45,11 @@ export function triggerNode(nodeId: number, data?: any): void {
  * Fonction helper pour déclencher toutes les nodes trigger
  */
 export function triggerAll(data?: any): void {
-  console.log('[Trigger] Déclenchement de toutes les nodes trigger');
+  logger.info('[Trigger] Déclenchement de toutes les nodes trigger');
 
   const signalSystem = getSignalSystem();
   if (!signalSystem) {
-    console.error('[Trigger] Signal system not initialized');
+  logger.error('[Trigger] Signal system not initialized');
     return;
   }
 
@@ -116,7 +117,7 @@ const TriggerNode: NodeDefinition = {
 
       // Auto-déclenchement si activé
       if (autoTrigger) {
-        console.log(
+        logger.debug(
           `[Trigger Node ${context.nodeId}] Auto-déclenchement dans ${autoTriggerDelay}ms`
         );
         setTimeout(() => {

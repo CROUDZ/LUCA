@@ -5,6 +5,7 @@
 import { useRef, useState, useCallback } from 'react';
 import type { WebView } from 'react-native-webview';
 import type { WebViewMessageEvent } from 'react-native-webview';
+import { logger } from '../utils/logger';
 import type { WebViewMessage, DrawflowExport } from '../types';
 import { ErrorCode } from '../types';
 import { logError, createAppError } from '../utils/errorHandler';
@@ -42,7 +43,7 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
 
       try {
         webRef.current.postMessage(JSON.stringify(message));
-        console.log('📤 Sent to WebView:', message.type);
+  logger.debug('📤 Sent to WebView:', message.type);
         return true;
       } catch (error) {
         logError(
@@ -62,7 +63,7 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
     (event: WebViewMessageEvent) => {
       try {
         const message: WebViewMessage = JSON.parse(event.nativeEvent.data);
-        console.log('📨 Message from WebView:', message.type);
+  logger.debug('📨 Message from WebView:', message.type);
 
         switch (message.type) {
           case 'READY':
@@ -83,7 +84,7 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
             break;
 
           default:
-            console.warn('⚠️ Unknown message type:', message.type);
+            logger.warn('⚠️ Unknown message type:', message.type);
         }
       } catch (error) {
         const appError = createAppError(
@@ -136,7 +137,7 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
               }</div><div class="content">${nodeDefinition.description}</div>`,
         };
 
-        console.log('📦 Node data prepared:', nodeData);
+  logger.debug('📦 Node data prepared:', nodeData);
       }
 
       return sendMessage({

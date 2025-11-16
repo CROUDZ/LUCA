@@ -27,8 +27,8 @@ export type {
 // ============================================================================
 
 // FlashLight Node
-export { default as FlashLightNode } from './engine/nodes/FlashLightNode';
-export { setFlashlightState, getFlashlightState } from './engine/nodes/FlashLightNode';
+export { default as FlashLightConditionNode } from './engine/nodes/FlashLightConditionNode';
+export { setFlashlightState, getFlashlightState } from './engine/nodes/FlashLightConditionNode';
 
 // Ping Node
 export { default as PingNode } from './engine/nodes/PingNode';
@@ -56,13 +56,3 @@ export type {
 // Engine
 // ============================================================================
 export { parseDrawflowGraph, topologicalSort, validateGraph, executeGraph } from './engine/engine';
-
-// ============================================================================
-// Exemples et démos
-// ============================================================================
-export {
-  example1_SimpleConditionChain,
-  example2_MultipleBranches,
-  example3_ActionChain,
-  runAllExamples,
-} from './examples/signalSystemExamples';

@@ -33,6 +33,8 @@ export interface NodeExecutionContext {
   nodeId: number;
   // Données d'entrée résolues
   inputs: Record<string, any>;
+  // Nombre d'entrées configurées sur le noeud (présence de connexions)
+  inputsCount?: number;
   // Settings de la node
   settings: Record<string, any>;
   // Fonction pour logger

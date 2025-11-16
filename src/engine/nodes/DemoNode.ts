@@ -13,11 +13,13 @@
  */
 
 import { registerNode } from '../NodeRegistry';
+import { logger } from '../../utils/logger';
 import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
 } from '../../types/node.types';
+ 
 
 const DemoNode: NodeDefinition = {
   // ============================================================================
@@ -186,7 +188,7 @@ const DemoNode: NodeDefinition = {
   execute: async (context: NodeExecutionContext): Promise<NodeExecutionResult> => {
     const { inputs, settings } = context;
 
-    console.log('🔬 DemoNode executing with:', { inputs, settings });
+  logger.debug('🔬 DemoNode executing with:', { inputs, settings });
 
     try {
       // Récupérer les inputs
@@ -200,7 +202,7 @@ const DemoNode: NodeDefinition = {
 
       // Si mode async, attendre
       if (isAsync) {
-        console.log(`⏳ DemoNode: Waiting ${delay}ms...`);
+        logger.debug(`⏳ DemoNode: Waiting ${delay}ms...`);
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
 
@@ -270,7 +272,7 @@ const DemoNode: NodeDefinition = {
         },
       };
     } catch (error) {
-      console.error('❌ DemoNode error:', error);
+      logger.error('❌ DemoNode error:', error);
 
       return {
         success: false,

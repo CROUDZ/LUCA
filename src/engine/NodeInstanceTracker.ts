@@ -3,6 +3,8 @@
  * Solution simple et synchrone pour les limites maxInstances
  */
 
+import { logger } from '../utils/logger';
+
 class NodeInstanceTracker {
   private instances: Map<string, number> = new Map();
 
@@ -12,7 +14,7 @@ class NodeInstanceTracker {
   addInstance(nodeType: string): void {
     const current = this.instances.get(nodeType) || 0;
     this.instances.set(nodeType, current + 1);
-    console.log(`📊 NodeInstanceTracker: ${nodeType} count: ${current + 1}`);
+  logger.debug(`📊 NodeInstanceTracker: ${nodeType} count: ${current + 1}`);
   }
 
   /**
@@ -22,7 +24,7 @@ class NodeInstanceTracker {
     const current = this.instances.get(nodeType) || 0;
     if (current > 0) {
       this.instances.set(nodeType, current - 1);
-      console.log(`📊 NodeInstanceTracker: ${nodeType} count: ${current - 1}`);
+  logger.debug(`📊 NodeInstanceTracker: ${nodeType} count: ${current - 1}`);
     }
   }
 
@@ -39,10 +41,10 @@ class NodeInstanceTracker {
   reset(nodeType?: string): void {
     if (nodeType) {
       this.instances.set(nodeType, 0);
-      console.log(`🔄 NodeInstanceTracker: Reset ${nodeType}`);
+  logger.debug(`🔄 NodeInstanceTracker: Reset ${nodeType}`);
     } else {
       this.instances.clear();
-      console.log('🔄 NodeInstanceTracker: Reset all');
+  logger.debug('🔄 NodeInstanceTracker: Reset all');
     }
   }
 

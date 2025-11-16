@@ -10,35 +10,68 @@ import {
   findSourceNodes,
   findOutputNodes,
 } from '../src/engine/engine';
-import exampleGraph from '../exampleGraph.json';
 import type { DrawflowExport } from '../src/types';
+
+// Test graph for unit tests
+const testGraph: DrawflowExport = {
+  drawflow: {
+    Home: {
+      data: {
+        "1": {
+          id: 1,
+          name: "Test Trigger",
+          data: { type: "input.trigger" },
+          class: "trigger-node",
+          html: "<div>Test Trigger</div>",
+          typenode: false,
+          inputs: {},
+          outputs: { output_1: { connections: [{ node: "2", output: "input_1" }] } },
+          pos_x: 100,
+          pos_y: 100,
+        },
+        "2": {
+          id: 2,
+          name: "Test Action",
+          data: { type: "action.log" },
+          class: "action-node",
+          html: "<div>Test Action</div>",
+          typenode: false,
+          inputs: { input_1: { connections: [{ node: "1", input: "output_1" }] } },
+          outputs: {},
+          pos_x: 300,
+          pos_y: 100,
+        },
+      },
+    },
+  },
+};
 
 describe('Engine - Graph Parser', () => {
   describe('parseDrawflowGraph', () => {
-    test('should parse exampleGraph.json without errors', () => {
+    test('should parse test graph without errors', () => {
       expect(() => {
-        const graph = parseDrawflowGraph(exampleGraph as DrawflowExport);
+        const graph = parseDrawflowGraph(testGraph);
         expect(graph.nodes.size).toBeGreaterThan(0);
       }).not.toThrow();
     });
 
-    test('should extract nodes from exampleGraph', () => {
-      const graph = parseDrawflowGraph(exampleGraph as DrawflowExport);
+    test('should extract nodes from test graph', () => {
+      const graph = parseDrawflowGraph(testGraph);
       expect(graph.nodes.size).toBe(2); // texture + mix
       expect(graph.edges.length).toBe(1); // texture -> mix
     });
 
     test('should detect node types correctly', () => {
-      const graph = parseDrawflowGraph(exampleGraph as DrawflowExport);
+      const graph = parseDrawflowGraph(testGraph);
       const node1 = graph.nodes.get(1);
       const node2 = graph.nodes.get(2);
 
-      expect(node1?.type).toBe('texture');
-      expect(node2?.type).toBe('mix');
+      expect(node1?.type).toBe('input.trigger');
+      expect(node2?.type).toBe('action.log');
     });
 
     test('should build correct edges', () => {
-      const graph = parseDrawflowGraph(exampleGraph as DrawflowExport);
+      const graph = parseDrawflowGraph(testGraph);
 
       expect(graph.edges).toEqual([{ from: 1, to: 2 }]);
     });
@@ -59,8 +92,8 @@ describe('Engine - Graph Parser', () => {
   });
 
   describe('topologicalSort', () => {
-    test('should perform topological sort on exampleGraph', () => {
-      const graph = parseDrawflowGraph(exampleGraph as DrawflowExport);
+    test('should perform topological sort on test graph', () => {
+      const graph = parseDrawflowGraph(testGraph);
       const order = topologicalSort(graph);
 
       expect(order).not.toBeNull();
@@ -149,7 +182,7 @@ describe('Engine - Graph Parser', () => {
 
   describe('validateGraph', () => {
     test('should validate correct graph', () => {
-      const graph = parseDrawflowGraph(exampleGraph as DrawflowExport);
+      const graph = parseDrawflowGraph(testGraph);
       const result = validateGraph(graph);
 
       expect(result.valid).toBe(true);
@@ -208,29 +241,29 @@ describe('Engine - Graph Parser', () => {
 
   describe('findSourceNodes', () => {
     test('should find source nodes', () => {
-      const graph = parseDrawflowGraph(exampleGraph as DrawflowExport);
+      const graph = parseDrawflowGraph(testGraph);
       const sources = findSourceNodes(graph);
 
       expect(sources.length).toBe(1);
       expect(sources[0].id).toBe(1);
-      expect(sources[0].type).toBe('texture');
+      expect(sources[0].type).toBe('input.trigger');
     });
   });
 
   describe('findOutputNodes', () => {
     test('should find output nodes', () => {
-      const graph = parseDrawflowGraph(exampleGraph as DrawflowExport);
+      const graph = parseDrawflowGraph(testGraph);
       const outputs = findOutputNodes(graph);
 
       expect(outputs.length).toBe(1);
       expect(outputs[0].id).toBe(2);
-      expect(outputs[0].type).toBe('mix');
+      expect(outputs[0].type).toBe('action.log');
     });
   });
 
   describe('exportToDrawflow', () => {
     test('should export graph back to Drawflow format', () => {
-      const graph = parseDrawflowGraph(exampleGraph as DrawflowExport);
+      const graph = parseDrawflowGraph(testGraph);
       const exported = exportToDrawflow(graph);
 
       expect(exported.drawflow).toBeDefined();
@@ -240,7 +273,7 @@ describe('Engine - Graph Parser', () => {
     });
 
     test('should preserve node data on round-trip', () => {
-      const graph = parseDrawflowGraph(exampleGraph as DrawflowExport);
+      const graph = parseDrawflowGraph(testGraph);
       const exported = exportToDrawflow(graph);
       const reimported = parseDrawflowGraph(exported);
 
@@ -256,3 +289,5 @@ describe('Engine - Graph Parser', () => {
     });
   });
 });
+
+export {};

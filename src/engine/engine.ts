@@ -13,6 +13,7 @@ import type {
   EvaluationResult,
 } from '../types';
 import { nodeRegistry } from './NodeRegistry';
+import { logger } from '../utils/logger';
 
 /**
  * Parse un export Drawflow JSON vers un modèle de graphe
@@ -249,9 +250,16 @@ export async function executeGraph(graph: Graph): Promise<EvaluationResult> {
       const context: NodeExecutionContext = {
         nodeId: node.id,
         inputs,
-        settings: node.data || {},
+        inputsCount: node.inputs.length,
+        // Merge user-provided node data with nodeDefinition.defaultSettings
+        // This ensures nodes that rely on defaults (ex: FlashLight autoEmitOnChange)
+        // behave consistently when no explicit setting is provided.
+        settings: {
+          ...(nodeDefinition.defaultSettings || {}),
+          ...(node.data || {}),
+        },
         log: (message: string) => {
-          console.log(`[Node ${nodeId}] ${message}`);
+          logger.debug(`[Node ${nodeId}] ${message}`);
         },
       };
 
@@ -279,7 +287,7 @@ export async function executeGraph(graph: Graph): Promise<EvaluationResult> {
     } catch (error) {
       result.errors.set(nodeId, error as Error);
       result.success = false;
-      console.error(`Error executing node ${nodeId}:`, error);
+      logger.error(`Error executing node ${nodeId}:`, error);
     }
   }
 
