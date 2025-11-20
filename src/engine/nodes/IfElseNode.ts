@@ -83,6 +83,7 @@ const IfElseNode: NodeDefinition = {
     comparisonOperator: '==', // '==', '!=', '>', '<', '>=', '<=', '===', '!=='
     comparisonValue: '', // Valeur de comparaison
     truthyCheck: true, // Si true, utilise le truthy check JS
+    invertSignal: false,
   },
 
   // ============================================================================
@@ -113,6 +114,7 @@ const IfElseNode: NodeDefinition = {
                 // Évaluer l'expression JavaScript
                 // ATTENTION: eval est dangereux en production, utiliser un parser sécurisé
                 const variables = signalSystem.getAllVariables();
+                // eslint-disable-next-line no-new-func
                 const evalFunc = new Function(
                   ...Object.keys(variables),
                   'signal',
@@ -131,12 +133,14 @@ const IfElseNode: NodeDefinition = {
 
                 switch (operator) {
                   case '==':
+                    // eslint-disable-next-line eqeqeq
                     conditionResult = testValue == compareValue;
                     break;
                   case '===':
                     conditionResult = testValue === compareValue;
                     break;
                   case '!=':
+                    // eslint-disable-next-line eqeqeq
                     conditionResult = testValue != compareValue;
                     break;
                   case '!==':
@@ -166,7 +170,12 @@ const IfElseNode: NodeDefinition = {
                 `[IfElse Node ${context.nodeId}] Condition: ${conditionResult ? 'TRUE' : 'FALSE'}`
               );
 
+              // Appliquer l'inversion si nécessaire
+              const invertSignal = settings.invertSignal ?? false;
+              const finalResult = invertSignal ? !conditionResult : conditionResult;
+
               // Obtenir les IDs des nodes de sortie
+              // eslint-disable-next-line dot-notation
               const node = signalSystem['graph'].nodes.get(context.nodeId);
               if (!node) {
                 return { propagate: false };
@@ -174,7 +183,7 @@ const IfElseNode: NodeDefinition = {
 
               // Déterminer quelle sortie activer
               // outputs[0] = true, outputs[1] = false (par convention)
-              const targetOutputs = conditionResult
+              const targetOutputs = finalResult
                 ? [node.outputs[0]].filter(Boolean)
                 : [node.outputs[1]].filter(Boolean);
 
@@ -183,6 +192,8 @@ const IfElseNode: NodeDefinition = {
                 data: {
                   ...signal.data,
                   conditionResult,
+                  finalResult,
+                  inverted: invertSignal,
                   conditionValue: testValue,
                 },
                 targetOutputs,
@@ -190,6 +201,7 @@ const IfElseNode: NodeDefinition = {
             } catch (error) {
               logger.error(`[IfElse Node ${context.nodeId}] Erreur d'évaluation:`, error);
               // En cas d'erreur, aller vers false
+              // eslint-disable-next-line dot-notation
               const node = signalSystem['graph'].nodes.get(context.nodeId);
               return {
                 propagate: true,
@@ -229,10 +241,18 @@ const IfElseNode: NodeDefinition = {
       displayText = `? ${settings.comparisonOperator || '=='} ${settings.comparisonValue || ''}`;
     }
 
+    const invertSignal = settings?.invertSignal ?? false;
     return `
       <div class="node-content">
         <div class="node-title">If/Else</div>
         <div class="node-subtitle">${displayText}</div>
+      </div>
+      <div class="condition-invert-control">
+        <label class="switch-label">
+          <input type="checkbox" class="invert-signal-toggle" ${invertSignal ? 'checked' : ''} />
+          <span class="switch-slider"></span>
+          <span class="switch-text">Invert Signal</span>
+        </label>
       </div>
     `;
   },

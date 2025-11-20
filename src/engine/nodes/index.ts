@@ -21,7 +21,6 @@
 // ============================================================================
 // NODES DE BASE (EXISTANTES)
 // ============================================================================
-import './DemoNode';
 import './FlashLightConditionNode';
 import './PingNode';
 import './TriggerNode';
@@ -32,36 +31,21 @@ import './ConfirmNode';
 // NODES CONDITIONNELLES
 // ============================================================================
 import './IfElseNode';
-import './CompareNode';
 import './LogicGateNode';
 
 // ============================================================================
 // NODES DE CONTRÔLE DE FLUX
 // ============================================================================
 import './DelayNode';
-import './LoopNode';
-import './SequenceNode';
-
-// ============================================================================
-// NODES DE DONNÉES
-// ============================================================================
-import './VariableNode';
-import './MathNode';
-import './ConstantNode';
 
 // ============================================================================
 // NODES D'ACTIONS
 // ============================================================================
 import './NotificationNode';
 import './VibrationNode';
-import './LogNode';
 import './FlashLightActionNode';
-
-// ============================================================================
-// NODES D'ÉVÉNEMENTS
-// ============================================================================
-import './EventEmitterNode';
 import './EventListenerNode';
+
 import { logger } from '../../utils/logger';
 
 logger.debug('✅ All nodes loaded (17 nodes total)');
@@ -69,25 +53,15 @@ logger.debug('✅ All nodes loaded (17 nodes total)');
 // ============================================================================
 // EXPORTS DES NODES
 // ============================================================================
-export { default as DemoNode } from './DemoNode';
 export { default as FlashLightConditionNode } from './FlashLightConditionNode';
 export { default as PingNode } from './PingNode';
 export { default as TriggerNode } from './TriggerNode';
 export { default as IfElseNode } from './IfElseNode';
-export { default as CompareNode } from './CompareNode';
 export { default as LogicGateNode } from './LogicGateNode';
 export { default as DelayNode } from './DelayNode';
-export { default as LoopNode } from './LoopNode';
-export { default as SequenceNode } from './SequenceNode';
-export { default as VariableNode } from './VariableNode';
-export { default as MathNode } from './MathNode';
-export { default as ConstantNode } from './ConstantNode';
 export { default as NotificationNode } from './NotificationNode';
 export { default as VibrationNode } from './VibrationNode';
-export { default as LogNode } from './LogNode';
 export { default as FlashLightActionNode } from './FlashLightActionNode';
-export { default as EventEmitterNode } from './EventEmitterNode';
-export { default as EventListenerNode } from './EventListenerNode';
 // ConfirmNode export (duplicate removed)
 
 // ============================================================================
@@ -107,10 +81,12 @@ export { getPingCount, resetPingCount } from './PingNode';
 // Logic Gate
 export { resetLogicGateState, resetAllLogicGateStates } from './LogicGateNode';
 
-// Event Listener
-export {
-  unsubscribeEventListener,
-  unsubscribeAllEventListeners,
-} from './EventListenerNode';
 // Confirm
 export { default as ConfirmNode } from './ConfirmNode';
+
+// Event Listener helpers
+export {
+	default as EventListenerNode,
+	unsubscribeEventListener,
+	unsubscribeAllEventListeners,
+} from './EventListenerNode';

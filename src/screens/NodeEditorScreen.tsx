@@ -28,7 +28,8 @@ import { logger } from '../utils/logger';
 
 // Import du système de signaux
 import { parseDrawflowGraph } from '../engine/engine';
-import { initializeSignalSystem, resetSignalSystem } from '../engine/SignalSystem';
+import { ensureCameraPermission, hasCameraPermission } from '../engine/nodes/FlashLightConditionNode';
+import { initializeSignalSystem, resetSignalSystem, getSignalSystem } from '../engine/SignalSystem';
 import { nodeRegistry } from '../engine/NodeRegistry';
 
 type NodeEditorScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'NodeEditor'>;
@@ -53,6 +54,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
   const [newSaveName, setNewSaveName] = useState('');
   const [currentGraph, setCurrentGraph] = useState<DrawflowExport | null>(null);
   const [triggerNodeIds, setTriggerNodeIds] = useState<number[]>([]);
+  const [hasFlashActionInGraph, setHasFlashActionInGraph] = useState(false);
 
   // Hook de stockage des graphes
   const {
@@ -92,12 +94,48 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
       // Mettre à jour le graphe actuel pour le système de signaux
       setCurrentGraph(data);
     },
+    onNodeSettingsChanged: (payload) => {
+      try {
+        logger.debug('[WebView] Node settings changed:', payload);
+        const { nodeId, settings } = payload || {};
+        if (!nodeId) return;
+        const graph = parseDrawflowGraph(currentGraph || { drawflow: { Home: { data: {} } } });
+  const node = graph.nodes.get(Number(nodeId));
+  // If not present in graph yet, fall back to nodeType coming from the webview
+  const nodeType = (node && node.type) || payload?.nodeType;
+  if (!node && !nodeType) return;
+  const nodeDef = nodeRegistry.getNode(nodeType || node?.type);
+        const ss = getSignalSystem();
+        if (ss) {
+          // Unregister existing handler and re-register with new settings
+          const numericId = Number(nodeId);
+          ss.unregisterHandler(numericId);
+          // Also unsubscribe from any event subscriptions this node had
+          if (typeof ss.unsubscribeNode === 'function') ss.unsubscribeNode(numericId);
+        }
+        if (nodeDef) {
+          const numericId = Number(nodeId);
+          nodeDef.execute({ nodeId: numericId, inputs: {}, settings: settings || node?.data || {} });
+          logger.info(`[NodeEditorScreen] Re-registered node ${numericId} after settings change`);
+        }
+      } catch (err) {
+        logger.error('Failed to handle node setting change:', err);
+      }
+    },
   });
 
   /**
    * Initialiser le système de signaux quand le graphe change
    */
   useEffect(() => {
+    const ss = getSignalSystem();
+    let unsubscribe: (() => void) | null = null;
+    if (ss) {
+      unsubscribe = ss.subscribeToEvent('flashlight.permission.failed', 0, () => {
+        logger.info('[NodeEditorScreen] Received flashlight.permission.failed - updating banner state');
+        setCameraPermissionGranted(false);
+      });
+    }
   if (!currentGraph) return;
 
   logger.debug('🔄 Initializing signal system...');
@@ -121,7 +159,8 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
           nodeDef.execute({
             nodeId: node.id,
             inputs: {},
-            settings: node.data || {},
+            // Utiliser node.data.settings si présent (WebView stocke les settings ici)
+            settings: node.data?.settings || node.data || {},
           });
           handlersRegistered++;
         } catch (error) {
@@ -132,12 +171,59 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
 
   logger.debug(`✅ Registered ${handlersRegistered} signal handlers`);
 
+    // Do NOT request permission on graph initialization. We'll show a UI banner
+    // linking to the permission flow instead. Permission requests should happen
+    // as part of explicit user actions (e.g., pressing Run, toggling flashlight
+    // in SignalControls, or firing a trigger with FlashLightAction).
+
     // Trouver tous les nœuds Trigger
     const triggers = Array.from(graph.nodes.values())
       .filter((n) => n.type === 'input.trigger')
       .map((n) => n.id);
   setTriggerNodeIds(triggers);
+  // Est-ce qu'il y a une FlashLight node ?
+  const hasFlashAction = Array.from(graph.nodes.values()).some(n => n.type === 'action.flashlight');
+  setHasFlashActionInGraph(hasFlashAction);
   logger.debug(`🎯 Found ${triggers.length} trigger nodes:`, triggers);
+    return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
+  }, [currentGraph]);
+
+  // Show a small banner if FlashLight nodes present and permission denied
+  const [cameraPermissionGranted, setCameraPermissionGranted] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const hasFlashAction = currentGraph
+          ? Array.from(parseDrawflowGraph(currentGraph).nodes.values()).some(n => n.type === 'action.flashlight')
+          : false;
+
+        if (hasFlashAction) {
+          const perm = await hasCameraPermission();
+          setCameraPermissionGranted(perm);
+        } else {
+          setCameraPermissionGranted(null);
+        }
+      } catch (e) {
+        logger.warn('[NodeEditorScreen] Error checking camera permission for banner', e);
+      }
+    })();
+  }, [currentGraph]);
+
+  // Ajouter un log pour vérifier les settings des nodes après export
+  useEffect(() => {
+    if (!currentGraph) return;
+    try {
+      const nodes = currentGraph.drawflow?.Home?.data || {};
+      Object.keys(nodes).forEach(id => {
+        const n = nodes[id];
+        if ((n.class || '').includes('condition-node') || (n.class || '').includes('condition')) {
+          logger.debug(`[Web to RN] Node ${id} settings:`, n.data?.settings || n.data || {});
+        }
+      });
+    } catch (e) {
+      logger.warn('Failed to inspect currentGraph debug settings', e);
+    }
   }, [currentGraph]);
 
   /**
@@ -231,6 +317,20 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
     useEffect(() => {
       const unsubscribe = subscribeNodeAdded((nodeType: string) => {
         handleAddNode(nodeType);
+
+        // Si l'utilisateur ajoute une node FlashLight action, demander la permission
+        if (nodeType === 'action.flashlight') {
+          (async () => {
+            try {
+              const granted = await ensureCameraPermission();
+              if (!granted) {
+                Alert.alert('Permission requise', 'LUCA a besoin de la permission Caméra pour utiliser FlashLight nodes.');
+              }
+            } catch (e) {
+              logger.warn('[NodeEditorScreen] ensureCameraPermission on node add failed', e);
+            }
+          })();
+        }
       });
       return unsubscribe;
     }, [handleAddNode]);
@@ -263,6 +363,28 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {cameraPermissionGranted === false && (
+        <View style={styles.permissionBanner}>
+          <Text style={styles.permissionText}>LUCA needs Camera permission to use FlashLight nodes</Text>
+          <TouchableOpacity
+            style={styles.permissionButton}
+            onPress={async () => {
+              try {
+                const granted = await ensureCameraPermission();
+                setCameraPermissionGranted(granted);
+                if (!granted) {
+                  Alert.alert('Permission requise', 'LUCA needs Camera permission to use FlashLight nodes');
+                }
+              } catch (e) {
+                logger.error('[NodeEditorScreen] Permission request failed', e);
+                Alert.alert('Error', 'Permission request failed');
+              }
+            }}
+          >
+            <Text style={styles.permissionButtonText}>Request permission</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       {/* WebView avec éditeur nodal */}
       <WebView
         ref={webRef}
@@ -289,7 +411,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
   {/* Contrôles du système de signaux — component removed */}
 
       {/* Bouton Run Program en bas de l'écran */}
-      <RunProgramButton triggerNodeIds={triggerNodeIds} isReady={isReady} />
+  <RunProgramButton triggerNodeIds={triggerNodeIds} isReady={isReady} hasFlashAction={hasFlashActionInGraph} />
 
       {/* Contrôles React Native */}
       <View style={styles.controls}>

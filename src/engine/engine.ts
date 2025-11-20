@@ -254,9 +254,10 @@ export async function executeGraph(graph: Graph): Promise<EvaluationResult> {
         // Merge user-provided node data with nodeDefinition.defaultSettings
         // This ensures nodes that rely on defaults (ex: FlashLight autoEmitOnChange)
         // behave consistently when no explicit setting is provided.
+        // If node.data.settings exists, use it; otherwise use node.data directly for backward compatibility
         settings: {
           ...(nodeDefinition.defaultSettings || {}),
-          ...(node.data || {}),
+          ...(node.data?.settings || node.data || {}),
         },
         log: (message: string) => {
           logger.debug(`[Node ${nodeId}] ${message}`);

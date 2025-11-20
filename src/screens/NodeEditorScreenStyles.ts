@@ -343,6 +343,21 @@ const styles = StyleSheet.create({
   statusWarningText: {
     color: '#fbbf24',
   },
+  permissionBanner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#7c2d12',
+    padding: 10,
+    zIndex: 2000,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  permissionText: { color: '#fff', flex: 1, fontSize: 12, marginRight: 8 },
+  permissionButton: { paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#fff', borderRadius: 8 },
+  permissionButtonText: { color: '#7c2d12', fontWeight: '700' },
 });
 
 export default styles;

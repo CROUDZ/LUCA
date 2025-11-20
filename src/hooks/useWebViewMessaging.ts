@@ -16,6 +16,7 @@ interface UseWebViewMessagingOptions {
   onExport?: (data: DrawflowExport) => void;
   onImported?: () => void;
   onRequestImport?: () => void;
+  onNodeSettingsChanged?: (payload: any) => void;
 }
 
 export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
@@ -81,6 +82,10 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
 
           case 'REQUEST_IMPORT':
             options.onRequestImport?.();
+            break;
+
+          case 'NODE_SETTING_CHANGED':
+            options.onNodeSettingsChanged?.(message.payload);
             break;
 
           default:

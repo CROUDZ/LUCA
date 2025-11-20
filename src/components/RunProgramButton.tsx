@@ -12,14 +12,16 @@ import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { triggerAll } from '../engine/nodes/TriggerNode';
+import { Alert } from 'react-native';
 import { logger } from '../utils/logger';
 
 interface RunProgramButtonProps {
   triggerNodeIds: number[];
   isReady: boolean;
+  hasFlashAction?: boolean;
 }
 
-const RunProgramButton: React.FC<RunProgramButtonProps> = ({ triggerNodeIds, isReady }) => {
+const RunProgramButton: React.FC<RunProgramButtonProps> = ({ triggerNodeIds, isReady, hasFlashAction }) => {
   const hasTriggers = triggerNodeIds.length > 0;
   const isEnabled = isReady && hasTriggers;
 
@@ -28,11 +30,32 @@ const RunProgramButton: React.FC<RunProgramButtonProps> = ({ triggerNodeIds, isR
 
   logger.info('🚀 Launching program from', triggerNodeIds.length, 'trigger(s)');
     
-    // Déclencher tous les triggers avec un timestamp
-    triggerAll({
+    // Si graph contient une FlashLight action, vérifier les permissions
+  (async () => {
+      if (hasFlashAction) {
+        try {
+          const { ensureCameraPermission } = require('../engine/nodes/FlashLightConditionNode');
+          logger.info('[RunProgramButton] Flash action in graph - requesting camera permission if needed');
+          const allowed = await ensureCameraPermission();
+          if (!allowed) {
+            // Permission was not granted; let the action emit the specific failure event and/or
+            // show the UI banner. We don't block here because the FlashLightAction will
+            // prompt on its own; however we return to let the user grant permission.
+            Alert.alert('Permission requise', 'La permission Caméra est nécessaire pour exécuter votre programme');
+            return;
+          }
+        } catch (e) {
+          logger.warn('[RunProgramButton] Permission request failed', e);
+          return;
+        }
+  }
+
+      // Déclencher tous les triggers avec un timestamp
+      triggerAll({
       timestamp: Date.now(),
       source: 'run-button',
     });
+    })();
   };
 
   return (

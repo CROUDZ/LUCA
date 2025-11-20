@@ -20,7 +20,8 @@ export type WebViewMessageType =
   | 'REQUEST_EXPORT'
   | 'NODE_ADDED'
   | 'NODE_REMOVED'
-  | 'NODES_LIST';
+  | 'NODES_LIST'
+  | 'NODE_SETTING_CHANGED';
 
 export interface WebViewMessage<T = any> {
   type: WebViewMessageType;

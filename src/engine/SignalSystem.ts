@@ -90,10 +90,16 @@ export class SignalSystem {
   private eventHandlers: Map<string, EventSubscription[]> = new Map();
   
   // Statistiques et métriques
-  private stats = {
+  private stats: {
+    totalSignals: number;
+    failedSignals: number;
+    averageExecutionTime: number;
+    lastEmittedEvent?: string | null;
+  } = {
     totalSignals: 0,
     failedSignals: 0,
     averageExecutionTime: 0,
+    lastEmittedEvent: null,
   };
 
   constructor(graph: Graph) {
@@ -125,7 +131,7 @@ export class SignalSystem {
    */
   setVariable(name: string, value: any): void {
     this.globalContext.variables.set(name, value);
-  logger.debug(`[SignalSystem] Variable définie: ${name} =`, value);
+    logger.debug(`[SignalSystem] Variable définie: ${name} =`, value);
   }
   
   /**
@@ -165,7 +171,11 @@ export class SignalSystem {
    */
   emitEvent(eventName: string, data?: any): void {
     const handlers = this.eventHandlers.get(eventName);
-    if (handlers && handlers.length > 0) {
+  // Always record the last emitted event for diagnostics even if there
+  // are no subscribers. Tests rely on this metric to assert emission.
+  this.stats.lastEmittedEvent = eventName;
+
+  if (handlers && handlers.length > 0) {
       // Use info for normal event emissions to avoid LogBox stack traces
       // for everyday event traffic. Keep warn/error for real problems.
       logger.info(`[SignalSystem] Événement émis: ${eventName} (subscribers: ${handlers.length})`, data);
@@ -179,6 +189,7 @@ export class SignalSystem {
           );
         }
       });
+  // lastEmittedEvent set above when event emitted
     }
   }
   
@@ -386,11 +397,10 @@ export class SignalSystem {
     this.isProcessing = false;
     this.globalContext = this.createNewContext();
     this.eventHandlers.clear();
-    this.stats = {
-      totalSignals: 0,
-      failedSignals: 0,
-      averageExecutionTime: 0,
-    };
+    this.stats.totalSignals = 0;
+    this.stats.failedSignals = 0;
+    this.stats.averageExecutionTime = 0;
+    this.stats.lastEmittedEvent = null;
   }
 
   /**
@@ -405,8 +415,9 @@ export class SignalSystem {
     averageExecutionTime: number;
     variablesCount: number;
     eventHandlersCount: number;
+    lastEmittedEvent: string | null;
   } {
-    return {
+  return {
       registeredHandlers: this.handlers.size,
       queuedSignals: this.signalQueue.length,
       isProcessing: this.isProcessing,
@@ -414,7 +425,8 @@ export class SignalSystem {
       failedSignals: this.stats.failedSignals,
       averageExecutionTime: this.stats.averageExecutionTime,
       variablesCount: this.globalContext.variables.size,
-      eventHandlersCount: this.eventHandlers.size,
+    eventHandlersCount: this.eventHandlers.size,
+    lastEmittedEvent: (this.stats.lastEmittedEvent ?? null) as string | null,
     };
   }
 }
@@ -422,7 +434,6 @@ export class SignalSystem {
 // ============================================================================
 // Instance globale (singleton)
 // ============================================================================
-
 let globalSignalSystem: SignalSystem | null = null;
 
 export function initializeSignalSystem(graph: Graph): SignalSystem {

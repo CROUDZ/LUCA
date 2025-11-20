@@ -30,6 +30,30 @@ describe('FlashLightConditionNode - camera permissions on Android', () => {
   expect(getFlashlightState()).toBe(true);
   });
 
+  it('opens settings when NEVER_ASK_AGAIN', async () => {
+    jest.resetModules();
+    jest.doMock('react-native', () => ({
+      Platform: { OS: 'android' },
+      PermissionsAndroid: {
+        PERMISSIONS: { CAMERA: 'android.permission.CAMERA' },
+        RESULTS: { GRANTED: 'granted', DENIED: 'denied', NEVER_ASK_AGAIN: 'never_ask_again' },
+        request: jest.fn(async () => 'never_ask_again'),
+        check: jest.fn(async () => false),
+      },
+      Linking: { openSettings: jest.fn() },
+      Alert: { alert: jest.fn() },
+    }));
+
+    jest.doMock('react-native-torch', () => ({ switchState: jest.fn() }), { virtual: true });
+
+    const FlashLight = require('../src/engine/nodes/FlashLightConditionNode');
+    const result = await FlashLight.ensureCameraPermission();
+    expect(result).toBe(false);
+    // Should have attempted to open settings as the flow indicates
+    const RN = require('react-native');
+    expect(RN.Linking.openSettings).toHaveBeenCalled();
+  });
+
 });
 
 export {};

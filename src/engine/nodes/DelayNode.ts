@@ -21,6 +21,26 @@ import type {
 } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 
+const formatDelayDisplay = (delayMs: number): string => {
+  const totalSeconds = delayMs / 1000;
+  if (totalSeconds >= 60) {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds - minutes * 60;
+    const minutePart = `${minutes}m`;
+    const secondsPart = seconds > 0 ? `${Number.isInteger(seconds) ? seconds : Number(seconds.toFixed(2))}s` : '';
+    return secondsPart ? `${minutePart} ${secondsPart}` : minutePart;
+  }
+
+  const secondsValue = Number.isInteger(totalSeconds) ? totalSeconds : Number(totalSeconds.toFixed(2));
+  return `${secondsValue}s`;
+};
+
+const formatSecondsInputValue = (delayMs: number): string => {
+  const seconds = delayMs / 1000;
+  const raw = Number.isInteger(seconds) ? `${seconds}` : `${seconds}`;
+  return raw.replace('.', ',');
+};
+
 const DelayNode: NodeDefinition = {
   // ============================================================================
   // IDENTIFICATION
@@ -46,13 +66,6 @@ const DelayNode: NodeDefinition = {
       type: 'any',
       label: 'Signal In',
       description: "Signal d'entrée",
-      required: false,
-    },
-    {
-      name: 'delay_ms',
-      type: 'number',
-      label: 'Delay (ms)',
-      description: 'Délai en millisecondes',
       required: false,
     },
   ],
@@ -143,13 +156,28 @@ const DelayNode: NodeDefinition = {
   // HTML PERSONNALISÉ
   // ============================================================================
   generateHTML: (settings: Record<string, any>) => {
-    const delayMs = settings.delayMs || 1000;
-    const displayDelay = delayMs >= 1000 ? `${delayMs / 1000}s` : `${delayMs}ms`;
-    
+    const delayMs = Number.isFinite(Number(settings.delayMs)) ? Number(settings.delayMs) : 1000;
+    const safeDelay = Math.max(0, delayMs);
+    const displayDelay = formatDelayDisplay(safeDelay);
+    const inputValue = formatSecondsInputValue(safeDelay);
+
     return `
       <div class="node-content">
         <div class="node-title">Delay</div>
         <div class="node-subtitle">${displayDelay}</div>
+        <div class="delay-control">
+          <label class="delay-label">Délai (s)</label>
+          <div class="delay-input-wrapper">
+            <input
+              type="text"
+              inputmode="decimal"
+              class="delay-input"
+              value="${inputValue}"
+              placeholder="1,5"
+            />
+            <span class="delay-unit">sec</span>
+          </div>
+        </div>
       </div>
     `;
   },

@@ -200,6 +200,14 @@ function startReconnection(nodeId, inputName, connection) {
 }
 
 document.addEventListener('touchstart', (e) => {
+    // Ignorer les événements sur les contrôles interactifs
+    if (e.target.closest('.invert-signal-toggle') || 
+        e.target.closest('.switch-label') || 
+        e.target.closest('.condition-invert-control') ||
+        e.target.closest('.delay-control')) {
+        return;
+    }
+    
     const node = e.target.closest('.drawflow-node');
     const input = e.target.closest('.input');
     const output = e.target.closest('.output');
@@ -555,6 +563,175 @@ function updateConnectedInputs() {
 });
 
 // ============================================
+// GESTION DU SWITCH INVERT SIGNAL
+// ============================================
+
+// Empêcher la propagation des événements sur les contrôles de switch
+document.addEventListener('click', (e) => {
+    if (e.target.closest('.condition-invert-control') || e.target.closest('.delay-control')) {
+        e.stopPropagation();
+    }
+}, true);
+
+document.addEventListener('touchend', (e) => {
+    if (e.target.closest('.condition-invert-control') || e.target.closest('.delay-control')) {
+        e.stopPropagation();
+    }
+}, true);
+
+// Gestion du toggle avec click (souris) et touchend (tactile)
+function handleInvertToggle(target) {
+    if (target.classList.contains('switch-label') || 
+        target.classList.contains('switch-slider') || 
+        target.classList.contains('switch-text')) {
+        
+        const control = target.closest('.condition-invert-control');
+        if (!control) return;
+        
+        const checkbox = control.querySelector('.invert-signal-toggle');
+        if (!checkbox) return;
+        
+        // Toggle la checkbox
+        checkbox.checked = !checkbox.checked;
+        
+        // Déclencher l'événement change manuellement
+        const changeEvent = new Event('change', { bubbles: true });
+        checkbox.dispatchEvent(changeEvent);
+        
+        return true;
+    }
+    return false;
+}
+
+// Gestion pour le clic souris
+document.addEventListener('click', (e) => {
+    handleInvertToggle(e.target);
+}, false);
+
+// Gestion pour le tactile
+document.addEventListener('touchend', (e) => {
+    if (e.touches.length === 0 && e.changedTouches.length > 0) {
+        const touch = e.changedTouches[0];
+        const target = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (target && handleInvertToggle(target)) {
+            e.preventDefault();
+        }
+    }
+}, false);
+
+// Délégation d'événements pour gérer les switches d'inversion de signal
+document.addEventListener('change', (e) => {
+    if (e.target.classList.contains('invert-signal-toggle')) {
+        const node = e.target.closest('.drawflow-node');
+        if (!node) return;
+        
+        const nodeId = node.id.replace('node-', '');
+        const nodeData = editor.drawflow.drawflow.Home.data[nodeId];
+        
+        if (nodeData && nodeData.data) {
+            // Initialiser settings si nécessaire
+            if (!nodeData.data.settings) {
+                nodeData.data.settings = {};
+            }
+            
+            // Mettre à jour la valeur
+            nodeData.data.settings.invertSignal = e.target.checked;
+            
+            console.log(`[InvertSignal] Node ${nodeId}: invertSignal set to ${e.target.checked}`);
+            
+            // Déclencher l'export automatique
+            exportGraph();
+
+            // Notifier l'application native (RN) immédiatement sur un changement de settings
+            if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'NODE_SETTING_CHANGED',
+                    payload: { nodeId, nodeType: nodeData.data?.type, settings: nodeData.data.settings }
+                }));
+            }
+            
+            // Feedback visuel
+            if (navigator.vibrate) navigator.vibrate(30);
+        }
+    }
+}, false);
+
+// ============================================
+// CONTRÔLE DIRECT DU DÉLAI
+// ============================================
+
+function formatDelayLabel(value) {
+    const totalSeconds = value / 1000;
+    if (totalSeconds >= 60) {
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds - minutes * 60;
+        const minutePart = `${minutes}m`;
+        const secondsPart = seconds > 0 ? `${Number.isInteger(seconds) ? seconds : Number(seconds.toFixed(2))}s` : '';
+        return secondsPart ? `${minutePart} ${secondsPart}` : minutePart;
+    }
+    const secondsValue = Number.isInteger(totalSeconds) ? totalSeconds : Number(totalSeconds.toFixed(2));
+    return `${secondsValue}s`;
+}
+
+function normalizeSecondsInput(seconds) {
+    return `${seconds}`.replace('.', ',');
+}
+
+function parseSecondsValue(rawValue) {
+    if (!rawValue) return 0;
+    const normalized = rawValue.replace(',', '.');
+    const value = parseFloat(normalized);
+    if (Number.isNaN(value) || value < 0) {
+        return 0;
+    }
+    return value;
+}
+
+function handleDelayInputChange(target) {
+    const node = target.closest('.drawflow-node');
+    if (!node) return;
+
+    const nodeId = node.id.replace('node-', '');
+    const nodeData = editor.drawflow.drawflow.Home.data[nodeId];
+    if (!nodeData) return;
+
+    if (!nodeData.data) nodeData.data = {};
+    if (!nodeData.data.settings) nodeData.data.settings = {};
+
+    const seconds = parseSecondsValue(target.value);
+    const delayMs = Math.round(seconds * 1000);
+    target.value = normalizeSecondsInput(delayMs / 1000);
+
+    const subtitle = node.querySelector('.node-subtitle');
+    if (subtitle) {
+        subtitle.textContent = formatDelayLabel(delayMs);
+    }
+
+    nodeData.data.settings.delayMs = delayMs;
+    nodeData.data.settings.useVariableDelay = false;
+
+    exportGraph();
+
+    if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'NODE_SETTING_CHANGED',
+            payload: { nodeId, nodeType: nodeData.data?.type, settings: nodeData.data.settings }
+        }));
+    }
+
+    if (navigator.vibrate) navigator.vibrate(15);
+}
+
+['input', 'change'].forEach((eventName) => {
+    document.addEventListener(eventName, (e) => {
+        if (e.target.classList.contains('delay-input')) {
+            e.stopPropagation();
+            handleDelayInputChange(e.target);
+        }
+    }, true);
+});
+
+// ============================================
 // FONCTIONS UTILITAIRES
 // ============================================
 
@@ -599,6 +776,18 @@ function addNode(type, nodeData) {
 
 function exportGraph() {
     const data = editor.export();
+    // Debug: log the node settings for condition nodes to help trace invertSignal propagation
+    try {
+        const nodes = data.drawflow?.Home?.data || {};
+        Object.keys(nodes).forEach(id => {
+            const n = nodes[id];
+            if ((n.class || '').includes('condition-node') || (n.class || '').includes('condition')) {
+                console.log('[Web EXPORT] Node', id, 'settings=', n.data?.settings || n.data || {});
+            }
+        });
+    } catch (err) {
+        console.error('[Web EXPORT] Failed to parse nodes for debug', err);
+    }
     if (window.ReactNativeWebView) {
         window.ReactNativeWebView.postMessage(JSON.stringify({
             type: 'EXPORT',

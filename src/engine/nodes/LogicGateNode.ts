@@ -76,6 +76,7 @@ const LogicGateNode: NodeDefinition = {
     gateType: 'AND', // 'AND', 'OR', 'NOT', 'XOR', 'NAND', 'NOR'
     inputCount: 2, // Nombre d'entrées (2-8)
     resetAfterEval: true, // Réinitialiser les entrées après évaluation
+    invertSignal: false,
   },
 
   // ============================================================================
@@ -126,11 +127,17 @@ const LogicGateNode: NodeDefinition = {
                   inputStates.clear();
                 }
 
+                // Appliquer l'inversion si nécessaire
+                const invertSignal = settings.invertSignal ?? false;
+                const finalResult = invertSignal ? !result : result;
+
                 return {
-                  propagate: result,
+                  propagate: finalResult,
                   data: {
                     ...signal.data,
                     logicResult: result,
+                    finalResult,
+                    inverted: invertSignal,
                     gateType,
                   },
                 };
@@ -186,11 +193,17 @@ const LogicGateNode: NodeDefinition = {
                 inputStates.clear();
               }
 
+              // Appliquer l'inversion si nécessaire
+              const invertSignal = settings.invertSignal ?? false;
+              const finalResult = invertSignal ? !result : result;
+
               return {
-                propagate: result,
+                propagate: finalResult,
                 data: {
                   ...signal.data,
                   logicResult: result,
+                  finalResult,
+                  inverted: invertSignal,
                   gateType,
                   inputValues: values,
                 },
@@ -224,10 +237,18 @@ const LogicGateNode: NodeDefinition = {
   // ============================================================================
   generateHTML: (settings: Record<string, any>) => {
     const gateType = settings.gateType || 'AND';
+    const invertSignal = settings?.invertSignal ?? false;
     return `
       <div class="node-content">
         <div class="node-title">Logic Gate</div>
         <div class="node-subtitle">${gateType}</div>
+      </div>
+      <div class="condition-invert-control">
+        <label class="switch-label">
+          <input type="checkbox" class="invert-signal-toggle" ${invertSignal ? 'checked' : ''} />
+          <span class="switch-slider"></span>
+          <span class="switch-text">Invert Signal</span>
+        </label>
       </div>
     `;
   },

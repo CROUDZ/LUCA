@@ -154,3 +154,151 @@
         .zoom-btn:active {
             transform: scale(0.92);
         }
+        
+        /* Switch pour inverser le signal des conditions */
+        .condition-invert-control {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(139, 92, 246, 0.3);
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        
+        .switch-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            padding: 4px;
+            margin: -4px;
+        }
+        
+        .invert-signal-toggle {
+            display: none;
+        }
+        
+        .switch-slider {
+            position: relative;
+            width: 36px;
+            height: 20px;
+            background: rgba(107, 114, 128, 0.4);
+            border-radius: 10px;
+            transition: background 0.3s ease;
+            flex-shrink: 0;
+        }
+        
+        .switch-slider::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .invert-signal-toggle:checked + .switch-slider {
+            background: rgba(139, 92, 246, 0.8);
+        }
+        
+        .invert-signal-toggle:checked + .switch-slider::before {
+            transform: translateX(16px);
+        }
+        
+        .switch-text {
+            color: #9ca3af;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .invert-signal-toggle:checked ~ .switch-text {
+            color: rgba(139, 92, 246, 1);
+        }
+
+        /* Override for Drawflow default hover which can apply an undesirable red fill.
+           Ensure we keep our dark gradient on hover and avoid any red background. */
+        .drawflow .drawflow-node:hover {
+            /* Reinstate our base gradient and avoid any vendor/default hover fill */
+            background: linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(17, 24, 39, 0.95) 100%) !important;
+            background-image: none !important;
+            /* Keep borders and shadows consistent */
+            border-color: rgba(139, 92, 246, 0.4) !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        /* Drawflow's default `.selected` sets background:red — override that entirely
+           so nodes keep our theme even when selected. We keep a subtle outline for
+           selection feedback instead of the red fill. */
+        .drawflow .drawflow-node.selected,
+        .drawflow .drawflow-node.selected:hover,
+        .drawflow .drawflow-node.selected:active {
+            background: linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(17, 24, 39, 0.95) 100%) !important;
+            border-color: rgba(139, 92, 246, 0.7) !important;
+            box-shadow: 0 10px 48px rgba(139, 92, 246, 0.25) !important;
+        }
+        .node-title{
+            font-size: 16px;
+            font-weight: 600;
+            color: #f3f4f6;
+            margin-bottom: 8px;
+        }
+        .node-subtitle{
+            font-size: 12px;
+            color: #9ca3af;
+            margin-bottom: 12px;
+        }
+
+        .delay-control {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .delay-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #e5e7eb;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .delay-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(139, 92, 246, 0.4);
+            border-radius: 10px;
+            padding: 6px 10px;
+        }
+
+        .delay-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: #f3f4f6;
+            font-size: 13px;
+            font-weight: 600;
+            outline: none;
+            appearance: textfield;
+            -moz-appearance: textfield;
+        }
+
+        .delay-input::-webkit-outer-spin-button,
+        .delay-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .delay-unit {
+            font-size: 12px;
+            color: #9ca3af;
+            font-weight: 500;
+        }
