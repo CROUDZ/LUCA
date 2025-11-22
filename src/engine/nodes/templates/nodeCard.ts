@@ -18,7 +18,6 @@ export interface NodeCardHTMLParams {
   body?: string;
   footer?: string;
   chips?: NodeCardChip[];
-  logoSrc?: string;
 }
 
 const CHIP_TONE_CLASS: Record<NodeCardChipTone, string> = {
@@ -100,17 +99,13 @@ export function buildNodeCardHTML(params: NodeCardHTMLParams): string {
     ? `<span class="node-card__badge">${params.category}</span>`
     : '';
   const chips = renderChips(params.chips);
-  const logoSrc = params.logoSrc || 'logo_luca.png';
 
   return `
     <div class="node-card" style="--node-accent:${accent};--node-accent-soft:${accentSoft};--node-accent-strong:${accentStrong};--node-border:${accentBorder};--node-glow:${accentGlow};">
       <div class="node-card__header title">
-        <div class="node-card__icon-wrapper">
-          <span class="node-card__icon material-symbols-rounded">${iconName}</span>
-        </div>
         <div class="node-card__titles">
           <div class="node-card__title-row">
-            ${logoSrc ? `<img class="node-card__logo-img" src="${logoSrc}" alt="logo"/>` : '<span class="node-card__brand-dot" aria-hidden="true"></span>'}
+            <span class="node-card__title-icon material-symbols-rounded" aria-hidden="true">${iconName}</span>
             <span class="node-card__title node-title">${params.title}</span>
           </div>
           ${subtitle}

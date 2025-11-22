@@ -70,37 +70,19 @@ body {
             min-height: 22px;
         }
 
-        .node-card__brand-dot {
+        .node-card__title-icon {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             width: 20px;
             height: 20px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            background: rgba(139, 92, 246, 0.14);
+            font-size: 14px;
+            color: var(--node-accent, var(--editor-brand));
             flex-shrink: 0;
-            z-index:3;
-        }
-
-        .node-card__brand-dot::after {
-            content: '';
-            width: 8px;
-            height: 8px;
-            border-radius: 999px;
-            background: var(--node-accent, var(--editor-brand));
-            box-shadow: 0 0 10px rgba(139, 92, 246, 0.45);
         }
 
         /* Optional logo image next to title */
-        .node-card__logo-img {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-            object-fit: cover;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            z-index:3;
-        }
+        /* logo image removed - use node icon inline instead */
 
         /* Reservation to avoid overlap with the icon */
         .node-card__icon-wrapper {
@@ -114,15 +96,7 @@ body {
             gap: 16px;
         }
 
-        .node-card__icon-wrapper {
-            width: 44px;
-            height: 44px;
-            border-radius: 14px;
-            background: rgba(139, 92, 246, 0.12);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+        /* outer icon wrapper removed in favor of inline title icon */
 
         .material-symbols-rounded {
             font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
@@ -594,9 +568,10 @@ body {
         gap: 8px;
     }
 
-    .node-card__brand-dot {
+    .node-card__title-icon {
         width: 18px;
         height: 18px;
+        font-size: 13px;
     }
 
     .zoom-controls {
@@ -628,9 +603,10 @@ body {
         gap: 10px;
     }
 
-    .node-card__brand-dot {
+    .node-card__title-icon {
         width: 16px;
         height: 16px;
+        font-size: 12px;
     }
 
     .material-symbols-rounded {
@@ -715,9 +691,10 @@ body {
         flex-direction: column;
     }
 
-    .node-card__brand-dot {
+    .node-card__title-icon {
         width: 14px;
         height: 14px;
+        font-size: 11px;
     }
 
     .node-card__footer {
