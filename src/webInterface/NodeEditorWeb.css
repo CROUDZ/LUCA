@@ -79,6 +79,8 @@ body {
             font-size: 14px;
             color: var(--node-accent, var(--editor-brand));
             flex-shrink: 0;
+            margin-right: 8px;
+            line-height: 1;
         }
 
         /* Optional logo image next to title */
