@@ -20,9 +20,12 @@ import type {
   NodeExecutionResult,
 } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
+import { buildNodeCardHTML } from './templates/nodeCard';
 
 // Stocker l'état des entrées pour chaque node
 const nodeInputStates = new Map<number, Map<string, boolean>>();
+
+const LOGIC_GATE_ACCENT = '#3F51B5';
 
 const LogicGateNode: NodeDefinition = {
   // ============================================================================
@@ -38,7 +41,7 @@ const LogicGateNode: NodeDefinition = {
   // ============================================================================
   icon: 'settings-input-component',
   iconFamily: 'material',
-  color: '#3F51B5',
+  color: LOGIC_GATE_ACCENT,
 
   // ============================================================================
   // INPUTS/OUTPUTS
@@ -238,11 +241,7 @@ const LogicGateNode: NodeDefinition = {
   generateHTML: (settings: Record<string, any>) => {
     const gateType = settings.gateType || 'AND';
     const invertSignal = settings?.invertSignal ?? false;
-    return `
-      <div class="node-content">
-        <div class="node-title">Logic Gate</div>
-        <div class="node-subtitle">${gateType}</div>
-      </div>
+    const body = `
       <div class="condition-invert-control">
         <label class="switch-label">
           <input type="checkbox" class="invert-signal-toggle" ${invertSignal ? 'checked' : ''} />
@@ -251,6 +250,19 @@ const LogicGateNode: NodeDefinition = {
         </label>
       </div>
     `;
+
+    return buildNodeCardHTML({
+      title: 'Logic Gate',
+      subtitle: gateType,
+      iconName: 'settings_input_component',
+      category: 'Condition',
+      accentColor: LOGIC_GATE_ACCENT,
+      chips: [
+        { label: gateType, tone: 'info' },
+        { label: invertSignal ? 'Invert ON' : 'Invert OFF', tone: invertSignal ? 'warning' : 'default' },
+      ],
+      body,
+    });
   },
 };
 

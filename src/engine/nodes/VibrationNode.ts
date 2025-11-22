@@ -22,6 +22,9 @@ import type {
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 import { Vibration } from 'react-native';
 import { ensureVibrationPermission } from '../../utils/permissions';
+import { buildNodeCardHTML } from './templates/nodeCard';
+
+const VIBRATION_NODE_ACCENT = '#F97316';
 
 const VibrationNode: NodeDefinition = {
   // ============================================================================
@@ -37,7 +40,7 @@ const VibrationNode: NodeDefinition = {
   // ============================================================================
   icon: 'vibration',
   iconFamily: 'material',
-  color: '#9C27B0',
+  color: VIBRATION_NODE_ACCENT,
 
   // ============================================================================
   // INPUTS/OUTPUTS
@@ -193,12 +196,14 @@ const VibrationNode: NodeDefinition = {
       error: '✗',
     };
     
-    return `
-      <div class="node-content">
-        <div class="node-title">Vibration</div>
-        <div class="node-subtitle">${typeLabels[vibrationType] || 'Simple'}</div>
-      </div>
-    `;
+    return buildNodeCardHTML({
+      title: 'Vibration',
+      subtitle: typeLabels[vibrationType] || 'Simple',
+      iconName: 'vibration',
+      category: 'Action',
+      accentColor: VIBRATION_NODE_ACCENT,
+      description: 'Déclenche une vibration native selon le pattern choisi.',
+    });
   },
 };
 

@@ -14,11 +14,15 @@ function formatDelayLabel(value) {
 }
 
 function normalizeSecondsInput(seconds) {
-    return `${seconds}`.replace('.', ',');
+    // Display nothing when value is 0 (i.e., show an empty input to represent 0)
+    if (seconds === undefined || seconds === null) return '';
+    const num = Number(seconds);
+    if (!num) return '';
+    return `${num}`.replace('.', ',');
 }
 
 function parseSecondsValue(rawValue) {
-    if (!rawValue) return 0;
+    if (!rawValue || (typeof rawValue === 'string' && rawValue.trim() === '')) return 0;
     const normalized = rawValue.replace(',', '.');
     const value = parseFloat(normalized);
     if (Number.isNaN(value) || value < 0) {
@@ -68,8 +72,8 @@ function addNode(type, nodeData) {
         const ZOOM = window.DrawflowEditor.ZOOM || { current: 1 };
         if (container && typeof PAN.x === 'number' && typeof ZOOM.current === 'number') {
             const rect = container.getBoundingClientRect();
-            const centerClientX = rect.left + rect.width / 2;
-            const centerClientY = rect.top + rect.height / 2;
+            const centerClientX = rect.width / 2;
+            const centerClientY = rect.height / 2;
             // Convert client coordinates to drawflow (world) coordinates
             x = (centerClientX - PAN.x) / ZOOM.current;
             y = (centerClientY - PAN.y) / ZOOM.current;

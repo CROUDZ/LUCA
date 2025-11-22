@@ -14,6 +14,7 @@ import type {
   NodeExecutionResult,
 } from '../../types/node.types';
 import { getSignalSystem } from '../SignalSystem';
+import { buildNodeCardHTML } from './templates/nodeCard';
 import { logger } from '../../utils/logger';
 
 const eventListenerSubscriptions = new Map<number, () => void>();
@@ -42,6 +43,8 @@ export function unsubscribeAllEventListeners(): void {
   eventListenerSubscriptions.clear();
 }
 
+const EVENT_LISTENER_ACCENT = '#3F51B5';
+
 const EventListenerNode: NodeDefinition = {
   // ============================================================================
   // IDENTIFICATION
@@ -56,7 +59,7 @@ const EventListenerNode: NodeDefinition = {
   // ============================================================================
   icon: 'event',
   iconFamily: 'material',
-  color: '#3F51B5',
+  color: EVENT_LISTENER_ACCENT,
 
   // ============================================================================
   // INPUTS/OUTPUTS
@@ -190,14 +193,14 @@ const EventListenerNode: NodeDefinition = {
   // ============================================================================
   generateHTML: (settings: Record<string, any>): string => {
     const eventName = settings?.eventName || 'custom.event';
-    return `
-      <div class="title">
-        <span class="node-icon">📡</span> Event Listener
-      </div>
-      <div class="content">
-        ${eventName}
-      </div>
-    `;
+    return buildNodeCardHTML({
+      title: 'Event Listener',
+      subtitle: eventName,
+      iconName: 'sensors',
+      category: 'Events',
+      accentColor: EVENT_LISTENER_ACCENT,
+      description: 'Propage un signal lorsqu\'un événement natif est émis.',
+    });
   },
 };
 

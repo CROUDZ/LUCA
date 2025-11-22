@@ -20,6 +20,7 @@ import type {
   NodeExecutionResult,
 } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
+import { buildNodeCardHTML } from './templates/nodeCard';
 
 const formatDelayDisplay = (delayMs: number): string => {
   const totalSeconds = delayMs / 1000;
@@ -36,10 +37,14 @@ const formatDelayDisplay = (delayMs: number): string => {
 };
 
 const formatSecondsInputValue = (delayMs: number): string => {
+  // When delay is 0, we prefer to show an empty input rather than "0".
+  if (!delayMs || Number(delayMs) === 0) return '';
   const seconds = delayMs / 1000;
   const raw = Number.isInteger(seconds) ? `${seconds}` : `${seconds}`;
   return raw.replace('.', ',');
 };
+
+const DELAY_NODE_ACCENT = '#FF9800';
 
 const DelayNode: NodeDefinition = {
   // ============================================================================
@@ -55,7 +60,7 @@ const DelayNode: NodeDefinition = {
   // ============================================================================
   icon: 'schedule',
   iconFamily: 'material',
-  color: '#FF9800',
+  color: DELAY_NODE_ACCENT,
 
   // ============================================================================
   // INPUTS/OUTPUTS
@@ -159,27 +164,33 @@ const DelayNode: NodeDefinition = {
     const delayMs = Number.isFinite(Number(settings.delayMs)) ? Number(settings.delayMs) : 1000;
     const safeDelay = Math.max(0, delayMs);
     const displayDelay = formatDelayDisplay(safeDelay);
-    const inputValue = formatSecondsInputValue(safeDelay);
+  const inputValue = formatSecondsInputValue(safeDelay);
+  const valueAttribute = inputValue ? `value="${inputValue}"` : '';
 
-    return `
-      <div class="node-content">
-        <div class="node-title">Delay</div>
-        <div class="node-subtitle">${displayDelay}</div>
-        <div class="delay-control">
-          <label class="delay-label">Délai (s)</label>
-          <div class="delay-input-wrapper">
-            <input
-              type="text"
-              inputmode="decimal"
-              class="delay-input"
-              value="${inputValue}"
-              placeholder="1,5"
-            />
-            <span class="delay-unit">sec</span>
-          </div>
+    const body = `
+      <div class="delay-control">
+        <label class="delay-label">Délai (s)</label>
+        <div class="delay-input-wrapper">
+          <input
+            type="text"
+            inputmode="decimal"
+            class="delay-input"
+            ${valueAttribute}
+            placeholder="1,5"
+          />
+          <span class="delay-unit">sec</span>
         </div>
       </div>
     `;
+
+    return buildNodeCardHTML({
+      title: 'Delay',
+      subtitle: displayDelay,
+      iconName: 'schedule',
+      category: 'Flow Control',
+      accentColor: DELAY_NODE_ACCENT,
+      body,
+    });
   },
 };
 

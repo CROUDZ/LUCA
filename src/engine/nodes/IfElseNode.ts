@@ -21,6 +21,7 @@ import type {
   NodeExecutionResult,
 } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
+import { buildNodeCardHTML } from './templates/nodeCard';
 
 // Helper: disallow some dangerous strings that would let user code access Node internals
 const DISALLOWED_TOKENS = [
@@ -61,6 +62,8 @@ function safeEvalExpression(expression: string, variables: Record<string, any>, 
   return fn(...argValues);
 }
 
+const IF_ELSE_NODE_ACCENT = '#9C27B0';
+
 const IfElseNode: NodeDefinition = {
   // ============================================================================
   // IDENTIFICATION
@@ -75,7 +78,7 @@ const IfElseNode: NodeDefinition = {
   // ============================================================================
   icon: 'call-split',
   iconFamily: 'material',
-  color: '#9C27B0',
+  color: IF_ELSE_NODE_ACCENT,
 
   // ============================================================================
   // INPUTS/OUTPUTS
@@ -309,11 +312,7 @@ const IfElseNode: NodeDefinition = {
     }
 
     const invertSignal = settings?.invertSignal ?? false;
-    return `
-      <div class="node-content">
-        <div class="node-title">If/Else</div>
-        <div class="node-subtitle">${displayText}</div>
-      </div>
+    const body = `
       <div class="condition-invert-control">
         <label class="switch-label">
           <input type="checkbox" class="invert-signal-toggle" ${invertSignal ? 'checked' : ''} />
@@ -322,6 +321,19 @@ const IfElseNode: NodeDefinition = {
         </label>
       </div>
     `;
+
+    return buildNodeCardHTML({
+      title: 'If/Else',
+      subtitle: displayText,
+      iconName: 'call_split',
+      category: 'Condition',
+      accentColor: IF_ELSE_NODE_ACCENT,
+      chips: [
+        { label: type.toUpperCase(), tone: 'info' },
+        { label: invertSignal ? 'Invert ON' : 'Invert OFF', tone: invertSignal ? 'warning' : 'default' },
+      ],
+      body,
+    });
   },
 };
 

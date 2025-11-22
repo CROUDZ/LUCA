@@ -1,4 +1,16 @@
-// ANALYSE DU GRAPHE
+// ANALYSE DU GRAPHE (désactivée par défaut sur mobile)
+
+window.DrawflowEditor = window.DrawflowEditor || {};
+
+const GRAPH_ANALYSIS_DISABLED = typeof window !== 'undefined'
+    ? (!!window.ReactNativeWebView && !window.__ENABLE_GRAPH_ANALYTICS__)
+    : false;
+
+if (GRAPH_ANALYSIS_DISABLED) {
+    window.DrawflowEditor.analyzeGraph = () => {};
+    window.DrawflowEditor.updateConnectedInputs = () => {};
+    window.DrawflowEditor.isGraphAnalysisDisabled = true;
+} else {
 
 function analyzeGraph() {
     const data = window.DrawflowEditor.editor.drawflow.drawflow.Home.data;
@@ -152,18 +164,16 @@ function updateConnectedInputs() {
     window.DrawflowEditor.refreshFlashlightStatus?.();
 }
 
-// Expose
-window.DrawflowEditor = window.DrawflowEditor || {};
 window.DrawflowEditor.analyzeGraph = analyzeGraph;
 window.DrawflowEditor.updateConnectedInputs = updateConnectedInputs;
 
-// Listen to graph changes
 ['nodeCreated', 'nodeRemoved', 'connectionCreated', 'connectionRemoved'].forEach(event => {
     window.DrawflowEditor.editor.on(event, () => setTimeout(() => {
         window.DrawflowEditor.analyzeGraph();
         window.DrawflowEditor.updateConnectedInputs();
-        // Auto-export après chaque changement
         window.DrawflowEditor.exportGraph();
         window.DrawflowEditor.refreshFlashlightStatus?.();
     }, 100));
 });
+
+}

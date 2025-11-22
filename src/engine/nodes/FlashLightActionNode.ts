@@ -19,6 +19,9 @@ import type {
 import { logger } from '../../utils/logger';
 import { setFlashlightState, getFlashlightState, ensureCameraPermission } from './FlashLightConditionNode';
 import { Alert } from 'react-native';
+import { buildNodeCardHTML } from './templates/nodeCard';
+
+const FLASHLIGHT_ACTION_COLOR = '#FF9800';
 
 const FlashLightActionNode: NodeDefinition = {
   id: 'action.flashlight',
@@ -27,7 +30,7 @@ const FlashLightActionNode: NodeDefinition = {
   category: 'Action',
   icon: 'flashlight-on',
   iconFamily: 'material',
-  color: '#FF9800',
+  color: FLASHLIGHT_ACTION_COLOR,
   inputs: [
     {
       name: 'signal_in',
@@ -195,15 +198,36 @@ const FlashLightActionNode: NodeDefinition = {
   },
   generateHTML: (settings: Record<string, any>): string => {
     const mode = settings?.mode || 'toggle';
-    const value = settings?.value === true ? 'ON' : 'OFF';
-    return `
-      <div class="title">
-        <span class="node-icon">💡</span> FlashLight Action
-      </div>
-      <div class="content">
-        Mode: ${mode} ${mode === 'set' ? `(${value})` : ''}
+    const value = settings?.value === true;
+    const propagateSignal = settings?.propagateSignal !== false;
+    const modeLabel = mode === 'set' ? `Définir (${value ? 'ON' : 'OFF'})` : 'Toggle';
+    const body = `
+      <div class="node-info-grid">
+        <div class="node-info-item">
+          <span class="node-info-label">Mode</span>
+          <span class="node-info-value">${mode === 'set' ? 'Définir' : 'Toggle'}</span>
+        </div>
+        <div class="node-info-item">
+          <span class="node-info-label">Cible</span>
+          <span class="node-info-value">${mode === 'set' ? (value ? 'ON' : 'OFF') : 'Basculement'}</span>
+        </div>
+        <div class="node-info-item">
+          <span class="node-info-label">Propagation</span>
+          <span class="node-info-badge ${propagateSignal ? 'node-info-badge--success' : 'node-info-badge--warning'}">${
+            propagateSignal ? 'Activée' : 'Bloquée'
+          }</span>
+        </div>
       </div>
     `;
+
+    return buildNodeCardHTML({
+      title: 'FlashLight Action',
+      subtitle: modeLabel,
+      iconName: 'flashlight_on',
+      category: 'Action',
+      accentColor: FLASHLIGHT_ACTION_COLOR,
+      body,
+    });
   },
 };
 

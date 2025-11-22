@@ -21,6 +21,9 @@ import type {
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 import { logger } from '../../utils/logger';
 import { Alert } from 'react-native';
+import { buildNodeCardHTML } from './templates/nodeCard';
+
+const NOTIFICATION_NODE_ACCENT = '#E91E63';
 
 const NotificationNode: NodeDefinition = {
   // ============================================================================
@@ -36,7 +39,7 @@ const NotificationNode: NodeDefinition = {
   // ============================================================================
   icon: 'notifications',
   iconFamily: 'material',
-  color: '#E91E63',
+  color: NOTIFICATION_NODE_ACCENT,
 
   // ============================================================================
   // INPUTS/OUTPUTS
@@ -161,14 +164,18 @@ const NotificationNode: NodeDefinition = {
   // ============================================================================
   generateHTML: (settings: Record<string, any>) => {
     const message = settings.message || 'Notification';
-    const shortMessage = message.length > 20 ? message.substring(0, 20) + '...' : message;
-    
-    return `
-      <div class="node-content">
-        <div class="node-title">Notification</div>
-        <div class="node-subtitle">${shortMessage}</div>
-      </div>
-    `;
+    const shortMessage = message.length > 22 ? `${message.substring(0, 22)}…` : message;
+    const notificationType = settings.notificationType || 'alert';
+
+    return buildNodeCardHTML({
+      title: 'Notification',
+      subtitle: shortMessage,
+      iconName: 'notifications',
+      category: 'Action',
+      accentColor: NOTIFICATION_NODE_ACCENT,
+      chips: [{ label: notificationType.toUpperCase(), tone: notificationType === 'alert' ? 'warning' : 'info' }],
+      description: 'Affiche un message natif ou console selon le mode choisi.',
+    });
   },
 };
 

@@ -21,6 +21,7 @@ import type {
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 import { logger } from '../../utils/logger';
 import { Alert } from 'react-native';
+import { buildNodeCardHTML } from './templates/nodeCard';
 
 // Compteur de pings pour les statistiques
 let pingCount = 0;
@@ -36,6 +37,8 @@ export function resetPingCount(): void {
   logger.debug('[Ping] Compteur de pings réinitialisé');
 }
 
+const PING_NODE_ACCENT = '#4CAF50';
+
 const PingNode: NodeDefinition = {
   // ============================================================================
   // IDENTIFICATION
@@ -50,7 +53,7 @@ const PingNode: NodeDefinition = {
   // ============================================================================
   icon: 'notifications-active',
   iconFamily: 'material',
-  color: '#4CAF50',
+  color: PING_NODE_ACCENT,
 
   // ============================================================================
   // INPUTS/OUTPUTS
@@ -183,14 +186,14 @@ const PingNode: NodeDefinition = {
   // ============================================================================
   generateHTML: (settings: Record<string, any>): string => {
     const message = settings?.message || 'PING';
-    return `
-      <div class="title">
-        <span class="node-icon">🔔</span> Ping
-      </div>
-      <div class="content">
-        ${message}
-      </div>
-    `;
+    return buildNodeCardHTML({
+      title: 'Ping',
+      subtitle: message,
+      iconName: 'notifications_active',
+      category: 'Action',
+      accentColor: PING_NODE_ACCENT,
+      description: 'Émet un signal de test pour valider une portion de graphe.',
+    });
   },
 };
 

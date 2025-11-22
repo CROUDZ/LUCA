@@ -96,7 +96,7 @@ document.addEventListener('change', (e) => {
 // CONTRÔLE DIRECT DU DÉLAI
 // ============================================
 
-function handleDelayInputChange(target) {
+function handleDelayInputChange(target, isFinal = false) {
     const node = target.closest('.drawflow-node');
     if (!node) return;
 
@@ -109,7 +109,11 @@ function handleDelayInputChange(target) {
 
     const seconds = window.DrawflowEditor.parseSecondsValue(target.value);
     const delayMs = Math.round(seconds * 1000);
-    target.value = window.DrawflowEditor.normalizeSecondsInput(delayMs / 1000);
+    // Only overwrite the input's value when the change is final (change event or blur),
+    // so the user can type freely without the input jumping back to 0 during typing.
+    if (isFinal) {
+        target.value = window.DrawflowEditor.normalizeSecondsInput(delayMs / 1000);
+    }
 
     const subtitle = node.querySelector('.node-subtitle');
     if (subtitle) {
@@ -135,7 +139,7 @@ function handleDelayInputChange(target) {
     document.addEventListener(eventName, (e) => {
         if (e.target.classList.contains('delay-input')) {
             e.stopPropagation();
-            handleDelayInputChange(e.target);
+            handleDelayInputChange(e.target, eventName === 'change');
         }
     }, true);
 });
@@ -144,6 +148,30 @@ function handleDelayInputChange(target) {
 window.DrawflowEditor = window.DrawflowEditor || {};
 window.DrawflowEditor.handleDelayInputChange = handleDelayInputChange;
 window.DrawflowEditor.handleInvertToggle = handleInvertToggle;
+
+// Sanitize any pre-existing delay inputs having a hard-coded "0" value from templates
+function sanitizeDelayInputs() {
+    document.querySelectorAll('.delay-input').forEach((el) => {
+        if (el && el.value === '0') {
+            el.value = '';
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => sanitizeDelayInputs(), false);
+// Also run immediately to handle dynamically-injected nodes
+sanitizeDelayInputs();
+
+// Observe DOM changes to sanitize any newly injected delay inputs
+try {
+    const Observer = (typeof window !== 'undefined' && window.MutationObserver) ? window.MutationObserver : null;
+    if (Observer) {
+        const _observer = new Observer(() => sanitizeDelayInputs());
+        _observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
+    }
+} catch (err) {
+    // If MutationObserver isn't available or throws, ignore — sanitization still ran once.
+}
 
 // ============================================
 // ZOOM CONTROLS OVERLAY

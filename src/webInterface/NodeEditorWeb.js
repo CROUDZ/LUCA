@@ -46,13 +46,31 @@ function createNodeTemplate(type, nodeData = {}) {
     };
     
     // Merge avec les données fournies
+    const color = nodeData.color || '#8b5cf6';
+    const iconFamily = nodeData.iconFamily || null;
+    const icon = nodeData.icon || defaults.icon;
+
+    // If the node HTML already contains title/header markup, keep it.
+    const hasTitle = /class=("|'|)node-title|class=("|'|)title|class=("|'|)node-content/.test(nodeData.html || '');
+
+    const contentHtml = nodeData.html || `<div class="content">${nodeData.description || defaults.description}</div>`;
+
+    const headerHtml = hasTitle
+        ? ''
+        : `<div class="title"><span class="node-icon">${icon}</span> ${nodeData.name || defaults.name}</div>`;
+
+    const finalHtml = `${headerHtml}${contentHtml}`;
+
     const template = {
         name: nodeData.name || defaults.name,
         inputs: nodeData.inputs !== undefined ? nodeData.inputs : defaults.inputs,
         outputs: nodeData.outputs !== undefined ? nodeData.outputs : defaults.outputs,
         class: nodeData.class || `${type}-node`,
-        data: nodeData.data || defaults.data,
-        html: nodeData.html || `<div class="title"><span class="node-icon">${nodeData.icon || defaults.icon}</span> ${nodeData.name || defaults.name}</div><div class="content">${nodeData.description || defaults.description}</div>`
+        data: Object.assign({}, nodeData.data || defaults.data, { color, iconFamily, icon }),
+        html: finalHtml,
+        color,
+        iconFamily,
+        icon,
     };
     
     return template;
@@ -103,6 +121,20 @@ function addNode(type, nodeData) {
             data.pos_y = Math.round((data.pos_y || 0) - halfH);
             nodeEl.style.left = data.pos_x + 'px';
             nodeEl.style.top = data.pos_y + 'px';
+            // Apply node color via CSS variable for per-node theming
+            try {
+                const colorToApply = (data?.color) || (tmpl.color);
+                if (colorToApply) {
+                    nodeEl.style.setProperty('--node-accent', colorToApply);
+                    // apply a subtle background tint based on color
+                    nodeEl.style.setProperty('--node-accent-transparent', colorToApply + '33');
+                }
+                if (data?.iconFamily && data?.iconFamily === 'material') {
+                    nodeEl.setAttribute('data-icon-family', 'material');
+                }
+            } catch (e) {
+                // ignore styling errors
+            }
             editor.updateConnectionNodes('node-' + newId);
         } catch (err) {
             // ignore
@@ -137,6 +169,32 @@ function clearGraph() {
     setTimeout(analyzeGraph, 100);
 }
 
+function applyNodeStyles() {
+    try {
+        const nodes = editor.drawflow?.drawflow?.Home?.data || {};
+        Object.keys(nodes).forEach((id) => {
+            try {
+                const nodeEl = document.getElementById('node-' + id);
+                if (!nodeEl) return;
+                const nodeData = nodes[id];
+                const c = nodeData?.data?.color || nodeData?.color || null;
+                if (c) {
+                    nodeEl.style.setProperty('--node-accent', c);
+                    nodeEl.style.setProperty('--node-accent-transparent', c + '33');
+                }
+                const iconFamily = nodeData?.data?.iconFamily || nodeData?.iconFamily || null;
+                if (iconFamily === 'material') {
+                    nodeEl.setAttribute('data-icon-family', 'material');
+                }
+            } catch (e) {
+                // ignore per-node style errors
+            }
+        });
+    } catch (e) {
+        // ignore
+    }
+}
+
 // ============================================
 // COMMUNICATION REACT NATIVE
 // ============================================
@@ -152,6 +210,8 @@ function setupMessageListener() {
                         setTimeout(() => {
                             analyzeGraph();
                             updateConnectedInputs();
+                            // Re-apply node styles from imported data (color, iconFamily)
+                            applyNodeStyles();
                         }, 200);
                         if (window.ReactNativeWebView) {
                             window.ReactNativeWebView.postMessage(JSON.stringify({

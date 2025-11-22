@@ -54,8 +54,8 @@ const styles = StyleSheet.create({
   },
   fabButton: {
     position: 'absolute',
-    bottom: 100, // Ajusté pour être au-dessus du bouton Run Program
-    right: 20,
+    bottom: 10, // Ajusté pour être au-dessus du bouton Run Program
+    right: 10,
     width: 56,
     height: 56,
     borderRadius: 28,

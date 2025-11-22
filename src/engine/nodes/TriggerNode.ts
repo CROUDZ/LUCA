@@ -21,6 +21,7 @@ import type {
 } from '../../types/node.types';
 import { getSignalSystem } from '../SignalSystem';
 import { logger } from '../../utils/logger';
+import { buildNodeCardHTML } from './templates/nodeCard';
 
 // Map pour stocker les références aux nodes trigger
 const triggerNodes = new Map<number, () => void>();
@@ -58,6 +59,8 @@ export function triggerAll(data?: any): void {
   }
 }
 
+const TRIGGER_NODE_ACCENT = '#2196F3';
+
 const TriggerNode: NodeDefinition = {
   // ============================================================================
   // IDENTIFICATION
@@ -72,7 +75,7 @@ const TriggerNode: NodeDefinition = {
   // ============================================================================
   icon: 'play-circle',
   iconFamily: 'material',
-  color: '#2196F3',
+  color: TRIGGER_NODE_ACCENT,
 
   // ============================================================================
   // INPUTS/OUTPUTS - Pas d'input, uniquement output
@@ -155,14 +158,14 @@ const TriggerNode: NodeDefinition = {
   // HTML (pour l'affichage dans le graphe)
   // ============================================================================
   generateHTML: (_settings: Record<string, any>): string => {
-    return `
-      <div class="title">
-        <span class="node-icon">▶️</span> Trigger
-      </div>
-      <div class="content">
-        Start signal
-      </div>
-    `;
+    return buildNodeCardHTML({
+      title: 'Trigger',
+      subtitle: 'Start signal',
+      iconName: 'play_circle',
+      category: 'Input',
+      accentColor: TRIGGER_NODE_ACCENT,
+      description: 'Déclenche manuellement un signal pour tester un graphe.',
+    });
   },
 };
 

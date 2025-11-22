@@ -10,6 +10,7 @@ import type { WebViewMessage, DrawflowExport } from '../types';
 import { ErrorCode } from '../types';
 import { logError, createAppError } from '../utils/errorHandler';
 import { nodeRegistry } from '../engine/NodeRegistry';
+import { buildNodeCardHTML } from '../engine/nodes/templates/nodeCard';
 
 interface UseWebViewMessagingOptions {
   onReady?: () => void;
@@ -126,6 +127,14 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
 
       let nodeData = null;
       if (nodeDefinition) {
+        const fallbackHtml = buildNodeCardHTML({
+          title: nodeDefinition.name,
+          subtitle: nodeDefinition.description,
+          iconName: nodeDefinition.icon,
+          category: nodeDefinition.category,
+          accentColor: nodeDefinition.color,
+        });
+
         // Préparer les données pour la WebView
         nodeData = {
           name: nodeDefinition.name,
@@ -137,9 +146,7 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
           data: { type: nodeType, ...data },
           html: nodeDefinition.generateHTML
             ? nodeDefinition.generateHTML(data || {})
-            : `<div class="title"><span class="node-icon">${nodeDefinition.icon || '📦'}</span> ${
-                nodeDefinition.name
-              }</div><div class="content">${nodeDefinition.description}</div>`,
+            : fallbackHtml,
         };
 
   logger.debug('📦 Node data prepared:', nodeData);

@@ -14,11 +14,15 @@ function formatDelayLabel(value) {
 }
 
 function normalizeSecondsInput(seconds) {
-    return `${seconds}`.replace('.', ',');
+    // Display nothing when value is 0 (i.e., show an empty input to represent 0)
+    if (seconds === undefined || seconds === null) return '';
+    const num = Number(seconds);
+    if (!num) return '';
+    return `${num}`.replace('.', ',');
 }
 
 function parseSecondsValue(rawValue) {
-    if (!rawValue) return 0;
+    if (!rawValue || (typeof rawValue === 'string' && rawValue.trim() === '')) return 0;
     const normalized = rawValue.replace(',', '.');
     const value = parseFloat(normalized);
     if (Number.isNaN(value) || value < 0) {

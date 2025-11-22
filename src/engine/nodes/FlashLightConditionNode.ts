@@ -7,6 +7,7 @@ import { registerNode } from '../NodeRegistry';
 import type { NodeDefinition, NodeExecutionContext, NodeExecutionResult } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 import { logger } from '../../utils/logger';
+import { buildNodeCardHTML } from './templates/nodeCard';
 import {
 	NativeModules,
 	DeviceEventEmitter,
@@ -210,6 +211,8 @@ export async function hasCameraPermission(): Promise<boolean> {
 	return permissions.hasCameraPermission();
 }
 
+const FLASHLIGHT_CONDITION_COLOR = '#FFC107';
+
 const FlashLightConditionNode: NodeDefinition = {
 	id: 'condition.flashlight',
 	name: 'FlashLight',
@@ -217,7 +220,7 @@ const FlashLightConditionNode: NodeDefinition = {
 	category: 'Condition',
 	icon: 'flashlight-on',
 	iconFamily: 'material',
-	color: '#FFC107',
+	color: FLASHLIGHT_CONDITION_COLOR,
 	inputs: [
 		{
 			name: 'signal_in',
@@ -282,13 +285,8 @@ const FlashLightConditionNode: NodeDefinition = {
 		const autoEmit = settings?.autoEmitOnChange ?? true;
 		const statusText = autoEmit ? 'Auto-émission active' : 'Écoute uniquement';
 		const statusClass = autoEmit ? 'flashlight-status active' : 'flashlight-status idle';
-		return `
-			<div class="node-content flashlight-node${invertSignal ? ' inverted' : ''}">
-				<div class="node-title">
-					<span class="node-icon">🔦</span>
-					FlashLight Condition
-				</div>
-				<div class="node-subtitle">${invertSignal ? 'Signal inversé' : 'Signal direct'}</div>
+		const body = `
+			<div class="flashlight-node${invertSignal ? ' inverted' : ''}">
 				<div class="${statusClass}">
 					<span class="status-dot"></span>
 					<span class="status-text">${statusText}</span>
@@ -302,6 +300,20 @@ const FlashLightConditionNode: NodeDefinition = {
 				</div>
 			</div>
 		`;
+
+		return buildNodeCardHTML({
+			title: 'FlashLight Condition',
+			subtitle: invertSignal ? 'Signal inversé' : 'Signal direct',
+			description: statusText,
+			iconName: 'flashlight_on',
+			category: 'Condition',
+			accentColor: FLASHLIGHT_CONDITION_COLOR,
+			chips: [
+				{ label: autoEmit ? 'Auto emit' : 'Passive', tone: autoEmit ? 'success' : 'info' },
+				{ label: invertSignal ? 'Invert ON' : 'Invert OFF', tone: invertSignal ? 'warning' : 'default' },
+			],
+			body,
+		});
 	},
 };
 
