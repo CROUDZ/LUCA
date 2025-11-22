@@ -86,8 +86,7 @@ body {
 
         /* Reservation to avoid overlap with the icon */
         .node-card__icon-wrapper {
-            margin-right: 10px;
-            z-index:1;
+            display: none; /* no more outer icon wrapper; use inline icon */
         }
 
         .node-card__header {
@@ -560,8 +559,7 @@ body {
     }
 
     .node-card__icon-wrapper {
-        width: 42px;
-        height: 42px;
+        display: none;
     }
 
     .node-card__title-row {
@@ -675,8 +673,7 @@ body {
     }
 
     .node-card__icon-wrapper {
-        width: 38px;
-        height: 38px;
+        display: none;
     }
 
     .node-card__title {
