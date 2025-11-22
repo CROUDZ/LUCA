@@ -80,6 +80,7 @@ body {
             border: 1px solid rgba(255, 255, 255, 0.08);
             background: rgba(139, 92, 246, 0.14);
             flex-shrink: 0;
+            z-index:3;
         }
 
         .node-card__brand-dot::after {
@@ -98,11 +99,13 @@ body {
             border-radius: 4px;
             object-fit: cover;
             border: 1px solid rgba(255, 255, 255, 0.06);
+            z-index:3;
         }
 
         /* Reservation to avoid overlap with the icon */
         .node-card__icon-wrapper {
             margin-right: 10px;
+            z-index:1;
         }
 
         .node-card__header {
