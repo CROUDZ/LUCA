@@ -10,6 +10,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 // Import de toutes les nodes via l'index
 // Cela charge automatiquement DemoNode, FlashLightConditionNode, PingNode et TriggerNode
 import './src/engine/nodes';
+import { startMonitoringNativeTorch, stopMonitoringNativeTorch } from './src/engine/nodes/FlashLightConditionNode';
 
 function App() {
   // Afficher les stats des nodes au démarrage
@@ -28,6 +29,13 @@ function App() {
         logger.debug(`  - ${node.id} (${node.name}) - Category: ${node.category}`);
       });
     });
+    // Start monitoring native torch state globally so that manual toggles (OS quick settings)
+    // trigger auto-emission even when NodeEditorScreen is not mounted.
+    startMonitoringNativeTorch();
+
+    return () => {
+      stopMonitoringNativeTorch();
+    };
   }, []);
 
   return (

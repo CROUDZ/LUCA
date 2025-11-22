@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "checkJs": false
+  },
+  "exclude": [
+    "node_modules",
+    "android",
+    "ios",
+    "src/webInterface/NodeEditorWeb.js",
+    "android/app/build"
+  ]
+}

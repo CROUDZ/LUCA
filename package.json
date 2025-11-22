@@ -8,7 +8,7 @@
   "scripts": {
     "emulator": "/home/giovanni/Android/Sdk/emulator/emulator -avd Pixel_API_34_v2 -read-only &",
     "emulator:stop": "adb -s emulator-5554 emu kill || pkill -f 'emulator.*Pixel_API_34_v2'",
-    "android": "cp -r src/webInterface/* android/app/src/main/assets/ && react-native run-android",
+  "android": "bash ./scripts/run-android.sh",
     "android:clean": "cd android && ./gradlew clean && cd ..",
     "android:install": "npm run android:clean && npm run android",
     "android:release": "cd android && ./gradlew assembleRelease && cd ..",

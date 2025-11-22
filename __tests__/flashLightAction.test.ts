@@ -12,12 +12,14 @@ const { setFlashlightState, getFlashlightState } = require('../src/engine/nodes/
 
 describe('FlashLightActionNode', () => {
 		beforeEach(() => {
-		resetSignalSystem();
+			resetSignalSystem();
 		resetPingCount();
 	});
 
 	afterEach(() => {
 		resetSignalSystem();
+		const { resetFlashlightState } = require('../src/engine/nodes/FlashLightConditionNode');
+		resetFlashlightState();
 	});
 
 	it('should set flashlight state when mode=set and propagate signal', async () => {

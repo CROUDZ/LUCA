@@ -1,291 +1,219 @@
 /**
- * FlashLightConditionNode - Node de condition qui vérifie l'état de la lampe torche
- *
- * Catégorie: Condition
- *
- * Cette node surveille l'état de la lampe torche du téléphone et propage
- * le signal uniquement lorsque la lampe torche est activée.
+ * FlashLightConditionNode
+ * Node conditionnel qui propage le signal seulement si la lampe torche est activée.
  */
 
 import { registerNode } from '../NodeRegistry';
-import type {
-	NodeDefinition,
-	NodeExecutionContext,
-	NodeExecutionResult,
-} from '../../types/node.types';
+import type { NodeDefinition, NodeExecutionContext, NodeExecutionResult } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 import { logger } from '../../utils/logger';
-import { DeviceEventEmitter, NativeEventEmitter, NativeModules } from 'react-native';
-import { PermissionsAndroid, Platform, Linking, Alert } from 'react-native';
+import {
+	NativeModules,
+	DeviceEventEmitter,
+	NativeEventEmitter,
+	type EmitterSubscription,
+} from 'react-native';
+import permissions from '../../utils/permissions';
 
 let Torch: { switchState?: (on: boolean) => Promise<void> | void } | null = null;
-				try {
+try {
 	Torch = require('react-native-torch');
 } catch {
 	Torch = null;
 }
 
 let flashlightEnabled = false;
-let lastNativePermissionWarningAt = 0;
+const autoEmitRegistry = new Map<number, { invert: boolean }>();
+let deviceTorchSubscription: EmitterSubscription | null = null;
+let nativeTorchSubscription: EmitterSubscription | null = null;
 
-function emitPermissionFailure(reason: string, source: string, extra: Record<string, any> = {}): void {
+function normalizeTorchPayload(payload: unknown): boolean {
+	if (typeof payload === 'boolean') return payload;
+	if (payload && typeof payload === 'object' && 'enabled' in (payload as Record<string, any>)) {
+		return Boolean((payload as Record<string, any>).enabled);
+	}
+	return false;
+}
+
+export function clearFlashlightAutoEmitRegistry() {
+	autoEmitRegistry.clear();
+}
+
+// Testing helper
+export function getAutoEmitRegistrySize() {
+  return autoEmitRegistry.size;
+}
+
+async function emitAutoSignalsForFlashlight(enabled: boolean) {
+	const ss = getSignalSystem();
+	if (!ss) {
+		logger.debug('[FlashLight] No SignalSystem available for auto emission');
+		return;
+	}
+
+	logger.info(
+		`[FlashLight] Auto-emission check (enabled=${enabled}) on registry with ${autoEmitRegistry.size} nodes`
+	);
+
+	autoEmitRegistry.forEach(({ invert }, nodeId) => {
+		const shouldEmit = invert ? !enabled : enabled;
+		if (!shouldEmit) {
+			logger.debug(`[FlashLight] Skipping auto node ${nodeId} (invert=${invert})`);
+			return;
+		}
+		logger.info(`[FlashLight] Emitting auto signal from node ${nodeId}`);
+		ss.emitSignal(nodeId, { fromEvent: 'flashlight.changed', enabled }).catch((err) => {
+			logger.warn(`[FlashLight] Failed to auto-emit for node ${nodeId}`, err);
+		});
+	});
+}
+
+function emitPermissionFailure(reason: string, source = 'flashlight.node', extra: Record<string, any> = {}) {
 	try {
 		const ss = getSignalSystem();
-		ss?.emitEvent('flashlight.permission.failed', {
-			reason,
-			source,
-			timestamp: Date.now(),
-			...extra,
-		});
-	} catch (eventErr) {
-		logger.warn('[FlashLight] Unable to emit flashlight.permission.failed', eventErr);
+		ss?.emitEvent('flashlight.permission.failed', { reason, source, timestamp: Date.now(), ...extra });
+	} catch (e) {
+		logger.warn('[FlashLight] Failed to emit permission failure event', e);
 	}
 }
 
-export async function setFlashlightState(enabled: boolean, skipNative: boolean = false, emitEvent: boolean = true): Promise<void> {
+function handleNativeTorchEvent(payload: unknown) {
+	const enabled = normalizeTorchPayload(payload);
+	syncFlashlightFromNative(enabled).catch((error: unknown) => {
+		logger.warn('[FlashLight] Failed to sync flashlight state from native event', error);
+	});
+}
+
+function ensureNativeTorchListeners() {
+	const torchModule = (NativeModules as any)?.TorchModule;
+
+	if (!deviceTorchSubscription && DeviceEventEmitter && typeof DeviceEventEmitter.addListener === 'function') {
+		try {
+			deviceTorchSubscription = DeviceEventEmitter.addListener('flashlight.system.changed', handleNativeTorchEvent);
+			logger.debug('[FlashLight] Listening to DeviceEventEmitter flashlight.system.changed');
+		} catch (error) {
+			logger.debug('[FlashLight] DeviceEventEmitter unavailable for flashlight sync', error);
+		}
+	}
+
+	if (!nativeTorchSubscription && torchModule) {
+		try {
+			const emitter = new NativeEventEmitter(torchModule);
+			nativeTorchSubscription = emitter.addListener('flashlight.system.changed', handleNativeTorchEvent);
+			logger.debug('[FlashLight] Listening to NativeEventEmitter flashlight.system.changed');
+		} catch (error) {
+			logger.debug('[FlashLight] NativeEventEmitter unable to attach for torch sync', error);
+		}
+	}
+}
+
+export function startMonitoringNativeTorch() {
+	ensureNativeTorchListeners();
+}
+
+export function stopMonitoringNativeTorch() {
+	try {
+		if (deviceTorchSubscription && typeof deviceTorchSubscription.remove === 'function') {
+			deviceTorchSubscription.remove();
+		} else if (deviceTorchSubscription && typeof (DeviceEventEmitter as any).removeListener === 'function') {
+			(DeviceEventEmitter as any).removeListener('flashlight.system.changed', handleNativeTorchEvent);
+		}
+	} catch (e) {
+		logger.debug('[FlashLight] Could not remove DeviceEventEmitter listener', e);
+	}
+
+	try {
+		if (nativeTorchSubscription && typeof nativeTorchSubscription.remove === 'function') {
+			nativeTorchSubscription.remove();
+		}
+	} catch (e) {
+		logger.debug('[FlashLight] Could not remove NativeEventEmitter listener', e);
+	}
+
+	deviceTorchSubscription = null;
+	nativeTorchSubscription = null;
+}
+
+export async function setFlashlightState(
+	enabled: boolean,
+	skipNative: boolean = false,
+	_emitEvent: boolean = true
+): Promise<void> {
+	ensureNativeTorchListeners();
 	flashlightEnabled = enabled;
 
-	// If we are trying to call the native torch, always ensure permission first
-	// so the OS popup will be shown even if callers forgot to request it.
+	// Try to toggle native torch only when requested and when permission is granted.
 	if (!skipNative) {
 		try {
-			const ok = await ensureCameraPermission();
-			logger.debug('[FlashLight] Permission check before native toggle:', ok);
+			const ok = await permissions.ensureCameraPermission();
 			if (!ok) {
-				logger.warn('[FlashLight] Permission not granted - skipping native torch call');
-				emitPermissionFailure('ensure_before_toggle', 'setFlashlightState');
-				// Do not call native torch; only update JS state and return.
-				// Still allow event emission below so graph can react.
-			} 
-		} catch (e) {
-			logger.warn('[FlashLight] Permission request error before native toggle', e);
-		}
-	}
-	if (!skipNative) {
-		const nativeTorch = (NativeModules as any)?.TorchModule;
-		const hasNativeTorch = Boolean(nativeTorch && typeof nativeTorch.switchTorch === 'function');
-		const hasLegacyTorch = Boolean(Torch && typeof Torch.switchState === 'function');
-		let hardwareHandled = false;
-
-		try {
-			if (hasNativeTorch) {
-				logger.info('[FlashLight] setFlashlightState → TorchModule.switchTorch');
-				nativeTorch.switchTorch(enabled);
-				hardwareHandled = true;
-			} else if (hasLegacyTorch) {
-				logger.info('[FlashLight] setFlashlightState → react-native-torch.switchState');
-				const result = Torch!.switchState!(enabled);
-				if (result instanceof Promise) await result;
-				hardwareHandled = true;
+				logger.warn('[FlashLight] Permission not granted; skipping native toggle');
+				emitPermissionFailure('permission_denied', 'setFlashlightState');
+			} else {
+				const nativeTorch = (NativeModules as any)?.TorchModule;
+				if (nativeTorch && typeof nativeTorch.switchTorch === 'function') {
+					nativeTorch.switchTorch(enabled);
+				} else {
+					if (Torch && typeof Torch.switchState === 'function') {
+						const res = Torch.switchState(enabled);
+						if (res instanceof Promise) await res;
+					} else {
+						// No torch implementation available
+						logger.warn('[FlashLight] No native torch implementation available');
+						emitPermissionFailure('no_torch_implementation', 'setFlashlightState');
+					}
+				}
 			}
-		} catch (error) {
-			logger.warn('[FlashLight] Torch toggle threw error', error);
-		}
-
-		if (!hardwareHandled) {
-			logger.warn('[FlashLight] No native torch implementation available');
-			emitPermissionFailure('no_torch_implementation', 'setFlashlightState');
+		} catch (e) {
+			logger.warn('[FlashLight] Error toggling native torch', e);
+			emitPermissionFailure('toggle_error', 'setFlashlightState', { error: String(e) });
 		}
 	}
 
 	try {
 		const ss = getSignalSystem();
-		if (ss && emitEvent) {
-			logger.info(`[FlashLight] Emitting flashlight.changed (enabled=${enabled})`);
-			ss.emitEvent('flashlight.changed', { enabled, timestamp: Date.now() });
-		}
-	} catch (err) {
-		logger.warn('[FlashLight] could not emit flashlight.changed event', err);
-	}
-
-	logger.info(`[FlashLight] État de la lampe torche: ${enabled ? 'ACTIVÉE' : 'DÉSACTIVÉE'}`);
-
-	try {
-		const ss2 = getSignalSystem();
-		if (ss2) {
-			const stats = ss2.getStats();
-			logger.debug('[FlashLight] Signal system stats after change:', stats);
-		}
+		logger.info(`[FlashLight] setFlashlightState enabled=${enabled} skipNative=${skipNative}`);
+		ss?.emitEvent('flashlight.changed', { enabled, timestamp: Date.now() });
 	} catch (e) {
-		logger.warn('[FlashLight] Unable to fetch SignalSystem stats for debug', e);
+		logger.warn('[FlashLight] Could not emit flashlight.changed', e);
 	}
+
+	await emitAutoSignalsForFlashlight(enabled);
 }
 
-// Listen to native events (Android) to keep JS state in sync.
-try {
-	if ((DeviceEventEmitter as any)?.addListener) {
-		logger.debug('[FlashLight] DeviceEventEmitter available');
-		logger.debug('[FlashLight] Using DeviceEventEmitter for native torch events');
-		DeviceEventEmitter.addListener('flashlight.system.changed', (payload: any) => {
-			try {
-				const enabled = Boolean(payload?.enabled);
-				if (getFlashlightState() !== enabled) {
-					setFlashlightState(enabled).catch(() => {});
-				}
-			} catch (err) {
-				logger.warn('[FlashLight] Error handling flashlight.system.changed event', err);
-			}
-		});
-
-		DeviceEventEmitter.addListener('flashlight.permission.native_missing', (payload: any) => {
-			(async () => {
-				try {
-					const now = Date.now();
-					if (now - lastNativePermissionWarningAt < 5000) {
-						return;
-					}
-					lastNativePermissionWarningAt = now;
-
-					logger.warn('[FlashLight] Native torch reported missing permission', payload);
-					emitPermissionFailure(payload?.reason ?? 'native_missing', 'native', payload ?? {});
-
-					const granted = await ensureCameraPermission();
-					if (!granted) {
-						Alert.alert(
-							'Permission requise',
-							"La permission Caméra est désactivée pour LUCA. Ouvrez les paramètres pour l'activer et permettre le contrôle de la lampe.",
-							[
-								{ text: 'Annuler', style: 'cancel' },
-								{ text: 'Ouvrir les paramètres', onPress: () => Linking.openSettings() },
-							]
-						);
-						try {
-							Linking.openSettings();
-						} catch (linkErr) {
-							logger.warn('[FlashLight] Unable to open settings automatically', linkErr);
-						}
-					}
-				} catch (err) {
-					logger.warn('[FlashLight] Error handling flashlight.permission.native_missing event', err);
-				}
-			})();
-		});
+export async function syncFlashlightFromNative(enabled: boolean): Promise<void> {
+	const normalized = Boolean(enabled);
+	if (flashlightEnabled === normalized) {
+		logger.debug('[FlashLight] Native torch state already synced (enabled=%s)', normalized);
+		return;
 	}
 
-	try {
-		logger.debug('[FlashLight] NativeModules.TorchModule present:', !!(NativeModules as any).TorchModule);
-		if (NativeModules && (NativeModules as any).TorchModule) {
-			logger.debug('[FlashLight] TorchModule found in NativeModules — attaching NativeEventEmitter');
-			const emitter = new NativeEventEmitter((NativeModules as any).TorchModule);
-			emitter.addListener('flashlight.system.changed', (payload: any) => {
-				try {
-					const enabled = Boolean(payload?.enabled);
-					if (getFlashlightState() !== enabled) {
-						setFlashlightState(enabled).catch(() => {});
-					}
-				} catch (err) {
-					logger.warn('[FlashLight] Error handling flashlight.system.changed event from NativeEventEmitter', err);
-				}
-			});
-		}
-	} catch (e) {
-		logger.debug('[FlashLight] NativeModules.TorchModule not present or emitter failed', e);
-	}
-} catch (e) {
-	logger.debug('[FlashLight] DeviceEventEmitter not available for native torch events', e);
+	logger.info(`[FlashLight] Syncing flashlight state from native event: enabled=${normalized}`);
+	await setFlashlightState(normalized, true);
 }
 
-export async function ensureCameraPermission(): Promise<boolean> {
-	try {
-		const isAndroid = Platform?.OS === 'android';
-		if (!isAndroid) {
-			logger.debug('[FlashLight] ensureCameraPermission skipped (non-Android or Platform unavailable)');
-			return true;
-		}
-
-		if (!PermissionsAndroid || typeof PermissionsAndroid.request !== 'function') {
-			logger.warn('[FlashLight] PermissionsAndroid API missing – assuming permission granted (likely non-native env)');
-			return true;
-		}
-
-		const cameraPermission = PermissionsAndroid.PERMISSIONS?.CAMERA ?? 'android.permission.CAMERA';
-		logger.info('[FlashLight] ensureCameraPermission: requesting permission via PermissionsAndroid');
-
-		const result = await PermissionsAndroid.request(cameraPermission, {
-			title: "Permission caméra",
-			message: "Cette application a besoin d'accès à la caméra pour contrôler la lampe torche.",
-			buttonNeutral: 'Plus tard',
-			buttonNegative: 'Refuser',
-			buttonPositive: 'OK',
-		});
-
-		if (typeof PermissionsAndroid.check === 'function') {
-			const check = await PermissionsAndroid.check(cameraPermission);
-			logger.info('[FlashLight] ensureCameraPermission pre-check:', check);
-		} else {
-			logger.info('[FlashLight] ensureCameraPermission pre-check skipped (PermissionsAndroid.check missing)');
-		}
-
-		logger.info('[FlashLight] ensureCameraPermission result:', result);
-		const grantedValue = PermissionsAndroid.RESULTS?.GRANTED ?? 'granted';
-		const neverAskValue = PermissionsAndroid.RESULTS?.NEVER_ASK_AGAIN ?? 'never_ask_again';
-
-		if (result === grantedValue) {
-			return true;
-		}
-
-		emitPermissionFailure(result ?? 'unknown', 'ensureCameraPermission');
-
-		if (result === neverAskValue) {
-			try {
-				Alert.alert(
-					'Permission requise',
-					`La permission Caméra a été désactivée et ne sera plus demandée.\n\nOuvrir les paramètres pour activer la permission ?`,
-					[
-						{ text: 'Annuler', style: 'cancel' },
-						{ text: 'Ouvrir', onPress: () => Linking?.openSettings?.() },
-					]
-				);
-				try {
-					Linking?.openSettings?.();
-				} catch (e) {
-					logger.warn('[FlashLight] Linking.openSettings call failed:', e);
-				}
-			} catch (e) {
-				logger.warn('[FlashLight] Unable to open settings:', e);
-			}
-			return false;
-		}
-
-		return false;
-	} catch (err) {
-		logger.warn('[FlashLight] Permission check failed', err);
-		emitPermissionFailure('permission_check_error', 'ensureCameraPermission', {
-			error: err instanceof Error ? err.message : String(err),
-		});
-		return false;
-	}
-}
-
-export async function hasCameraPermission(): Promise<boolean> {
-	try {
-		const isAndroid = Platform?.OS === 'android';
-		if (!isAndroid) {
-			return true;
-		}
-
-		if (!PermissionsAndroid || typeof PermissionsAndroid.check !== 'function') {
-			logger.warn('[FlashLight] PermissionsAndroid.check unavailable – assuming permission granted');
-			return true;
-		}
-
-		const cameraPermission = PermissionsAndroid.PERMISSIONS?.CAMERA ?? 'android.permission.CAMERA';
-		const granted = await PermissionsAndroid.check(cameraPermission);
-		return !!granted;
-	} catch (err) {
-		logger.warn('[FlashLight] hasCameraPermission failed', err);
-		return false;
-	}
+export function resetFlashlightState(): void {
+	flashlightEnabled = false;
+	clearFlashlightAutoEmitRegistry();
+	stopMonitoringNativeTorch();
 }
 
 export function getFlashlightState(): boolean {
 	return flashlightEnabled;
 }
 
+export async function ensureCameraPermission(): Promise<boolean> {
+	return permissions.ensureCameraPermission();
+}
+
+export async function hasCameraPermission(): Promise<boolean> {
+	return permissions.hasCameraPermission();
+}
+
 const FlashLightConditionNode: NodeDefinition = {
 	id: 'condition.flashlight',
 	name: 'FlashLight',
-	description: 'Propage le signal uniquement si la lampe torche du téléphone est activée',
+	description: "Propage le signal uniquement si la lampe torche est activée",
 	category: 'Condition',
 	icon: 'flashlight-on',
 	iconFamily: 'material',
@@ -295,7 +223,7 @@ const FlashLightConditionNode: NodeDefinition = {
 			name: 'signal_in',
 			type: 'any',
 			label: 'Signal In',
-			description: "Signal d'entrée",
+			description: "Signal d'entrée à filtrer",
 			required: false,
 		},
 	],
@@ -304,127 +232,74 @@ const FlashLightConditionNode: NodeDefinition = {
 			name: 'signal_out',
 			type: 'any',
 			label: 'Signal Out',
-			description: 'Signal de sortie (propagé si lampe activée)',
+			description: 'Signal propagé si la condition lampe torche est vraie',
 		},
 	],
-	defaultSettings: {
-		checkInterval: 100,
-		autoEmitOnChange: true,
-		invertSignal: false,
-	},
+	defaultSettings: { autoEmitOnChange: true, invertSignal: false },
 	execute: async (context: NodeExecutionContext): Promise<NodeExecutionResult> => {
 		try {
-			const signalSystem = getSignalSystem();
+			const ss = getSignalSystem();
+			if (!ss) return { success: false, error: 'Signal system not initialized', outputs: {} };
 
-			logger.debug(`[FlashLight Node ${context.nodeId}] Settings:`, context.settings);
-			logger.debug(`[FlashLight Node ${context.nodeId}] invertSignal = ${context.settings?.invertSignal}`);
+			const autoEmit = context.settings?.autoEmitOnChange ?? false;
+			const hasInputs = Boolean(context.inputsCount && context.inputsCount > 0);
 
-			if (signalSystem) {
-	const autoEmit = context.settings?.autoEmitOnChange ?? false;
-	const hasInputs = Boolean(context.inputsCount && context.inputsCount > 0);
 			if (autoEmit && !hasInputs) {
-					logger.debug(`[FlashLight Node ${context.nodeId}] Subscribing to flashlight.changed`);
-					signalSystem.subscribeToEvent('flashlight.changed', context.nodeId, async (eventData) => {
-						logger.debug(`[FlashLight Node ${context.nodeId}] Received flashlight.changed event`, eventData);
-						const invertSignal = context.settings?.invertSignal ?? false;
-						// Respecter l'inversion pour l'émission automatique
-						const shouldEmit = invertSignal ? !eventData?.enabled : eventData?.enabled;
-						if (shouldEmit) {
-							await signalSystem.emitSignal(context.nodeId, {
-								fromEvent: 'flashlight.changed',
-								...eventData,
-							});
-						}
-					});
-
-					// Gérer l'émission initiale selon l'état actuel de la lampe et l'inversion
-					const initialOn = getFlashlightState();
-					const invert = context.settings?.invertSignal ?? false;
-					const initialShouldEmit = invert ? !initialOn : initialOn;
-					if (initialShouldEmit) {
-						logger.debug(`[FlashLight Node ${context.nodeId}] Emitting initial flashlight signal (invert=${invert})`);
-						(async () => {
-							await signalSystem.emitSignal(context.nodeId, {
-								fromEvent: 'flashlight.initial',
-								enabled: initialOn,
-							});
-						})();
-					}
-
-					logger.info(`[FlashLight Node ${context.nodeId}] autoEmitOnChange active - subscription registered for flashlight.changed`);
-				}
-
-				signalSystem.registerHandler(
-					context.nodeId,
-					async (signal: Signal): Promise<SignalPropagation> => {
-						logger.debug(`[FlashLight Node ${context.nodeId}] Signal reçu:`, signal);
-
-						const isFlashlightOn = getFlashlightState();
-						const invertSignal = context.settings?.invertSignal ?? false;
-						
-						// Applique l'inversion si nécessaire
-						const conditionMet = invertSignal ? !isFlashlightOn : isFlashlightOn;
-
-						if (conditionMet) {
-							logger.info(`[FlashLight Node ${context.nodeId}] ✓ Condition remplie (invert=${invertSignal}, state=${isFlashlightOn}) - Signal propagé`);
-							return {
-								propagate: true,
-								data: {
-									...signal.data,
-									flashlightChecked: true,
-									flashlightState: isFlashlightOn,
-									inverted: invertSignal,
-								},
-							};
-						} else {
-							logger.info(`[FlashLight Node ${context.nodeId}] ✗ Condition non remplie (invert=${invertSignal}, state=${isFlashlightOn}) - Signal bloqué`);
-							return {
-								propagate: false,
-								data: signal.data,
-							};
-						}
-					}
+				const initial = getFlashlightState();
+				const invert = context.settings?.invertSignal ?? false;
+				autoEmitRegistry.set(context.nodeId, { invert });
+				logger.info(
+					`[FlashLight Node ${context.nodeId}] Auto-emit enabled (invert=${invert}) initialState=${initial}`
 				);
-
-				logger.info(`[FlashLight Node ${context.nodeId}] Condition handler registered`);
+				if ((invert && !initial) || (!invert && initial)) {
+					await ss.emitSignal(context.nodeId, { fromEvent: 'flashlight.initial', enabled: initial });
+				}
+			} else {
+				autoEmitRegistry.delete(context.nodeId);
 			}
 
-			return {
-				success: true,
-				outputs: {
-					signal_out: 'FlashLight condition registered',
-				},
-			};
-		} catch (error) {
-			return {
-				success: false,
-				error: error instanceof Error ? error.message : 'Unknown error',
-				outputs: {},
-			};
+			ss.registerHandler(context.nodeId, async (signal: Signal): Promise<SignalPropagation> => {
+				const current = getFlashlightState();
+				const invert = context.settings?.invertSignal ?? false;
+				const condition = invert ? !current : current;
+				if (condition) {
+					return { propagate: true, data: { ...signal.data, flashlightState: current } };
+				}
+				return { propagate: false, data: signal.data };
+			});
+
+			return { success: true, outputs: {} };
+		} catch (e) {
+			return { success: false, error: e instanceof Error ? e.message : String(e), outputs: {} };
 		}
 	},
-	validate: (_context: NodeExecutionContext): boolean | string => {
-		const signalSystem = getSignalSystem();
-		if (!signalSystem) {
-			return 'Signal system not initialized';
-		}
-		return true;
+	validate: (): boolean | string => {
+		const ss = getSignalSystem();
+		return ss ? true : 'Signal system not initialized';
 	},
 	generateHTML: (settings: Record<string, any>): string => {
 		const invertSignal = settings?.invertSignal ?? false;
+		const autoEmit = settings?.autoEmitOnChange ?? true;
+		const statusText = autoEmit ? 'Auto-émission active' : 'Écoute uniquement';
+		const statusClass = autoEmit ? 'flashlight-status active' : 'flashlight-status idle';
 		return `
-			<div class="title">
-				<span class="node-icon">💡</span> FlashLight
-			</div>
-			<div class="content">
-				Check torch status
-			</div>
-			<div class="condition-invert-control">
-				<label class="switch-label">
-					<input type="checkbox" class="invert-signal-toggle" ${invertSignal ? 'checked' : ''} />
-					<span class="switch-slider"></span>
-					<span class="switch-text">Invert Signal</span>
-				</label>
+			<div class="node-content flashlight-node${invertSignal ? ' inverted' : ''}">
+				<div class="node-title">
+					<span class="node-icon">🔦</span>
+					FlashLight Condition
+				</div>
+				<div class="node-subtitle">${invertSignal ? 'Signal inversé' : 'Signal direct'}</div>
+				<div class="${statusClass}">
+					<span class="status-dot"></span>
+					<span class="status-text">${statusText}</span>
+				</div>
+				<div class="condition-invert-control">
+					<label class="switch-label">
+						<input type="checkbox" class="invert-signal-toggle" ${invertSignal ? 'checked' : ''} />
+						<span class="switch-slider"></span>
+						<span class="switch-text">Invert Signal</span>
+					</label>
+				</div>
 			</div>
 		`;
 	},
@@ -433,3 +308,4 @@ const FlashLightConditionNode: NodeDefinition = {
 registerNode(FlashLightConditionNode);
 
 export default FlashLightConditionNode;
+ 

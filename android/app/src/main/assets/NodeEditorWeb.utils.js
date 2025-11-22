@@ -1,32 +1,31 @@
-/* Deprecated monolithic NodeEditorWeb.js
- * This file is intentionally minimal to avoid older code executing. Use the modular files instead:
- * NodeEditorWeb.init.js, NodeEditorWeb.transform.js, NodeEditorWeb.utils.js, NodeEditorWeb.graphAnalysis.js,
- * NodeEditorWeb.touchNodes.js, NodeEditorWeb.controls.js, NodeEditorWeb.messaging.js, NodeEditorWeb.main.js
- *
- * This file is kept as a backward-compatible shim only to avoid older build references from failing.
- */
-
-(function () {
-    if (typeof console !== 'undefined' && console.warn) {
-        console.warn(
-            'Deprecated file NodeEditorWeb.js present. Use NodeEditorWeb.* modular scripts instead.'
-        );
-    }
-
-    // Keep a small, safe namespace for callers that may introspect a global.
-    if (typeof window !== 'undefined') {
-        window.DrawflowEditor = window.DrawflowEditor || {};
-        window.DrawflowEditor.deprecated = true;
-    }
-    /* LEGACY CODE REMOVED */
-})();
-
-/* EOF */
-
-
-// ============================================
 // FONCTIONS UTILITAIRES
-// ============================================
+
+function formatDelayLabel(value) {
+    const totalSeconds = value / 1000;
+    if (totalSeconds >= 60) {
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds - minutes * 60;
+        const minutePart = `${minutes}m`;
+        const secondsPart = seconds > 0 ? `${Number.isInteger(seconds) ? seconds : Number(seconds.toFixed(2))}s` : '';
+        return secondsPart ? `${minutePart} ${secondsPart}` : minutePart;
+    }
+    const secondsValue = Number.isInteger(totalSeconds) ? totalSeconds : Number(totalSeconds.toFixed(2));
+    return `${secondsValue}s`;
+}
+
+function normalizeSecondsInput(seconds) {
+    return `${seconds}`.replace('.', ',');
+}
+
+function parseSecondsValue(rawValue) {
+    if (!rawValue) return 0;
+    const normalized = rawValue.replace(',', '.');
+    const value = parseFloat(normalized);
+    if (Number.isNaN(value) || value < 0) {
+        return 0;
+    }
+    return value;
+}
 
 /**
  * Crée un template de nœud dynamique basé sur les données fournies
@@ -60,7 +59,7 @@ function createNodeTemplate(type, nodeData = {}) {
 
 function addNode(type, nodeData) {
     const tmpl = createNodeTemplate(type, nodeData);
-    // Place node at center of visible drawflow area if possible
+    // Try to add node in the center of the visible drawflow area (viewport)
     let x;
     let y;
     try {
@@ -69,12 +68,14 @@ function addNode(type, nodeData) {
         const ZOOM = window.DrawflowEditor.ZOOM || { current: 1 };
         if (container && typeof PAN.x === 'number' && typeof ZOOM.current === 'number') {
             const rect = container.getBoundingClientRect();
-            const centerClientX = rect.width / 2;
-            const centerClientY = rect.height / 2;
+            const centerClientX = rect.left + rect.width / 2;
+            const centerClientY = rect.top + rect.height / 2;
+            // Convert client coordinates to drawflow (world) coordinates
             x = (centerClientX - PAN.x) / ZOOM.current;
             y = (centerClientY - PAN.y) / ZOOM.current;
         }
     } catch (err) {
+        // If anything fails, we'll fall back to a random visible-ish position
         x = undefined;
         y = undefined;
     }
@@ -84,8 +85,12 @@ function addNode(type, nodeData) {
         y = Math.random() * 200 + 100;
     }
 
+    // Keep a snapshot of existing node ids to detect the inserted node
+    const editor = window.DrawflowEditor.editor;
     const beforeIds = Object.keys(editor.drawflow?.drawflow?.Home?.data || {});
     editor.addNode(tmpl.name, tmpl.inputs, tmpl.outputs, x, y, tmpl.class, tmpl.data, tmpl.html);
+
+    // Small timeout to allow DOM to be updated; then adjust node so its center matches the viewport center
     setTimeout(() => {
         try {
             const afterIds = Object.keys(editor.drawflow?.drawflow?.Home?.data || {});
@@ -95,6 +100,7 @@ function addNode(type, nodeData) {
             if (!nodeEl) return;
             const nodeWidth = nodeEl.offsetWidth || 0;
             const nodeHeight = nodeEl.offsetHeight || 0;
+            // Shift position so node center lines up with the previously computed world center
             const data = editor.drawflow.drawflow.Home.data[newId];
             if (!data) return;
             const halfW = Math.round(nodeWidth / 2);
@@ -105,13 +111,13 @@ function addNode(type, nodeData) {
             nodeEl.style.top = data.pos_y + 'px';
             editor.updateConnectionNodes('node-' + newId);
         } catch (err) {
-            // ignore
+            // Silent fallback — no further action
         }
     }, 10);
 }
 
 function exportGraph() {
-    const data = editor.export();
+    const data = window.DrawflowEditor.editor.export();
     // Debug: log the node settings for condition nodes to help trace invertSignal propagation
     try {
         const nodes = data.drawflow?.Home?.data || {};
@@ -133,53 +139,16 @@ function exportGraph() {
 }
 
 function clearGraph() {
-    editor.clear();
-    setTimeout(analyzeGraph, 100);
+    window.DrawflowEditor.editor.clear();
+    setTimeout(() => window.DrawflowEditor.analyzeGraph(), 100);
 }
 
-// ============================================
-// COMMUNICATION REACT NATIVE
-// ============================================
-
-function setupMessageListener() {
-    const handler = (event) => {
-        try {
-            const msg = JSON.parse(event.data);
-            switch(msg.type) {
-                case 'LOAD_GRAPH':
-                    if (msg.payload?.drawflow) {
-                        editor.import(msg.payload);
-                        setTimeout(() => {
-                            analyzeGraph();
-                            updateConnectedInputs();
-                        }, 200);
-                        if (window.ReactNativeWebView) {
-                            window.ReactNativeWebView.postMessage(JSON.stringify({
-                                type: 'IMPORTED',
-                                payload: { success: true }
-                            }));
-                        }
-                    }
-                    break;
-                case 'ADD_NODE':
-                    addNode(msg.payload.nodeType || 'texture', msg.payload.nodeData);
-                    break;
-                case 'CLEAR':
-                    clearGraph();
-                    break;
-                case 'REQUEST_EXPORT':
-                    exportGraph();
-                    break;
-            }
-        } catch (e) {
-            console.error('Message error:', e);
-        }
-    };
-    
-    document.addEventListener('message', handler);
-    window.addEventListener('message', handler);
-}
-
-setupMessageListener();
-
-// End of deprecated shim.
+// Expose helpers used by other modules
+window.DrawflowEditor = window.DrawflowEditor || {};
+window.DrawflowEditor.createNodeTemplate = createNodeTemplate;
+window.DrawflowEditor.addNode = addNode;
+window.DrawflowEditor.exportGraph = exportGraph;
+window.DrawflowEditor.clearGraph = clearGraph;
+window.DrawflowEditor.formatDelayLabel = formatDelayLabel;
+window.DrawflowEditor.normalizeSecondsInput = normalizeSecondsInput;
+window.DrawflowEditor.parseSecondsValue = parseSecondsValue;

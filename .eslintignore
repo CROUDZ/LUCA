@@ -1,0 +1,9 @@
+# Ignore legacy monolithic web interface JS files and generated assets
+src/webInterface/NodeEditorWeb.js
+src/webInterface/NodeEditorWeb.deprecated.js
+src/webInterface/NodeEditorWeb.legacy.js
+android/app/src/main/assets/NodeEditorWeb.js
+android/app/src/main/assets/NodeEditorWeb.deprecated.js
+android/app/src/main/assets/NodeEditorWeb.legacy.js
+__tests__/webInterface.addNode.test.ts
+android/app/build/**

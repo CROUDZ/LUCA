@@ -3,7 +3,7 @@
  * Utilise les hooks personnalisés pour une meilleure organisation du code
  */
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { View, TouchableOpacity, Text, Alert } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -20,7 +20,6 @@ import type { RootStackParamList } from '../types/navigation.types';
 
 import styles from './NodeEditorScreenStyles';
 import SaveMenu from '../components/SaveMenu';
-// SignalControls removed — component considered unnecessary
 import RunProgramButton from '../components/RunProgramButton';
 import { nodeInstanceTracker } from '../engine/NodeInstanceTracker';
 import { subscribeNodeAdded } from '../utils/NodePickerEvents';
@@ -28,7 +27,12 @@ import { logger } from '../utils/logger';
 
 // Import du système de signaux
 import { parseDrawflowGraph } from '../engine/engine';
-import { ensureCameraPermission, hasCameraPermission } from '../engine/nodes/FlashLightConditionNode';
+import {
+  ensureCameraPermission,
+  hasCameraPermission,
+  clearFlashlightAutoEmitRegistry,
+  startMonitoringNativeTorch,
+} from '../engine/nodes/FlashLightConditionNode';
 import { initializeSignalSystem, resetSignalSystem, getSignalSystem } from '../engine/SignalSystem';
 import { nodeRegistry } from '../engine/NodeRegistry';
 
@@ -38,15 +42,6 @@ interface NodeEditorScreenProps {
   navigation: NodeEditorScreenNavigationProp;
 }
 
-// Graphe vide par défaut
-const EMPTY_GRAPH: DrawflowExport = {
-  drawflow: {
-    Home: {
-      data: {},
-    },
-  },
-};
-
 const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
   // États locaux pour l'UI
   const [showSaveMenu, setShowSaveMenu] = useState(false);
@@ -55,6 +50,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
   const [currentGraph, setCurrentGraph] = useState<DrawflowExport | null>(null);
   const [triggerNodeIds, setTriggerNodeIds] = useState<number[]>([]);
   const [hasFlashActionInGraph, setHasFlashActionInGraph] = useState(false);
+  const pendingSaveNameRef = useRef<string | null>(null);
 
   // Hook de stockage des graphes
   const {
@@ -85,6 +81,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
         const save = saves.find((s) => s.id === currentSaveId);
         if (save) {
           loadGraph(save.data);
+          setCurrentGraph(save.data);
         }
       }
     },
@@ -93,6 +90,25 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
       await autoSave(data);
       // Mettre à jour le graphe actuel pour le système de signaux
       setCurrentGraph(data);
+
+      if (pendingSaveNameRef.current) {
+        const saveName = pendingSaveNameRef.current;
+        pendingSaveNameRef.current = null;
+
+        try {
+          const save = await createSave(saveName, data);
+          if (save) {
+            setNewSaveName('');
+            setShowNewSaveInput(false);
+            Alert.alert('Success', `Save "${save.name}" created!`);
+          } else {
+            Alert.alert('Error', 'Failed to create save.');
+          }
+        } catch (error) {
+          logger.error('Failed to finalize save creation', error);
+          Alert.alert('Error', 'Failed to create save.');
+        }
+      }
     },
     onNodeSettingsChanged: (payload) => {
       try {
@@ -115,7 +131,22 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
         }
         if (nodeDef) {
           const numericId = Number(nodeId);
-          nodeDef.execute({ nodeId: numericId, inputs: {}, settings: settings || node?.data || {} });
+          const resolvedSettings = {
+            ...(nodeDef.defaultSettings || {}),
+            ...(node?.data?.settings || node?.data || {}),
+            ...(settings || {}),
+          };
+          const inputsCount = node?.inputs?.length ?? 0;
+
+          nodeDef.execute({
+            nodeId: numericId,
+            inputs: {},
+            inputsCount,
+            settings: resolvedSettings,
+            log: (message: string) => {
+              logger.debug(`[Node ${numericId}] ${message}`);
+            },
+          });
           logger.info(`[NodeEditorScreen] Re-registered node ${numericId} after settings change`);
         }
       } catch (err) {
@@ -149,18 +180,28 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
 
     // Initialiser le système avec le graphe
     initializeSignalSystem(graph);
+  startMonitoringNativeTorch();
 
-    // Exécuter tous les nœuds pour enregistrer leurs handlers
+  // Exécuter tous les nœuds pour enregistrer leurs handlers
+  clearFlashlightAutoEmitRegistry();
     let handlersRegistered = 0;
     graph.nodes.forEach((node) => {
       const nodeDef = nodeRegistry.getNode(node.type);
       if (nodeDef) {
         try {
+          const resolvedSettings = {
+            ...(nodeDef.defaultSettings || {}),
+            ...(node.data?.settings || node.data || {}),
+          };
+
           nodeDef.execute({
             nodeId: node.id,
             inputs: {},
-            // Utiliser node.data.settings si présent (WebView stocke les settings ici)
-            settings: node.data?.settings || node.data || {},
+            inputsCount: node.inputs.length,
+            settings: resolvedSettings,
+            log: (message: string) => {
+              logger.debug(`[Node ${node.id}] ${message}`);
+            },
           });
           handlersRegistered++;
         } catch (error) {
@@ -177,15 +218,15 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
     // in SignalControls, or firing a trigger with FlashLightAction).
 
     // Trouver tous les nœuds Trigger
-    const triggers = Array.from(graph.nodes.values())
-      .filter((n) => n.type === 'input.trigger')
-      .map((n) => n.id);
-  setTriggerNodeIds(triggers);
-  // Est-ce qu'il y a une FlashLight node ?
-  const hasFlashAction = Array.from(graph.nodes.values()).some(n => n.type === 'action.flashlight');
-  setHasFlashActionInGraph(hasFlashAction);
+    const graphNodes = Array.from(graph.nodes.values());
+    const triggers = graphNodes.filter((n) => n.type === 'input.trigger').map((n) => n.id);
+    setTriggerNodeIds(triggers);
+
+    const hasFlashAction = graphNodes.some((n) => n.type === 'action.flashlight');
+    setHasFlashActionInGraph(hasFlashAction);
+
   logger.debug(`🎯 Found ${triggers.length} trigger nodes:`, triggers);
-    return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
+  return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
   }, [currentGraph]);
 
   // Show a small banner if FlashLight nodes present and permission denied
@@ -230,6 +271,11 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
    * Créer une nouvelle sauvegarde
    */
   const handleCreateSave = useCallback(async () => {
+    if (pendingSaveNameRef.current) {
+      Alert.alert('Please wait', 'A save is already being created.');
+      return;
+    }
+
     if (!newSaveName.trim()) {
       Alert.alert('Error', 'Please enter a name for the save');
       return;
@@ -239,21 +285,11 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
     const success = requestExport();
 
     if (success) {
-      // Attendre un peu pour recevoir les données via onExport
-      setTimeout(async () => {
-        const save = await createSave(
-          newSaveName,
-          EMPTY_GRAPH // Graphe vide par défaut
-        );
-
-        if (save) {
-          setNewSaveName('');
-          setShowNewSaveInput(false);
-          Alert.alert('Success', `Save "${save.name}" created!`);
-        }
-      }, 300);
+      pendingSaveNameRef.current = newSaveName.trim();
+    } else {
+      Alert.alert('Error', 'Unable to export the graph. Please try again.');
     }
-  }, [newSaveName, requestExport, createSave]);
+  }, [newSaveName, requestExport]);
 
   /**
    * Charger une sauvegarde
@@ -265,6 +301,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
         // Reset le tracker avant de charger
         nodeInstanceTracker.reset();
         loadGraph(save.data);
+        setCurrentGraph(save.data);
         setShowSaveMenu(false);
         Alert.alert('Loaded', `Loaded "${save.name}"`);
       }
@@ -408,10 +445,16 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
   onLoad={() => logger.debug('📄 WebView loaded')}
       />
 
-  {/* Contrôles du système de signaux — component removed */}
+    {/* Signal controls removed - manual flashlight toggling is handled elsewhere */}
 
-      {/* Bouton Run Program en bas de l'écran */}
-  <RunProgramButton triggerNodeIds={triggerNodeIds} isReady={isReady} hasFlashAction={hasFlashActionInGraph} />
+      {/* Bouton Run Program en bas de l'écran - uniquement si un Trigger node est présent */}
+      {triggerNodeIds.length > 0 && (
+        <RunProgramButton
+          triggerNodeIds={triggerNodeIds}
+          isReady={isReady}
+          hasFlashAction={hasFlashActionInGraph}
+        />
+      )}
 
       {/* Contrôles React Native */}
       <View style={styles.controls}>

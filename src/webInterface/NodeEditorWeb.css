@@ -124,37 +124,6 @@
                 box-shadow: 0 0 25px rgba(34, 197, 94, 0.9);
             }
         }
-        .zoom-controls {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 1000;
-        }
-        .zoom-btn {
-            width: 56px;
-            height: 56px;
-            background: rgba(139, 92, 246, 0.95);
-            border: 2px solid rgba(139, 92, 246, 0.6);
-            border-radius: 16px;
-            color: white;
-            font-size: 24px;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-            transition: all 0.15s ease;
-            user-select: none;
-            touch-action: manipulation;
-        }
-        .zoom-btn:active {
-            transform: scale(0.92);
-        }
-        
         /* Switch pour inverser le signal des conditions */
         .condition-invert-control {
             margin-top: 12px;
@@ -221,6 +190,53 @@
         .invert-signal-toggle:checked ~ .switch-text {
             color: rgba(139, 92, 246, 1);
         }
+
+        .zoom-controls {
+                    position: absolute;
+                    right: 16px;
+                    bottom: 24px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                    padding: 12px;
+                    background: rgba(15, 23, 42, 0.9);
+                    border: 1px solid rgba(139, 92, 246, 0.25);
+                    border-radius: 16px;
+                    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+                    pointer-events: auto;
+                    z-index: 9999;
+                }
+
+        .zoom-controls-buttons {
+                    display: flex;
+                    gap: 8px;
+                }
+
+        .zoom-control-btn {
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 12px;
+                    border: 1px solid rgba(139, 92, 246, 0.5);
+                    background: rgba(76, 29, 149, 0.65);
+                    color: #f9fafb;
+                    font-size: 18px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+                    backdrop-filter: blur(6px);
+                }
+
+        .zoom-control-btn:active {
+                    transform: scale(0.94);
+                    box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.4);
+                }
+
+        .zoom-indicator {
+                    text-align: center;
+                    font-size: 12px;
+                    color: #cbd5f5;
+                    letter-spacing: 0.08em;
+                }
 
         /* Override for Drawflow default hover which can apply an undesirable red fill.
            Ensure we keep our dark gradient on hover and avoid any red background. */
@@ -301,4 +317,68 @@
             font-size: 12px;
             color: #9ca3af;
             font-weight: 500;
+        }
+
+        .flashlight-node {
+            background: rgba(255, 193, 7, 0.06);
+            border-radius: 12px;
+            padding: 4px;
+        }
+
+        .flashlight-node.inverted {
+            border: 1px dashed rgba(251, 191, 36, 0.6);
+        }
+
+        .flashlight-node .node-icon {
+            font-size: 18px;
+        }
+
+        .flashlight-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .flashlight-status .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4b5563;
+            box-shadow: 0 0 6px rgba(75, 85, 99, 0.6);
+        }
+
+        .flashlight-status .status-text {
+            opacity: 0.9;
+        }
+
+        .flashlight-status.active {
+            color: #d1fae5;
+        }
+
+        .flashlight-status.active .status-dot {
+            background: #34d399;
+            box-shadow: 0 0 10px rgba(52, 211, 153, 0.8);
+        }
+
+        .flashlight-status.blocked {
+            color: #fef3c7;
+        }
+
+        .flashlight-status.blocked .status-dot {
+            background: #facc15;
+            box-shadow: 0 0 6px rgba(250, 204, 21, 0.7);
+        }
+
+        .flashlight-status.disabled {
+            color: #fecaca;
+        }
+
+        .flashlight-status.disabled .status-dot {
+            background: #f87171;
+            box-shadow: 0 0 6px rgba(248, 113, 113, 0.6);
         }

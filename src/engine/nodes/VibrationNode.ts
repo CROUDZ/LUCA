@@ -21,6 +21,7 @@ import type {
 } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 import { Vibration } from 'react-native';
+import { ensureVibrationPermission } from '../../utils/permissions';
 
 const VibrationNode: NodeDefinition = {
   // ============================================================================
@@ -93,6 +94,28 @@ const VibrationNode: NodeDefinition = {
             logger.debug(`[Vibration Node ${context.nodeId}] Déclenchement vibration`);
 
             try {
+              const hasPermission = await ensureVibrationPermission();
+              if (!hasPermission) {
+                logger.warn(`[Vibration Node ${context.nodeId}] Permission Vibration refusée`);
+                try {
+                  signalSystem.emitEvent('vibration.permission.denied', {
+                    nodeId: context.nodeId,
+                    timestamp: Date.now(),
+                  });
+                } catch (emitErr) {
+                  logger.warn(`[Vibration Node ${context.nodeId}] Impossible d'émettre l'évènement permission`, emitErr);
+                }
+
+                return {
+                  propagate: false,
+                  data: {
+                    ...(signal?.data ?? {}),
+                    vibrationTriggered: false,
+                    vibrationPermission: 'denied',
+                  },
+                };
+              }
+
               const vibrationType = settings.vibrationType || 'simple';
 
               // Déterminer le pattern de vibration
@@ -131,7 +154,7 @@ const VibrationNode: NodeDefinition = {
               return {
                 propagate: settings.autoPropagate !== false,
                 data: {
-                  ...signal.data,
+                  ...(signal?.data ?? {}),
                   vibrationTriggered: true,
                   vibrationType,
                 },

@@ -22,6 +22,45 @@ import type {
 } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 
+// Helper: disallow some dangerous strings that would let user code access Node internals
+const DISALLOWED_TOKENS = [
+  'process',
+  'global',
+  'globalThis',
+  'require',
+  'Function(',
+  'Function ',
+  'constructor',
+  'eval(',
+  'eval ',
+  'while ',
+  'for ',
+  '=>',
+];
+
+function isExpressionSafe(expr: string | undefined): boolean {
+  if (!expr) return false;
+  const normalized = String(expr);
+  for (const token of DISALLOWED_TOKENS) {
+    if (normalized.includes(token)) return false;
+  }
+  return true;
+}
+
+function safeEvalExpression(expression: string, variables: Record<string, any>, signal: Signal) {
+  // Small wrapper around new Function, with a basic safety check.
+  // This is *not* a true sandbox — we keep it minimal and explicitly check tokens above.
+  // The expression must be a single expression (no statements such as loops, function definitions...)
+  const argNames = Object.keys(variables || {});
+  const argValues = Object.values(variables || {});
+  // Provide 'signal' as last param
+  argNames.push('signal');
+  argValues.push(signal);
+  // eslint-disable-next-line no-new-func
+  const fn = new Function(...argNames, `return (${expression});`);
+  return fn(...argValues);
+}
+
 const IfElseNode: NodeDefinition = {
   // ============================================================================
   // IDENTIFICATION
@@ -89,11 +128,35 @@ const IfElseNode: NodeDefinition = {
   // ============================================================================
   // EXÉCUTION
   // ============================================================================
+  validate: (context: NodeExecutionContext): boolean | string => {
+    const { settings } = context;
+    const conditionType = settings?.conditionType || 'expression';
+    // noop debug removed
+
+    if (conditionType === 'expression' && !settings.expression) {
+      return 'Expression manquante pour la condition';
+    }
+
+    if (conditionType === 'variable' && !settings.variableName) {
+      return 'Nom de variable manquant pour la condition';
+    }
+
+    if (conditionType === 'comparison' && (settings.comparisonValue === undefined || settings.comparisonOperator === undefined)) {
+      return 'Opérateur/valeur de comparaison manquant';
+    }
+
+    // Basic safety check for the expression
+    if (conditionType === 'expression' && !isExpressionSafe(settings.expression)) {
+      return 'L\'expression contient des tokens non sûrs';
+    }
+
+    return true;
+  },
+
   execute: async (context: NodeExecutionContext): Promise<NodeExecutionResult> => {
     try {
       const settings = context.settings || {};
       const signalSystem = getSignalSystem();
-
       if (signalSystem) {
         signalSystem.registerHandler(
           context.nodeId,
@@ -111,17 +174,13 @@ const IfElseNode: NodeDefinition = {
               } else if (settings.conditionType === 'variable' && settings.variableName) {
                 testValue = signalSystem.getVariable(settings.variableName);
               } else if (settings.conditionType === 'expression' && settings.expression) {
-                // Évaluer l'expression JavaScript
-                // ATTENTION: eval est dangereux en production, utiliser un parser sécurisé
-                const variables = signalSystem.getAllVariables();
-                // eslint-disable-next-line no-new-func
-                const evalFunc = new Function(
-                  ...Object.keys(variables),
-                  'signal',
-                  `return ${settings.expression};`
-                );
-                testValue = evalFunc(...Object.values(variables), signal);
-                conditionResult = Boolean(testValue);
+                  if (!isExpressionSafe(settings.expression)) {
+                    throw new Error('Expression contains disallowed tokens');
+                  }
+                  // Evaluate safely in the simplest way we can in this environment
+                  const variables = signalSystem.getAllVariables();
+                  testValue = safeEvalExpression(settings.expression, variables, signal);
+                  conditionResult = Boolean(testValue);
               } else {
                 testValue = signal.data;
               }
@@ -169,10 +228,13 @@ const IfElseNode: NodeDefinition = {
               logger.debug(
                 `[IfElse Node ${context.nodeId}] Condition: ${conditionResult ? 'TRUE' : 'FALSE'}`
               );
+              // Temporary debug removed; we use logger.debug instead
 
               // Appliquer l'inversion si nécessaire
               const invertSignal = settings.invertSignal ?? false;
               const finalResult = invertSignal ? !conditionResult : conditionResult;
+              // Debug after finalizing result
+              logger.debug(`[IfElse Node ${context.nodeId}] testValue=${testValue} conditionResult=${conditionResult} invert=${invertSignal} finalResult=${finalResult}`);
 
               // Obtenir les IDs des nodes de sortie
               // eslint-disable-next-line dot-notation
@@ -187,8 +249,11 @@ const IfElseNode: NodeDefinition = {
                 ? [node.outputs[0]].filter(Boolean)
                 : [node.outputs[1]].filter(Boolean);
 
+              const shouldPropagate = targetOutputs.length > 0;
+
               return {
-                propagate: true,
+                // Propagate only if we have target outputs
+                propagate: shouldPropagate,
                 data: {
                   ...signal.data,
                   conditionResult,
@@ -203,10 +268,12 @@ const IfElseNode: NodeDefinition = {
               // En cas d'erreur, aller vers false
               // eslint-disable-next-line dot-notation
               const node = signalSystem['graph'].nodes.get(context.nodeId);
+              const errorTargetOutputs = node ? [node.outputs[1]].filter(Boolean) : [];
               return {
-                propagate: true,
+                // on error, ne pas stopper le graphe; router vers la sortie false si existante
+                propagate: errorTargetOutputs.length > 0,
                 data: { ...signal.data, error: String(error) },
-                targetOutputs: node ? [node.outputs[1]].filter(Boolean) : [],
+                targetOutputs: errorTargetOutputs,
               };
             }
           }

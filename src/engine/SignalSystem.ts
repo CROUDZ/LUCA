@@ -316,7 +316,7 @@ export class SignalSystem {
   /**
    * Propager un signal à travers le graphe
    */
-  private async propagateSignal(signal: Signal, currentNodeId: number): Promise<void> {
+  private async propagateSignal(signal: Signal, currentNodeId: number, allowedOutputs?: number[]): Promise<void> {
     const node = this.graph.nodes.get(currentNodeId);
     if (!node) return;
 
@@ -326,7 +326,11 @@ export class SignalSystem {
     }
 
     // Récupérer les nodes de sortie (nodes connectées)
-    const outputNodes = node.outputs;
+    let outputNodes = node.outputs;
+    // If a subset of outputs is allowed, apply filter
+    if (allowedOutputs && allowedOutputs.length > 0) {
+      outputNodes = outputNodes.filter((o) => allowedOutputs.includes(o));
+    }
 
     for (const outputNodeId of outputNodes) {
       const handler = this.handlers.get(outputNodeId);
@@ -361,13 +365,10 @@ export class SignalSystem {
               context: signal.context,
             };
 
-            // Si des outputs spécifiques sont ciblés
+            // Si des outputs spécifiques sont ciblés (filtrer parmi les sorties du node cible),
+            // on appelera propagateSignal sur le node cible en limitant ses outputs
             if (result.targetOutputs && result.targetOutputs.length > 0) {
-              for (const targetId of result.targetOutputs) {
-                if (node.outputs.includes(targetId)) {
-                  await this.propagateSignal(newSignal, targetId);
-                }
-              }
+              await this.propagateSignal(newSignal, outputNodeId, result.targetOutputs);
             } else {
               // Propager récursivement vers toutes les sorties
               await this.propagateSignal(newSignal, outputNodeId);
