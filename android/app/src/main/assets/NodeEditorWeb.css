@@ -39,12 +39,12 @@ body {
         .drawflow .parent-drawflow:active {
             cursor: grabbing;
         }
-        .drawflow .drawflow-node {
+    .drawflow .drawflow-node {
             background: transparent;
             border: 1px solid var(--node-border-default);
             border-radius: 22px;
             padding: 0;
-            min-width: 220px;
+            min-width: 200px; /* reduce for better fit on small devices */
             box-shadow: var(--node-shadow);
             cursor: move;
             user-select: none;
@@ -67,6 +67,8 @@ body {
             align-items: center;
             gap: 10px;
             width: 100%;
+                max-height: 4.6em; /* limit to ~3 rows of chips to avoid huge node height */
+                overflow: hidden;
             min-height: 22px;
         }
 
@@ -77,6 +79,8 @@ body {
             width: 20px;
             height: 20px;
             font-size: 14px;
+                white-space: nowrap;
+                flex: 0 0 auto;
             color: var(--node-accent, var(--editor-brand));
             flex-shrink: 0;
             margin-right: 8px;
@@ -89,12 +93,15 @@ body {
         /* Reservation to avoid overlap with the icon */
         .node-card__icon-wrapper {
             display: none; /* no more outer icon wrapper; use inline icon */
+                white-space: nowrap;
+                flex: 0 0 auto;
         }
 
         .node-card__header {
             display: flex;
-            align-items: center;
-            gap: 16px;
+            align-items: flex-start;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
         /* outer icon wrapper removed in favor of inline title icon */
@@ -125,6 +132,12 @@ body {
             white-space: nowrap;
             align-items: center;
             gap: 4px;
+        }
+        
+        /* allow the title to collapse before chips and badge take space */
+        .node-card__titles {
+            min-width: 0;
+            width: 100%;
         }
 
         .node-card__subtitle,
@@ -552,7 +565,7 @@ body {
 /* Responsive adjustments */
 @media (max-width: 900px) {
     .drawflow .drawflow-node {
-        min-width: 200px;
+        min-width: 180px;
         border-radius: 22px;
     }
 
@@ -630,12 +643,22 @@ body {
 
     .node-card__chips {
         gap: 6px;
+        max-height: 2.4em;
+        overflow: hidden;
+        max-height: 3.0em;
+        overflow: hidden;
     }
+    .node-card__subtitle { font-size: 11px; }
 
     .node-chip {
         font-size: 10px;
         padding: 3px 8px;
     }
+
+    /* hide subtitles/descriptions on small screens */
+    .node-card__subtitle,
+    .node-card__description,
+    .node-card__footer { display: none; }
 
     .node-info-grid {
         grid-template-columns: 1fr;
