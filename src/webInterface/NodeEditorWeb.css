@@ -39,12 +39,14 @@ body {
         .drawflow .parent-drawflow:active {
             cursor: grabbing;
         }
-    .drawflow .drawflow-node {
+        .drawflow .drawflow-node {
             background: transparent;
             border: 1px solid var(--node-border-default);
             border-radius: 22px;
             padding: 0;
-            min-width: 200px; /* reduce for better fit on small devices */
+            min-width: 220px;
+            width: clamp(220px, 26vw, 360px);
+            max-width: calc(100vw - 48px);
             box-shadow: var(--node-shadow);
             cursor: move;
             user-select: none;
@@ -60,30 +62,35 @@ body {
             background: rgba(11, 15, 25, 0.96);
             border: 1px solid var(--node-border, rgba(139, 92, 246, 0.3));
             box-shadow: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 0;
         }
 
         .node-card__title-row {
             display: flex;
             align-items: center;
-            gap: 10px;
-            width: 100%;
-                max-height: 4.6em; /* limit to ~3 rows of chips to avoid huge node height */
-                overflow: hidden;
-            min-height: 22px;
+            flex-wrap: nowrap;
+            gap: 6px;
+            width: auto;
+            /* allow the title to wrap to 2 lines without vertical clipping
+               previously min-height:22px caused multi-line titles to be cut */
+            min-height: auto;
+            max-width: 100%;
         }
 
         .node-card__title-icon {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 20px;
-            height: 20px;
-            font-size: 14px;
-                white-space: nowrap;
-                flex: 0 0 auto;
+            width: 30px;
+            height: 30px;
+            font-size: 20px;
             color: var(--node-accent, var(--editor-brand));
             flex-shrink: 0;
-            margin-right: 8px;
+            margin-right: 2px;
+            margin-top: 0;
             line-height: 1;
         }
 
@@ -93,15 +100,14 @@ body {
         /* Reservation to avoid overlap with the icon */
         .node-card__icon-wrapper {
             display: none; /* no more outer icon wrapper; use inline icon */
-                white-space: nowrap;
-                flex: 0 0 auto;
         }
 
         .node-card__header {
             display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 6px;
+            justify-content: flex-start;
         }
 
         /* outer icon wrapper removed in favor of inline title icon */
@@ -112,32 +118,35 @@ body {
         }
 
         .node-card__titles {
-            flex: 1;
+            flex: 0 1 auto;
             display: flex;
             flex-direction: column;
             gap: 4px;
             min-width: 0; /* allow flex children to shrink properly */
         }
 
-        .node-card__title,
-        .drawflow .drawflow-node .title {
+    .node-card__title,
+    .drawflow .drawflow-node .title {
             font-weight: 700;
             font-size: 16px;
             color: #f9fafb;
-            display: inline-flex;
-            flex: 1 1 auto;
+            /* keep a robust multiline title: use -webkit-box for webkit line-clamp with a
+               block fallback; avoid conflicting inline-flex display which caused clipping */
+            display: -webkit-box;
+            display: block;
+            flex: 0 1 auto;
             min-width: 0;
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
-            align-items: center;
+            /* clamp to 2 lines where supported, otherwise allow wrapping */
+            white-space: normal;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
             gap: 4px;
-        }
-        
-        /* allow the title to collapse before chips and badge take space */
-        .node-card__titles {
-            min-width: 0;
-            width: 100%;
+            line-height: 1.25;
+            /* allow title to expand fully (badge/icon handled separately) */
+            max-width: 100%;
         }
 
         .node-card__subtitle,
@@ -148,9 +157,9 @@ body {
             line-height: 1.5;
         }
 
-        .node-card__badge {
+    .node-card__badge {
             align-self: flex-start;
-            padding: 5px 9px;
+            padding: 5px 10px;
             border-radius: 999px;
             font-size: 10px;
             font-weight: 700;
@@ -159,25 +168,43 @@ body {
             border: 1px solid rgba(139, 92, 246, 0.35);
             color: var(--node-accent, var(--editor-brand));
             background: rgba(139, 92, 246, 0.06);
+            flex: 0 0 auto;
+            margin-left: 6px;
+            white-space: nowrap;
+            align-self: center;
         }
 
         .node-card__description {
-            margin-top: 12px;
+            margin-top: 0;
             font-size: 12px;
             color: rgba(209, 213, 219, 0.85);
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+
+        /* Auto-emission small label used for FlashLight nodes */
+        .node-card__auto-emission {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--editor-text-secondary);
+            margin-top: 6px;
         }
 
         .node-card__body {
-            margin-top: 14px;
+            margin-top: 0;
             padding-top: 14px;
             border-top: 1px solid rgba(148, 163, 184, 0.15);
         }
 
         .node-card__chips {
-            margin-top: 12px;
+            margin-top: 0;
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
+            width: 100%;
+            --chip-min-width: 120px;
         }
 
         .node-chip {
@@ -189,6 +216,16 @@ body {
             background: rgba(148, 163, 184, 0.14);
             border: 1px solid rgba(148, 163, 184, 0.3);
             color: rgba(226, 232, 240, 0.9);
+            flex: 1 1 var(--chip-min-width);
+            min-width: var(--chip-min-width);
+            max-width: 100%;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .node-chip--success {
@@ -311,72 +348,7 @@ body {
             border-color: rgba(34, 197, 94, 0.6);
             background: rgba(34, 197, 94, 0.15);
         }
-        /* Switch pour inverser le signal des conditions */
-        .condition-invert-control {
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid rgba(139, 92, 246, 0.3);
-            cursor: pointer;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: manipulation;
-        }
-        
-        .switch-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            user-select: none;
-            -webkit-user-select: none;
-            padding: 4px;
-            margin: -4px;
-        }
-        
-        .invert-signal-toggle {
-            display: none;
-        }
-        
-        .switch-slider {
-            position: relative;
-            width: 36px;
-            height: 20px;
-            background: rgba(107, 114, 128, 0.4);
-            border-radius: 10px;
-            transition: background 0.3s ease;
-            flex-shrink: 0;
-        }
-        
-        .switch-slider::before {
-            content: '';
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            background: white;
-            border-radius: 50%;
-            top: 2px;
-            left: 2px;
-            transition: transform 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        
-        .invert-signal-toggle:checked + .switch-slider {
-            background: rgba(139, 92, 246, 0.8);
-        }
-        
-        .invert-signal-toggle:checked + .switch-slider::before {
-            transform: translateX(16px);
-        }
-        
-        .switch-text {
-            color: #9ca3af;
-            font-size: 11px;
-            font-weight: 500;
-        }
-        
-        .invert-signal-toggle:checked ~ .switch-text {
-            color: rgba(139, 92, 246, 1);
-        }
+        /* Debug: invert controls removed from templates; styles cleaned */
 
         .zoom-controls {
                     position: absolute;
@@ -565,12 +537,17 @@ body {
 /* Responsive adjustments */
 @media (max-width: 900px) {
     .drawflow .drawflow-node {
-        min-width: 180px;
+        min-width: 200px;
+        width: clamp(200px, 42vw, 320px);
         border-radius: 22px;
     }
 
     .drawflow .drawflow-node .node-card {
         padding: 16px 18px 18px;
+    }
+
+    .node-card__chips {
+        --chip-min-width: 140px;
     }
 
     .node-card__icon-wrapper {
@@ -582,9 +559,9 @@ body {
     }
 
     .node-card__title-icon {
-        width: 18px;
-        height: 18px;
-        font-size: 13px;
+        width: 28px;
+        height: 28px;
+        font-size: 18px;
     }
 
     .zoom-controls {
@@ -603,6 +580,7 @@ body {
 @media (max-width: 600px) {
     .drawflow .drawflow-node {
         min-width: 180px;
+        width: clamp(180px, 64vw, 280px);
         border-radius: 20px;
     }
 
@@ -613,13 +591,13 @@ body {
     .node-card__header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 10px;
+        gap: 8px;
     }
 
     .node-card__title-icon {
-        width: 16px;
-        height: 16px;
-        font-size: 12px;
+        width: 26px;
+        height: 26px;
+        font-size: 16px;
     }
 
     .material-symbols-rounded {
@@ -628,37 +606,34 @@ body {
 
     .node-card__title {
         font-size: 15px;
+        white-space: normal;
+        text-overflow: initial;
+        line-height: 1.35;
+        max-width: calc(100% - 84px);
     }
 
     .node-card__subtitle {
         font-size: 11px;
+        width: 100%;
     }
 
     .node-card__badge {
         width: 100%;
-        text-align: center;
+        text-align: left;
+        margin-left: 0;
         font-size: 9px;
         letter-spacing: 0.1em;
     }
 
     .node-card__chips {
         gap: 6px;
-        max-height: 2.4em;
-        overflow: hidden;
-        max-height: 3.0em;
-        overflow: hidden;
+        --chip-min-width: 150px;
     }
-    .node-card__subtitle { font-size: 11px; }
 
     .node-chip {
         font-size: 10px;
         padding: 3px 8px;
     }
-
-    /* hide subtitles/descriptions on small screens */
-    .node-card__subtitle,
-    .node-card__description,
-    .node-card__footer { display: none; }
 
     .node-info-grid {
         grid-template-columns: 1fr;
@@ -688,6 +663,29 @@ body {
     }
 }
 
+@media (max-width: 520px) {
+    .drawflow .drawflow-node {
+        width: clamp(180px, 86vw, 240px);
+    }
+
+    .node-card__title-row {
+        gap: 4px;
+    }
+
+    .node-card__chips {
+        --chip-min-width: 100%;
+    }
+
+    .node-chip {
+        text-align: left;
+        justify-content: flex-start;
+    }
+
+    .node-card__description {
+        font-size: 11px;
+    }
+}
+
 @media (max-width: 420px) {
     .drawflow .drawflow-node {
         min-width: 160px;
@@ -701,10 +699,6 @@ body {
         display: none;
     }
 
-    .node-card__title {
-        font-size: 14px;
-    }
-
     .node-card__subtitle {
         font-size: 10px;
     }
@@ -714,9 +708,14 @@ body {
     }
 
     .node-card__title-icon {
-        width: 14px;
-        height: 14px;
-        font-size: 11px;
+        width: 24px;
+        height: 24px;
+        font-size: 14px;
+    }
+
+    .node-card__subtitle,
+    .node-card__description {
+        display: none;
     }
 
     .node-card__footer {
