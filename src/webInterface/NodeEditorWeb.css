@@ -158,8 +158,12 @@ body {
         }
 
     .node-card__badge {
+            /* ensure badge is placed at the top of the header (not vertically centered)
+               and that its contents are vertically centered inside the pill */
             align-self: flex-start;
-            padding: 5px 10px;
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px; /* slightly larger vertical padding to avoid clipping */
             border-radius: 999px;
             font-size: 10px;
             font-weight: 700;
@@ -171,7 +175,6 @@ body {
             flex: 0 0 auto;
             margin-left: 6px;
             white-space: nowrap;
-            align-self: center;
         }
 
         .node-card__description {
@@ -618,11 +621,16 @@ body {
     }
 
     .node-card__badge {
+        /* mobile: full width badge, keep vertical alignment and padding */
+        display: inline-flex;
+        align-items: center;
         width: 100%;
         text-align: left;
         margin-left: 0;
         font-size: 9px;
         letter-spacing: 0.1em;
+        padding: 5px 10px;
+        box-sizing: border-box;
     }
 
     .node-card__chips {

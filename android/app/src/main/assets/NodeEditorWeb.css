@@ -74,7 +74,8 @@ body {
             flex-wrap: nowrap;
             gap: 6px;
             width: auto;
-            /* allow the title to wrap to 2 lines without vertical clipping */
+            /* allow the title to wrap to 2 lines without vertical clipping
+               previously min-height:22px caused multi-line titles to be cut */
             min-height: auto;
             max-width: 100%;
         }
@@ -129,6 +130,8 @@ body {
             font-weight: 700;
             font-size: 16px;
             color: #f9fafb;
+            /* keep a robust multiline title: use -webkit-box for webkit line-clamp with a
+               block fallback; avoid conflicting inline-flex display which caused clipping */
             display: -webkit-box;
             display: block;
             flex: 0 1 auto;
@@ -142,6 +145,7 @@ body {
             -webkit-box-orient: vertical;
             gap: 4px;
             line-height: 1.25;
+            /* allow title to expand fully (badge/icon handled separately) */
             max-width: 100%;
         }
 
@@ -154,8 +158,12 @@ body {
         }
 
     .node-card__badge {
+            /* ensure badge is placed at the top of the header (not vertically centered)
+               and that its contents are vertically centered inside the pill */
             align-self: flex-start;
-            padding: 5px 10px;
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px; /* slightly larger vertical padding to avoid clipping */
             border-radius: 999px;
             font-size: 10px;
             font-weight: 700;
@@ -167,7 +175,6 @@ body {
             flex: 0 0 auto;
             margin-left: 6px;
             white-space: nowrap;
-            align-self: center;
         }
 
         .node-card__description {
@@ -614,11 +621,16 @@ body {
     }
 
     .node-card__badge {
+        /* mobile: full width badge, keep vertical alignment and padding */
+        display: inline-flex;
+        align-items: center;
         width: 100%;
         text-align: left;
         margin-left: 0;
         font-size: 9px;
         letter-spacing: 0.1em;
+        padding: 5px 10px;
+        box-sizing: border-box;
     }
 
     .node-card__chips {
