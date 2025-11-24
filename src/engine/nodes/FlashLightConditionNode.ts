@@ -291,13 +291,7 @@ const FlashLightConditionNode: NodeDefinition = {
 					<span class="status-dot"></span>
 					<span class="status-text">${statusText}</span>
 				</div>
-				<div class="condition-invert-control">
-					<label class="switch-label">
-						<input type="checkbox" class="invert-signal-toggle" ${invertSignal ? 'checked' : ''} />
-						<span class="switch-slider"></span>
-						<span class="switch-text">Invert Signal</span>
-					</label>
-				</div>
+				<div class="node-card__auto-emission">${autoEmit ? 'AUTO EMISSION' : ''}</div>
 			</div>
 		`;
 
@@ -308,10 +302,7 @@ const FlashLightConditionNode: NodeDefinition = {
 			iconName: 'flashlight_on',
 			category: 'Condition',
 			accentColor: FLASHLIGHT_CONDITION_COLOR,
-			chips: [
-				{ label: autoEmit ? 'Auto emit' : 'Passive', tone: autoEmit ? 'success' : 'info' },
-				{ label: invertSignal ? 'Invert ON' : 'Invert OFF', tone: invertSignal ? 'warning' : 'default' },
-			],
+			chips: [],
 			body,
 		});
 	},

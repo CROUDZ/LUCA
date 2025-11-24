@@ -4,14 +4,15 @@ import {
   Text,
   Modal,
   TouchableOpacity,
-  TextInput,
   ScrollView,
   Pressable,
+  TextInput,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { formatDate } from '../utils/dateUtils';
 import { Save } from '../types';
-import styles from './SaveMenuStyles';
+import createStyles from './SaveMenuStyles';
+import { useAppTheme } from '../styles/theme';
 
 interface SaveMenuProps {
   visible: boolean;
@@ -42,6 +43,9 @@ const SaveMenu: React.FC<SaveMenuProps> = ({
   onLoadSave,
   onDeleteSave,
 }) => {
+  const { theme } = useAppTheme();
+  const styles = createStyles(theme);
+
   return (
     <>
       {/* Menu de gestion des sauvegardes */}
@@ -49,7 +53,7 @@ const SaveMenu: React.FC<SaveMenuProps> = ({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalTitleRow}>
-              <Icon name="save" size={28} color="#8b5cf6" />
+              <Icon name="save" size={28} color={theme.colors.primary} />
               <Text style={styles.modalTitle}>Save Manager</Text>
             </View>
 
@@ -59,7 +63,7 @@ const SaveMenu: React.FC<SaveMenuProps> = ({
                 style={styles.newSaveButton}
                 onPress={() => onShowNewSaveInput(true)}
               >
-                <Icon name="add" size={20} color="#10b981" style={styles.newSaveIcon} />
+                <Icon name="add" size={20} color={theme.colors.success} style={styles.newSaveIcon} />
                 <Text style={styles.newSaveButtonText}>New Save</Text>
               </TouchableOpacity>
             ) : (
@@ -67,7 +71,7 @@ const SaveMenu: React.FC<SaveMenuProps> = ({
                 <TextInput
                   style={styles.input}
                   placeholder="Enter save name..."
-                  placeholderTextColor="#6b7280"
+                  placeholderTextColor={theme.colors.textSecondary}
                   value={newSaveName}
                   onChangeText={onNewSaveNameChange}
                   autoFocus
@@ -80,14 +84,14 @@ const SaveMenu: React.FC<SaveMenuProps> = ({
                       onNewSaveNameChange('');
                     }}
                   >
-                    <Icon name="close" size={18} color="#9ca3af" />
+                    <Icon name="close" size={18} color={theme.colors.textSecondary} />
                     <Text style={styles.inputButtonText}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.inputButton, styles.inputButtonConfirm]}
                     onPress={onCreateSave}
                   >
-                    <Icon name="check" size={18} color="#10b981" />
+                    <Icon name="check" size={18} color={theme.colors.success} />
                     <Text style={styles.inputButtonText}>Create</Text>
                   </TouchableOpacity>
                 </View>
@@ -109,26 +113,18 @@ const SaveMenu: React.FC<SaveMenuProps> = ({
                     <Pressable style={styles.saveItemContent} onPress={() => onLoadSave(save.id)}>
                       <View style={styles.saveNameRow}>
                         {currentSaveId === save.id && (
-                          <Icon
-                            name="check-circle"
-                            size={16}
-                            color="#8b5cf6"
-                            style={styles.checkIcon}
-                          />
+                            <Icon name="check-circle" size={16} color={theme.colors.primary} style={styles.checkIcon} />
                         )}
                         <Text style={styles.saveName}>{save.name}</Text>
                       </View>
                       <View style={styles.saveDateRow}>
-                        <Icon name="schedule" size={12} color="#9ca3af" />
+                        <Icon name="schedule" size={12} color={theme.colors.textSecondary} />
                         <Text style={styles.saveDate}>{formatDate(save.timestamp)}</Text>
                       </View>
                     </Pressable>
-                    <TouchableOpacity
-                      style={styles.deleteButton}
-                      onPress={() => onDeleteSave(save.id)}
-                    >
-                      <Icon name="delete" size={20} color="#ef4444" />
-                    </TouchableOpacity>
+                      <TouchableOpacity style={styles.deleteButton} onPress={() => onDeleteSave(save.id)}>
+                        <Icon name="delete" size={20} color={theme.colors.error} />
+                      </TouchableOpacity>
                   </View>
                 ))
               )}

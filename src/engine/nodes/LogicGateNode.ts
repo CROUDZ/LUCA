@@ -240,16 +240,8 @@ const LogicGateNode: NodeDefinition = {
   // ============================================================================
   generateHTML: (settings: Record<string, any>) => {
     const gateType = settings.gateType || 'AND';
-    const invertSignal = settings?.invertSignal ?? false;
-    const body = `
-      <div class="condition-invert-control">
-        <label class="switch-label">
-          <input type="checkbox" class="invert-signal-toggle" ${invertSignal ? 'checked' : ''} />
-          <span class="switch-slider"></span>
-          <span class="switch-text">Invert Signal</span>
-        </label>
-      </div>
-    `;
+    // no invert control: UI simplified
+    const body = ``;
 
     return buildNodeCardHTML({
       title: 'Logic Gate',
@@ -257,10 +249,7 @@ const LogicGateNode: NodeDefinition = {
       iconName: 'settings_input_component',
       category: 'Condition',
       accentColor: LOGIC_GATE_ACCENT,
-      chips: [
-        { label: gateType, tone: 'info' },
-        { label: invertSignal ? 'Invert ON' : 'Invert OFF', tone: invertSignal ? 'warning' : 'default' },
-      ],
+      chips: [{ label: gateType, tone: 'info' }],
       body,
     });
   },

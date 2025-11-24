@@ -6,6 +6,7 @@ import React, { useEffect } from 'react';
 import { nodeRegistry } from './src/engine/NodeRegistry';
 import AppNavigator from './src/navigation/AppNavigator';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AppThemeProvider } from './src/styles/theme';
 
 // Import de toutes les nodes via l'index
 // Cela charge automatiquement DemoNode, FlashLightConditionNode, PingNode et TriggerNode
@@ -40,7 +41,9 @@ function App() {
 
   return (
     <SafeAreaProvider>
-      <AppNavigator />
+      <AppThemeProvider>
+        <AppNavigator />
+      </AppThemeProvider>
     </SafeAreaProvider>
   );
 }

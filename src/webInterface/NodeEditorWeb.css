@@ -4,9 +4,11 @@
     --editor-grid-strong: rgba(15, 23, 42, 0.85);
     --editor-text-primary: #f9fafb;
     --editor-text-secondary: #9ca3af;
-    --editor-brand: #8b5cf6;
+    /* main brand / primary color */
+    --editor-brand: #5a2af5; /* primary */
+    --editor-brand-soft: #8b5cf6; /* softer primary for glows */
     --node-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
-    --node-border-default: rgba(139, 92, 246, 0.25);
+    --node-border-default: rgba(90, 42, 245, 0.25);
 }
 
 * {
@@ -28,16 +30,22 @@ body {
 }
 
 #drawflow {
+        --editor-brand: #5a2af5; /* primary */
+        --editor-brand-soft: #8b5cf6; /* softer primary for glows */
+        /* rgb helpers to allow rgba(var(--...) , a) */
+        --editor-brand-rgb: 90, 42, 245; /* 0x5a2af5 */
+        --editor-brand-soft-rgb: 139, 92, 246; /* 0x8b5cf6 */
+    position: relative;
     width: 100vw;
     height: 100vh;
-    position: relative;
+    min-height: 100vh;
     background: linear-gradient(135deg, rgba(5, 6, 12, 0.98), rgba(7, 9, 15, 0.98));
 }
         .drawflow .parent-drawflow {
             cursor: grab;
         }
         .drawflow .parent-drawflow:active {
-            cursor: grabbing;
+                border: 1px solid var(--node-border, rgba(var(--editor-brand-soft-rgb), 0.3));
         }
         .drawflow .drawflow-node {
             background: transparent;
@@ -57,10 +65,10 @@ body {
 
         .drawflow .drawflow-node .node-card {
             position: relative;
-            padding: 16px 18px 18px;
+                border: 1px solid rgba(var(--editor-brand-soft-rgb), 0.35);
             border-radius: 20px;
             background: rgba(11, 15, 25, 0.96);
-            border: 1px solid var(--node-border, rgba(139, 92, 246, 0.3));
+            border: 1px solid var(--node-border, rgba(var(--editor-brand-soft-rgb), 0.3));
             box-shadow: none;
             display: flex;
             flex-direction: column;
@@ -169,9 +177,9 @@ body {
             font-weight: 700;
             letter-spacing: 0.12em;
             text-transform: uppercase;
-            border: 1px solid rgba(139, 92, 246, 0.35);
+            border: 1px solid rgba(var(--editor-brand-soft-rgb), 0.35);
             color: var(--node-accent, var(--editor-brand));
-            background: rgba(139, 92, 246, 0.06);
+            background: rgba(var(--editor-brand-soft-rgb), 0.06);
             flex: 0 0 auto;
             margin-left: 6px;
             white-space: nowrap;
@@ -331,8 +339,8 @@ body {
         }
 
         .drawflow .drawflow-node.node-connected {
-            border-color: rgba(139, 92, 246, 0.5);
-            box-shadow: 0 30px 70px rgba(139, 92, 246, 0.28);
+            border-color: rgba(var(--editor-brand-soft-rgb), 0.5);
+            box-shadow: 0 30px 70px rgba(var(--editor-brand-soft-rgb), 0.28);
         }
 
         .drawflow .drawflow-node.node-disconnected {
@@ -345,7 +353,7 @@ body {
             opacity: 0.95;
             z-index: 9999 !important;
             transform: scale(1.01);
-            box-shadow: 0 16px 40px rgba(139, 92, 246, 0.32);
+            box-shadow: 0 16px 40px rgba(var(--editor-brand-soft-rgb), 0.32);
         }
         body.creating-connection .drawflow .drawflow-node .input {
             border-color: rgba(34, 197, 94, 0.6);
@@ -362,7 +370,7 @@ body {
                     gap: 10px;
                     padding: 10px;
                     background: rgba(15, 23, 42, 0.88);
-                    border: 1px solid rgba(139, 92, 246, 0.2);
+                    border: 1px solid rgba(var(--editor-brand-soft-rgb), 0.2);
                     border-radius: 14px;
                     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
                     pointer-events: auto;
@@ -378,7 +386,7 @@ body {
                     width: 42px;
                     height: 42px;
                     border-radius: 12px;
-                    border: 1px solid rgba(139, 92, 246, 0.4);
+                    border: 1px solid rgba(var(--editor-brand-soft-rgb), 0.4);
                     background: rgba(76, 29, 149, 0.55);
                     color: #f9fafb;
                     font-size: 17px;
@@ -400,8 +408,8 @@ body {
 
 /* Override Drawflow's default hover fill */
 .drawflow .drawflow-node:hover {
-    border-color: rgba(139, 92, 246, 0.55) !important;
-    box-shadow: 0 14px 32px rgba(139, 92, 246, 0.25) !important;
+    border-color: rgba(var(--editor-brand-soft-rgb), 0.55) !important;
+    box-shadow: 0 14px 32px rgba(var(--editor-brand-soft-rgb), 0.25) !important;
     transform: translateY(-1px);
 }
 
@@ -409,8 +417,8 @@ body {
 .drawflow .drawflow-node.selected,
 .drawflow .drawflow-node.selected:hover,
 .drawflow .drawflow-node.selected:active {
-    border-color: rgba(139, 92, 246, 0.9) !important;
-    box-shadow: 0 18px 44px rgba(139, 92, 246, 0.3) !important;
+    border-color: rgba(var(--editor-brand-soft-rgb), 0.9) !important;
+    box-shadow: 0 18px 44px rgba(var(--editor-brand-soft-rgb), 0.3) !important;
 }
         .node-title{
             font-size: 16px;
@@ -443,7 +451,7 @@ body {
             align-items: center;
             gap: 6px;
             background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(139, 92, 246, 0.4);
+            border: 1px solid rgba(var(--editor-brand-soft-rgb), 0.4);
             border-radius: 10px;
             padding: 6px 10px;
         }

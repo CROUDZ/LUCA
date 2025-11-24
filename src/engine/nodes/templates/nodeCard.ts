@@ -1,5 +1,7 @@
 /* eslint-disable no-bitwise */
-const DEFAULT_ACCENT = '#8b5cf6';
+import { basePalette } from '../../../styles/global';
+
+const DEFAULT_ACCENT = basePalette.primarySoft || basePalette.primary;
 
 export type NodeCardChipTone = 'default' | 'success' | 'warning' | 'danger' | 'info';
 

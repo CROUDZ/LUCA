@@ -8,9 +8,11 @@
  * - Actif et cliquable si au moins un Trigger est présent
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { useAppTheme } from '../styles/theme';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { hexToRgba } from '../styles/colorUtils';
 import { triggerAll } from '../engine/nodes/TriggerNode';
 import { Alert } from 'react-native';
 import { logger } from '../utils/logger';
@@ -24,6 +26,24 @@ interface RunProgramButtonProps {
 const RunProgramButton: React.FC<RunProgramButtonProps> = ({ triggerNodeIds, isReady, hasFlashAction }) => {
   const hasTriggers = triggerNodeIds.length > 0;
   const isEnabled = isReady && hasTriggers;
+
+  // theme-aware styles
+  const { theme } = useAppTheme();
+  const stylesFromTheme = useMemo(() => {
+    const resolvedTheme = theme;
+    const isDark = resolvedTheme.mode === 'dark';
+    return {
+      iconColor: isEnabled ? resolvedTheme.colors.text : resolvedTheme.colors.textMuted,
+      containerBg: hexToRgba(resolvedTheme.colors.surface, isDark ? 0.96 : 0.92),
+      borderTop: hexToRgba(resolvedTheme.colors.border, 0.7),
+      buttonBg: isEnabled
+        ? resolvedTheme.colors.primary
+        : hexToRgba(resolvedTheme.colors.backgroundSecondary, 0.85),
+      buttonShadow: isEnabled ? resolvedTheme.colors.primarySoft : resolvedTheme.colors.shadow,
+      textColor: isEnabled ? resolvedTheme.colors.text : resolvedTheme.colors.textSecondary,
+      hintColor: resolvedTheme.colors.textMuted,
+    };
+  }, [isEnabled, theme]);
 
   const handlePress = () => {
     if (!isEnabled) return;
@@ -59,33 +79,26 @@ const RunProgramButton: React.FC<RunProgramButtonProps> = ({ triggerNodeIds, isR
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: stylesFromTheme.containerBg, borderTopColor: stylesFromTheme.borderTop }]}>
       <TouchableOpacity
         style={[
           styles.button,
+          { backgroundColor: stylesFromTheme.buttonBg, shadowColor: stylesFromTheme.buttonShadow },
           !isEnabled && styles.buttonDisabled,
         ]}
         onPress={handlePress}
         disabled={!isEnabled}
         activeOpacity={0.7}
       >
-        <Icon
-          name="play-circle-filled"
-          size={24}
-          color={isEnabled ? '#ffffff' : '#9ca3af'}
-        />
-        <Text style={[styles.buttonText, !isEnabled && styles.buttonTextDisabled]}>
+        <Icon name="play-circle-filled" size={24} color={stylesFromTheme.iconColor} />
+        <Text style={[styles.buttonText, !isEnabled && styles.buttonTextDisabled, { color: stylesFromTheme.textColor }] }>
           {hasTriggers
             ? `Run Program (${triggerNodeIds.length} Trigger${triggerNodeIds.length > 1 ? 's' : ''})`
             : 'No Trigger Node'}
         </Text>
       </TouchableOpacity>
       
-      {!hasTriggers && (
-        <Text style={styles.hint}>
-          Add a Trigger node to run your program
-        </Text>
-      )}
+      {!hasTriggers && <Text style={[styles.hint, { color: stylesFromTheme.hintColor }]}>Add a Trigger node to run your program</Text>}
     </View>
   );
 };
@@ -96,9 +109,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(17, 24, 39, 0.95)',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(139, 92, 246, 0.3)',
     paddingHorizontal: 16,
     paddingVertical: 12,
     paddingBottom: 16,
@@ -107,32 +118,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#8b5cf6',
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,
     gap: 8,
     elevation: 4,
-    shadowColor: '#8b5cf6',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
   buttonDisabled: {
-    backgroundColor: '#374151',
     elevation: 0,
     shadowOpacity: 0,
+    opacity: 0.65,
   },
   buttonText: {
-    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },
   buttonTextDisabled: {
-    color: '#9ca3af',
+    opacity: 0.75,
   },
   hint: {
-    color: '#9ca3af',
     fontSize: 12,
     textAlign: 'center',
     marginTop: 8,

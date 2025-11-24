@@ -3,6 +3,8 @@
  */
 
 import type { AppConfig, NodeType } from '../types';
+import { basePalette } from '../styles/global';
+import { hexToRgba } from '../styles/colorUtils';
 
 // ============================================================================
 // Configuration principale
@@ -100,10 +102,10 @@ export const NODE_TYPES: NodeType[] = [
 // ============================================================================
 
 export const NODE_CATEGORIES = {
-  input: { name: 'Input', icon: 'input', color: '#3b82f6' },
-  shader: { name: 'Shader', icon: 'brush', color: '#8b5cf6' },
-  math: { name: 'Math', icon: 'functions', color: '#10b981' },
-  output: { name: 'Output', icon: 'output', color: '#f59e0b' },
+  input: { name: 'Input', icon: 'input', color: basePalette.secondary },
+  shader: { name: 'Shader', icon: 'brush', color: basePalette.primary },
+  math: { name: 'Math', icon: 'functions', color: basePalette.success },
+  output: { name: 'Output', icon: 'output', color: basePalette.warning },
 } as const;
 
 // ============================================================================
@@ -154,16 +156,16 @@ export const UI_CONSTANTS = {
 // ============================================================================
 
 export const THEME_COLORS = {
-  background: '#0a0a0a',
-  backgroundSecondary: '#1a1d29',
-  primary: '#8b5cf6',
-  primaryDark: '#7c3aed',
-  secondary: '#3b82f6',
-  success: '#10b981',
-  warning: '#f59e0b',
-  error: '#ef4444',
-  text: '#f9fafb',
-  textSecondary: '#9ca3af',
-  border: 'rgba(139, 92, 246, 0.4)',
-  shadow: 'rgba(0, 0, 0, 0.4)',
+  background: basePalette.backgroundDark,
+  backgroundSecondary: basePalette.backgroundMuted,
+  primary: basePalette.primary,
+  primaryDark: basePalette.primaryContrast,
+  secondary: basePalette.secondary,
+  success: basePalette.success,
+  warning: basePalette.warning,
+  error: basePalette.error,
+  text: basePalette.textOnDark,
+  textSecondary: basePalette.textSecondaryOnDark,
+  border: hexToRgba(basePalette.primarySoft, 0.35),
+  shadow: basePalette.shadowDark,
 } as const;

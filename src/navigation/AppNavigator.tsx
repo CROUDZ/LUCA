@@ -1,22 +1,47 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useMemo } from 'react';
+import {
+  DarkTheme as NavigationDarkTheme,
+  DefaultTheme as NavigationDefaultTheme,
+  NavigationContainer,
+  type Theme as NavigationTheme,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types/navigation.types';
 
 import NodeEditorScreen from '../screens/NodeEditorScreen';
 import NodePickerScreen from '../screens/NodePickerScreen';
+import { useAppTheme } from '../styles/theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator: React.FC = () => {
+  const { theme } = useAppTheme();
+
+  const navigationTheme = useMemo<NavigationTheme>(() => {
+    const baseTheme = theme.mode === 'dark' ? NavigationDarkTheme : NavigationDefaultTheme;
+
+    return {
+      ...baseTheme,
+      colors: {
+        ...baseTheme.colors,
+        primary: theme.colors.primary,
+        background: theme.colors.background,
+        card: theme.colors.backgroundSecondary,
+        text: theme.colors.text,
+        border: theme.colors.border,
+        notification: theme.colors.secondary,
+      },
+    };
+  }, [theme]);
+
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navigationTheme}>
       <Stack.Navigator
         initialRouteName="NodeEditor"
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',
-          contentStyle: { backgroundColor: '#0f1117' },
+          contentStyle: { backgroundColor: theme.colors.background },
         }}
       >
         <Stack.Screen

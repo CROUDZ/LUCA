@@ -311,16 +311,8 @@ const IfElseNode: NodeDefinition = {
       displayText = `? ${settings.comparisonOperator || '=='} ${settings.comparisonValue || ''}`;
     }
 
-    const invertSignal = settings?.invertSignal ?? false;
-    const body = `
-      <div class="condition-invert-control">
-        <label class="switch-label">
-          <input type="checkbox" class="invert-signal-toggle" ${invertSignal ? 'checked' : ''} />
-          <span class="switch-slider"></span>
-          <span class="switch-text">Invert Signal</span>
-        </label>
-      </div>
-    `;
+    // no invert control: UI simplified
+    const body = ``;
 
     return buildNodeCardHTML({
       title: 'If/Else',
@@ -328,11 +320,8 @@ const IfElseNode: NodeDefinition = {
       iconName: 'call_split',
       category: 'Condition',
       accentColor: IF_ELSE_NODE_ACCENT,
-      chips: [
-        { label: type.toUpperCase(), tone: 'info' },
-        { label: invertSignal ? 'Invert ON' : 'Invert OFF', tone: invertSignal ? 'warning' : 'default' },
-      ],
-      body,
+  chips: [{ label: type.toUpperCase(), tone: 'info' }],
+  body,
     });
   },
 };

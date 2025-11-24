@@ -18,7 +18,8 @@ import { APP_CONFIG } from '../config/constants';
 import type { DrawflowExport } from '../types';
 import type { RootStackParamList } from '../types/navigation.types';
 
-import styles from './NodeEditorScreenStyles';
+import createStyles from './NodeEditorScreenStyles';
+import { useAppTheme } from '../styles/theme';
 import SaveMenu from '../components/SaveMenu';
 import RunProgramButton from '../components/RunProgramButton';
 import { nodeInstanceTracker } from '../engine/NodeInstanceTracker';
@@ -45,6 +46,9 @@ interface NodeEditorScreenProps {
 const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
   // États locaux pour l'UI
   const [showSaveMenu, setShowSaveMenu] = useState(false);
+    const { theme: appTheme } = useAppTheme();
+    const styles = useMemo(() => createStyles(appTheme), [appTheme]);
+
   const [showNewSaveInput, setShowNewSaveInput] = useState(false);
   const [newSaveName, setNewSaveName] = useState('');
   const [currentGraph, setCurrentGraph] = useState<DrawflowExport | null>(null);
@@ -463,7 +467,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
           onPress={() => setShowSaveMenu(true)}
           disabled={!isReady}
         >
-          <Icon name="save" size={16} color="#8b5cf6" style={styles.buttonIcon} />
+          <Icon name="save" size={16} color={appTheme.colors.primary} style={styles.buttonIcon} />
           <Text style={styles.buttonText}>Saves</Text>
         </TouchableOpacity>
 
@@ -473,7 +477,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
             onPress={handleManualSave}
             disabled={!isReady}
           >
-            <Icon name="check" size={16} color="#10b981" style={styles.buttonIcon} />
+            <Icon name="check" size={16} color={appTheme.colors.success} style={styles.buttonIcon} />
             <Text style={styles.buttonText}>Save</Text>
           </TouchableOpacity>
         )}
@@ -483,26 +487,23 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
           onPress={handleClearGraph}
           disabled={!isReady}
         >
-          <Icon name="delete-outline" size={16} color="#ef4444" style={styles.buttonIcon} />
+          <Icon name="delete-outline" size={16} color={appTheme.colors.error} style={styles.buttonIcon} />
           <Text style={styles.buttonText}>Clear</Text>
         </TouchableOpacity>
+
       </View>
 
       {/* Indicateur de statut */}
       <View style={styles.status}>
         <View style={styles.statusRow}>
-          <Icon
-            name={isReady ? 'check-circle' : 'sync'}
-            size={14}
-            color={isReady ? '#10b981' : '#9ca3af'}
-          />
+          <Icon name={isReady ? 'check-circle' : 'sync'} size={14} color={isReady ? appTheme.colors.success : appTheme.colors.textSecondary} />
           <Text style={[styles.statusText, isReady && styles.statusReady]}>
             {isReady ? 'Ready' : 'Loading...'}
           </Text>
         </View>
         {currentSaveId && (
           <View style={styles.statusRow}>
-            <Icon name="folder" size={12} color="#d1d5db" />
+            <Icon name="folder" size={12} color={appTheme.colors.text} />
             <Text style={styles.currentSaveText}>{currentSaveName}</Text>
           </View>
         )}

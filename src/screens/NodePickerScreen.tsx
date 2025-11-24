@@ -10,7 +10,8 @@ import type { RouteProp } from '@react-navigation/native';
 import { nodeRegistry } from '../engine/NodeRegistry';
 import { nodeInstanceTracker } from '../engine/NodeInstanceTracker';
 
-import styles from './NodePickerScreenStyles';
+import createStyles from './NodePickerScreenStyles';
+import { useAppTheme } from '../styles/theme';
 import type { RootStackParamList } from '../types/navigation.types';
 import { emitNodeAdded } from '../utils/NodePickerEvents';
 import { logger } from '../utils/logger';
@@ -29,6 +30,8 @@ interface NodePickerScreenProps {
 
 const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
   const [categories, setCategories] = useState<string[]>([]);
+  const { theme } = useAppTheme();
+  const styles = createStyles(theme);
 
   // Charger les catégories depuis le registry
   useEffect(() => {
@@ -88,15 +91,15 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
       <View style={styles.pageContainer}>
         {/* Header avec bouton retour */}
         <View style={styles.header}>
-          <TouchableOpacity
+            <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
-            <Icon name="arrow-back" size={24} color="#f9fafb" />
+            <Icon name="arrow-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
-            <Icon name="add-circle-outline" size={28} color="#8b5cf6" />
+            <Icon name="add-circle-outline" size={28} color={theme.colors.primary} />
             <Text style={styles.headerTitle}>Add Node</Text>
           </View>
           <View style={styles.headerSpacer} />
@@ -109,7 +112,7 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
         <ScrollView style={styles.contentScroll} contentContainerStyle={styles.scrollContent}>
           {categories.length === 0 ? (
             <View style={styles.emptyState}>
-              <Icon name="info-outline" size={48} color="#6b7280" />
+              <Icon name="info-outline" size={48} color={theme.colors.textSecondary} />
               <Text style={styles.emptyStateText}>No nodes available</Text>
               <Text style={styles.emptyStateSubtext}>Please wait for nodes to load...</Text>
             </View>
@@ -135,13 +138,13 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
                             <Icon
                               name={nodeType.icon}
                               size={32}
-                              color={isDisabled ? '#6b7280' : nodeType.color || '#8b5cf6'}
+                              color={isDisabled ? theme.colors.textSecondary : nodeType.color || theme.colors.primary}
                             />
                           ) : (
                             <FAIcon
                               name={nodeType.icon}
                               size={28}
-                              color={isDisabled ? '#6b7280' : nodeType.color || '#8b5cf6'}
+                              color={isDisabled ? theme.colors.textSecondary : nodeType.color || theme.colors.primary}
                             />
                           )}
                         </View>
@@ -192,7 +195,7 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
                         <Icon
                           name="chevron-right"
                           size={20}
-                          color={isDisabled ? '#4b5563' : '#6b7280'}
+                          color={isDisabled ? theme.colors.textMuted : theme.colors.textSecondary}
                         />
                       </TouchableOpacity>
                     );
