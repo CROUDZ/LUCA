@@ -1,15 +1,4 @@
-:root {
-    --editor-bg: #05060a;
-    --editor-grid: rgba(15, 23, 42, 0.6);
-    --editor-grid-strong: rgba(15, 23, 42, 0.85);
-    --editor-text-primary: #f9fafb;
-    --editor-text-secondary: #9ca3af;
-    /* main brand / primary color */
-    --editor-brand: #5a2af5; /* primary */
-    --editor-brand-soft: #8b5cf6; /* softer primary for glows */
-    --node-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
-    --node-border-default: rgba(90, 42, 245, 0.25);
-}
+/* Theme tokens for this surface are provided by NodeEditorTheme.css */
 
 * {
     margin: 0;
@@ -30,16 +19,15 @@ body {
 }
 
 #drawflow {
-        --editor-brand: #5a2af5; /* primary */
-        --editor-brand-soft: #8b5cf6; /* softer primary for glows */
-        /* rgb helpers to allow rgba(var(--...) , a) */
-        --editor-brand-rgb: 90, 42, 245; /* 0x5a2af5 */
-        --editor-brand-soft-rgb: 139, 92, 246; /* 0x8b5cf6 */
     position: relative;
     width: 100vw;
     height: 100vh;
     min-height: 100vh;
-    background: linear-gradient(135deg, rgba(5, 6, 12, 0.98), rgba(7, 9, 15, 0.98));
+    background: linear-gradient(
+        135deg,
+        rgba(var(--luca-background-dark-rgb, 5, 3, 15), 0.98),
+        rgba(var(--luca-background-deep-rgb, 11, 13, 31), 0.98)
+    );
 }
         .drawflow .parent-drawflow {
             cursor: grab;
@@ -61,14 +49,55 @@ body {
             touch-action: none;
             position: absolute;
             transition: border-color 0.2s ease;
+            z-index: 2;
+        }
+
+        .drawflow .drawflow-node .inputs,
+        .drawflow .drawflow-node .outputs {
+            width: 0;
+        }
+
+        .drawflow .drawflow-node .input,
+        .drawflow .drawflow-node .output {
+            position: relative;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--node-anchor-default, rgba(var(--node-neutral-rgb), 0.25));
+            border: 2px solid var(--node-anchor-border, rgba(var(--node-neutral-rgb), 0.75));
+            cursor: crosshair;
+            z-index: 3;
+            box-shadow:
+                0 0 0 4px var(--editor-bg, rgba(var(--luca-background-dark-rgb, 5, 3, 15), 0.98)),
+                0 0 8px var(--node-connection-shadow, rgba(var(--editor-brand-soft-rgb), 0.35));
+            transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .drawflow .drawflow-node .input:hover,
+        .drawflow .drawflow-node .output:hover {
+            background: var(--node-anchor-hover, rgba(var(--editor-brand-soft-rgb), 0.25));
+            border-color: rgba(var(--editor-brand-soft-rgb), 0.85);
+            box-shadow:
+                0 0 0 4px var(--editor-bg, rgba(var(--luca-background-dark-rgb, 5, 3, 15), 0.98)),
+                0 0 12px rgba(var(--editor-brand-soft-rgb), 0.55);
+            transform: scale(1.05);
+        }
+
+        .drawflow .drawflow-node .input.connected,
+        .drawflow .drawflow-node .output.connected {
+            background: var(--node-anchor-connected, rgba(var(--editor-brand-rgb), 0.35));
+            border-color: var(--node-anchor-connected-border, rgba(var(--editor-brand-rgb), 0.85));
+            box-shadow:
+                0 0 0 4px var(--editor-bg, rgba(var(--luca-background-dark-rgb, 5, 3, 15), 0.98)),
+                0 0 12px rgba(var(--editor-brand-rgb), 0.55);
         }
 
         .drawflow .drawflow-node .node-card {
             position: relative;
-                border: 1px solid rgba(var(--editor-brand-soft-rgb), 0.35);
+            border: 1px solid var(--editor-card-border-strong, rgba(var(--editor-brand-soft-rgb), 0.35));
             border-radius: 20px;
-            background: rgba(11, 15, 25, 0.96);
-            border: 1px solid var(--node-border, rgba(var(--editor-brand-soft-rgb), 0.3));
+            background: var(--editor-card-background, rgba(11, 15, 25, 0.96));
+            border-color: var(--node-border, var(--editor-card-border-muted, rgba(var(--editor-brand-soft-rgb), 0.3)));
             box-shadow: none;
             display: flex;
             flex-direction: column;
@@ -137,7 +166,7 @@ body {
     .drawflow .drawflow-node .title {
             font-weight: 700;
             font-size: 16px;
-            color: #f9fafb;
+            color: var(--editor-text-primary, #f9fafb);
             /* keep a robust multiline title: use -webkit-box for webkit line-clamp with a
                block fallback; avoid conflicting inline-flex display which caused clipping */
             display: -webkit-box;
@@ -188,25 +217,15 @@ body {
         .node-card__description {
             margin-top: 0;
             font-size: 12px;
-            color: rgba(209, 213, 219, 0.85);
+            color: var(--node-text-muted, rgba(209, 213, 219, 0.85));
             word-break: break-word;
             overflow-wrap: anywhere;
-        }
-
-        /* Auto-emission small label used for FlashLight nodes */
-        .node-card__auto-emission {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: var(--editor-text-secondary);
-            margin-top: 6px;
         }
 
         .node-card__body {
             margin-top: 0;
             padding-top: 14px;
-            border-top: 1px solid rgba(148, 163, 184, 0.15);
+            border-top: 1px solid var(--node-divider-soft, rgba(var(--node-neutral-rgb), 0.15));
         }
 
         .node-card__chips {
@@ -224,9 +243,9 @@ body {
             font-size: 11px;
             font-weight: 600;
             letter-spacing: 0.04em;
-            background: rgba(148, 163, 184, 0.14);
-            border: 1px solid rgba(148, 163, 184, 0.3);
-            color: rgba(226, 232, 240, 0.9);
+            background: var(--node-chip-bg, rgba(var(--node-neutral-rgb, 148, 163, 184), 0.16));
+            border: 1px solid var(--node-chip-border, rgba(var(--node-neutral-rgb, 148, 163, 184), 0.35));
+            color: var(--editor-text-primary, rgba(226, 232, 240, 0.9));
             flex: 1 1 var(--chip-min-width);
             min-width: var(--chip-min-width);
             max-width: 100%;
@@ -240,40 +259,40 @@ body {
         }
 
         .node-chip--success {
-            background: rgba(16, 185, 129, 0.16);
-            border-color: rgba(16, 185, 129, 0.45);
-            color: #34d399;
+            background: rgba(var(--node-success-rgb, 31, 200, 169), 0.16);
+            border-color: rgba(var(--node-success-rgb, 31, 200, 169), 0.45);
+            color: var(--node-success, #1fc8a9);
         }
 
         .node-chip--warning {
-            background: rgba(251, 191, 36, 0.18);
-            border-color: rgba(251, 191, 36, 0.4);
-            color: #fbbf24;
+            background: rgba(var(--node-warning-rgb, 245, 165, 36), 0.18);
+            border-color: rgba(var(--node-warning-rgb, 245, 165, 36), 0.4);
+            color: var(--node-warning, #f5a524);
         }
 
         .node-chip--danger {
-            background: rgba(239, 68, 68, 0.18);
-            border-color: rgba(239, 68, 68, 0.45);
-            color: #f87171;
+            background: rgba(var(--node-error-rgb, 255, 107, 129), 0.18);
+            border-color: rgba(var(--node-error-rgb, 255, 107, 129), 0.45);
+            color: var(--node-error, #ff6b81);
         }
 
         .node-chip--info {
-            background: rgba(59, 130, 246, 0.15);
-            border-color: rgba(59, 130, 246, 0.4);
-            color: #93c5fd;
+            background: rgba(var(--node-info-rgb, 87, 178, 255), 0.15);
+            border-color: rgba(var(--node-info-rgb, 87, 178, 255), 0.4);
+            color: var(--node-info, #57b2ff);
         }
 
         .node-chip--default {
-            background: rgba(148, 163, 184, 0.16);
-            border-color: rgba(148, 163, 184, 0.35);
+            background: var(--node-chip-bg, rgba(var(--node-neutral-rgb), 0.16));
+            border-color: var(--node-chip-border, rgba(var(--node-neutral-rgb), 0.35));
         }
 
         .node-card__footer {
             margin-top: 14px;
             padding-top: 12px;
-            border-top: 1px dashed rgba(148, 163, 184, 0.2);
+            border-top: 1px dashed var(--node-divider-strong, rgba(var(--node-neutral-rgb), 0.2));
             font-size: 11px;
-            color: rgba(226, 232, 240, 0.7);
+            color: var(--node-text-soft, rgba(var(--node-neutral-light-rgb), 0.7));
             text-transform: uppercase;
             letter-spacing: 0.1em;
         }
@@ -285,8 +304,8 @@ body {
         }
 
         .node-info-item {
-            background: rgba(15, 23, 42, 0.55);
-            border: 1px solid rgba(148, 163, 184, 0.12);
+            background: var(--node-surface-muted, rgba(var(--luca-background-muted-rgb), 0.55));
+            border: 1px solid rgba(var(--node-neutral-rgb), 0.12);
             border-radius: 12px;
             padding: 10px 12px;
             display: flex;
@@ -298,13 +317,13 @@ body {
             font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            color: rgba(148, 163, 184, 0.9);
+            color: rgba(var(--node-neutral-rgb), 0.9);
         }
 
         .node-info-value {
             font-size: 13px;
             font-weight: 600;
-            color: #f3f4f6;
+            color: var(--editor-text-primary, #f4f6ff);
         }
 
         .node-info-badge {
@@ -320,22 +339,22 @@ body {
         }
 
         .node-info-badge--success {
-            background: rgba(16, 185, 129, 0.18);
-            color: #34d399;
+            background: rgba(var(--node-success-rgb, 31, 200, 169), 0.18);
+            color: var(--node-success, #1fc8a9);
         }
 
         .node-info-badge--warning {
-            background: rgba(251, 191, 36, 0.18);
-            color: #fbbf24;
+            background: rgba(var(--node-warning-rgb, 245, 165, 36), 0.18);
+            color: var(--node-warning, #f5a524);
         }
         .drawflow .drawflow-node.node-start {
-            border-color: rgba(34, 197, 94, 0.65);
-            box-shadow: 0 25px 60px rgba(34, 197, 94, 0.25);
+            border-color: rgba(var(--node-success-rgb, 31, 200, 169), 0.65);
+            box-shadow: 0 25px 60px rgba(var(--node-success-rgb, 31, 200, 169), 0.25);
         }
 
         .drawflow .drawflow-node.node-end {
-            border-color: rgba(239, 68, 68, 0.7);
-            box-shadow: 0 25px 60px rgba(239, 68, 68, 0.25);
+            border-color: rgba(var(--node-error-rgb, 255, 107, 129), 0.7);
+            box-shadow: 0 25px 60px rgba(var(--node-error-rgb, 255, 107, 129), 0.25);
         }
 
         .drawflow .drawflow-node.node-connected {
@@ -344,7 +363,7 @@ body {
         }
 
         .drawflow .drawflow-node.node-disconnected {
-            border-color: rgba(75, 85, 99, 0.5);
+            border-color: rgba(var(--node-neutral-contrast-rgb, 75, 85, 99), 0.5);
             opacity: 0.65;
             filter: grayscale(0.15);
         }
@@ -356,8 +375,8 @@ body {
             box-shadow: 0 16px 40px rgba(var(--editor-brand-soft-rgb), 0.32);
         }
         body.creating-connection .drawflow .drawflow-node .input {
-            border-color: rgba(34, 197, 94, 0.6);
-            background: rgba(34, 197, 94, 0.15);
+            border-color: var(--node-anchor-connected-border, rgba(var(--editor-brand-rgb), 0.85));
+            background: var(--node-anchor-active, rgba(var(--editor-brand-soft-rgb), 0.45));
         }
         /* Debug: invert controls removed from templates; styles cleaned */
 
@@ -369,10 +388,10 @@ body {
                     flex-direction: column;
                     gap: 10px;
                     padding: 10px;
-                    background: rgba(15, 23, 42, 0.88);
+                    background: rgba(var(--luca-background-muted-rgb, 18, 20, 43), 0.88);
                     border: 1px solid rgba(var(--editor-brand-soft-rgb), 0.2);
                     border-radius: 14px;
-                    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+                    box-shadow: 0 8px 22px rgba(var(--luca-shadow-dark-rgb, 4, 2, 12), 0.35);
                     pointer-events: auto;
                     z-index: 9999;
                 }
@@ -387,8 +406,8 @@ body {
                     height: 42px;
                     border-radius: 12px;
                     border: 1px solid rgba(var(--editor-brand-soft-rgb), 0.4);
-                    background: rgba(76, 29, 149, 0.55);
-                    color: #f9fafb;
+                    background: rgba(var(--editor-brand-contrast-rgb, 76, 29, 149), 0.55);
+                    color: var(--editor-text-primary, #f9fafb);
                     font-size: 17px;
                     font-weight: 600;
                     cursor: pointer;
@@ -402,9 +421,62 @@ body {
         .zoom-indicator {
                     text-align: center;
                     font-size: 12px;
-                    color: #cbd5f5;
+                    color: var(--editor-text-secondary, #cbd5f5);
                     letter-spacing: 0.08em;
                 }
+
+.drawflow .connection .main-path {
+    fill: none;
+    stroke-width: 5px;
+    stroke: var(--node-connection, rgba(var(--editor-brand-soft-rgb), 0.85));
+    pointer-events: all;
+    filter: drop-shadow(0 0 6px var(--node-connection-shadow, rgba(var(--editor-brand-soft-rgb), 0.45)));
+    stroke-linecap: round;
+    transition: stroke 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
+}
+
+.drawflow svg {
+    position: absolute;
+    overflow: visible !important;
+    z-index: 0;
+}
+
+.drawflow .connection {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.drawflow .connection .main-path:hover {
+    stroke: var(--node-connection-hover, rgba(var(--editor-brand-rgb), 0.95));
+    filter: drop-shadow(0 0 10px rgba(var(--editor-brand-rgb), 0.55));
+}
+
+.drawflow .connection .main-path.selected {
+    stroke: var(--node-connection-selected, rgba(var(--node-success-rgb), 0.95));
+    filter: drop-shadow(0 0 12px rgba(var(--node-success-rgb), 0.5));
+}
+
+.drawflow .connection .point {
+    cursor: move;
+    stroke: var(--node-anchor-border, rgba(var(--node-neutral-rgb), 0.75));
+    stroke-width: 2px;
+    fill: var(--node-anchor-default, rgba(var(--node-neutral-rgb), 0.25));
+    pointer-events: all;
+    box-shadow:
+        0 0 0 4px var(--editor-bg, rgba(var(--luca-background-dark-rgb, 5, 3, 15), 0.98)),
+        0 0 6px var(--node-connection-shadow, rgba(var(--editor-brand-soft-rgb), 0.45));
+    transition: fill 0.2s ease, stroke 0.2s ease, box-shadow 0.2s ease;
+}
+
+.drawflow .connection .point:hover,
+.drawflow .connection .point.selected {
+    fill: var(--node-anchor-active, rgba(var(--editor-brand-soft-rgb), 0.45));
+    stroke: var(--node-anchor-connected-border, rgba(var(--editor-brand-rgb), 0.85));
+    box-shadow:
+        0 0 0 4px var(--editor-bg, rgba(var(--luca-background-dark-rgb, 5, 3, 15), 0.98)),
+        0 0 10px rgba(var(--editor-brand-rgb), 0.55);
+}
 
 /* Override Drawflow's default hover fill */
 .drawflow .drawflow-node:hover {
@@ -423,12 +495,12 @@ body {
         .node-title{
             font-size: 16px;
             font-weight: 600;
-            color: #f3f4f6;
+            color: var(--editor-text-primary, #f4f6ff);
             margin-bottom: 8px;
         }
         .node-subtitle{
             font-size: 12px;
-            color: #9ca3af;
+            color: var(--editor-text-secondary, #9ca3af);
             margin-bottom: 12px;
         }
 
@@ -438,10 +510,24 @@ body {
             gap: 6px;
         }
 
+        .logic-gate-control {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
         .delay-label {
             font-size: 11px;
             font-weight: 600;
-            color: #e5e7eb;
+            color: var(--editor-text-primary, #e5e7eb);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .logic-gate-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--editor-text-primary, #e5e7eb);
             text-transform: uppercase;
             letter-spacing: 0.04em;
         }
@@ -450,22 +536,54 @@ body {
             display: flex;
             align-items: center;
             gap: 6px;
-            background: rgba(15, 23, 42, 0.6);
+            background: rgba(var(--luca-background-muted-rgb), 0.6);
             border: 1px solid rgba(var(--editor-brand-soft-rgb), 0.4);
             border-radius: 10px;
             padding: 6px 10px;
+        }
+
+        .logic-gate-select-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(var(--luca-background-muted-rgb), 0.6);
+            border: 1px solid rgba(var(--editor-brand-soft-rgb), 0.4);
+            border-radius: 10px;
+            padding: 0;
+            overflow: hidden;
         }
 
         .delay-input {
             width: 100%;
             background: transparent;
             border: none;
-            color: #f3f4f6;
+            color: var(--editor-text-primary, #f4f6ff);
             font-size: 13px;
             font-weight: 600;
             outline: none;
             appearance: textfield;
             -moz-appearance: textfield;
+        }
+
+        .logic-gate-select {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--editor-text-primary, #f4f6ff);
+            font-size: 13px;
+            font-weight: 600;
+            outline: none;
+            padding: 10px 12px;
+            appearance: none;
+        }
+
+        .logic-gate-select option {
+            color: #111;
+        }
+
+        .logic-gate-helper {
+            font-size: 11px;
+            color: var(--editor-text-secondary, #9ca3af);
         }
 
         .delay-input::-webkit-outer-spin-button,
@@ -476,25 +594,25 @@ body {
 
         .delay-unit {
             font-size: 12px;
-            color: #9ca3af;
+            color: var(--editor-text-secondary, #9ca3af);
             font-weight: 500;
         }
 
         .flashlight-node {
-            background: rgba(255, 193, 7, 0.06);
+            background: rgba(var(--node-warning-rgb, 245, 165, 36), 0.08);
             border-radius: 12px;
             padding: 4px;
         }
 
         .flashlight-node.inverted {
-            border: 1px dashed rgba(251, 191, 36, 0.6);
+            border: 1px dashed rgba(var(--node-warning-rgb, 245, 165, 36), 0.6);
         }
 
         .flashlight-node .node-icon {
             font-size: 18px;
         }
 
-        .flashlight-status {
+        .auto-emit-status {
             display: inline-flex;
             align-items: center;
             gap: 6px;
@@ -505,43 +623,43 @@ body {
             margin-bottom: 8px;
         }
 
-        .flashlight-status .status-dot {
+        .auto-emit-status .status-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #4b5563;
-            box-shadow: 0 0 6px rgba(75, 85, 99, 0.6);
+            background: var(--node-neutral-contrast, #4b5563);
+            box-shadow: 0 0 6px var(--node-neutral-contrast-shadow, rgba(75, 85, 99, 0.6));
         }
 
-        .flashlight-status .status-text {
+        .auto-emit-status .status-text {
             opacity: 0.9;
         }
 
-        .flashlight-status.active {
-            color: #d1fae5;
+        .auto-emit-status.active {
+            color: var(--node-success, #d1fae5);
         }
 
-        .flashlight-status.active .status-dot {
-            background: #34d399;
-            box-shadow: 0 0 10px rgba(52, 211, 153, 0.8);
+        .auto-emit-status.active .status-dot {
+            background: var(--node-success, #34d399);
+            box-shadow: 0 0 10px rgba(var(--node-success-rgb, 31, 200, 169), 0.8);
         }
 
-        .flashlight-status.blocked {
-            color: #fef3c7;
+        .auto-emit-status.blocked {
+            color: var(--node-warning, #fef3c7);
         }
 
-        .flashlight-status.blocked .status-dot {
-            background: #facc15;
-            box-shadow: 0 0 6px rgba(250, 204, 21, 0.7);
+        .auto-emit-status.blocked .status-dot {
+            background: var(--node-warning, #facc15);
+            box-shadow: 0 0 6px rgba(var(--node-warning-rgb, 245, 165, 36), 0.7);
         }
 
-        .flashlight-status.disabled {
-            color: #fecaca;
+        .auto-emit-status.disabled {
+            color: var(--node-error, #fecaca);
         }
 
-        .flashlight-status.disabled .status-dot {
-            background: #f87171;
-            box-shadow: 0 0 6px rgba(248, 113, 113, 0.6);
+        .auto-emit-status.disabled .status-dot {
+            background: var(--node-error, #f87171);
+            box-shadow: 0 0 6px rgba(var(--node-error-rgb, 255, 107, 129), 0.6);
         }
 
 

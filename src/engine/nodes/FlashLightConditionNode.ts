@@ -284,14 +284,13 @@ const FlashLightConditionNode: NodeDefinition = {
 		const invertSignal = settings?.invertSignal ?? false;
 		const autoEmit = settings?.autoEmitOnChange ?? true;
 		const statusText = autoEmit ? 'Auto-émission active' : 'Écoute uniquement';
-		const statusClass = autoEmit ? 'flashlight-status active' : 'flashlight-status idle';
+		const statusClass = autoEmit ? 'auto-emit-status active' : 'auto-emit-status disabled';
 		const body = `
 			<div class="flashlight-node${invertSignal ? ' inverted' : ''}">
 				<div class="${statusClass}">
 					<span class="status-dot"></span>
 					<span class="status-text">${statusText}</span>
 				</div>
-				<div class="node-card__auto-emission">${autoEmit ? 'AUTO EMISSION' : ''}</div>
 			</div>
 		`;
 

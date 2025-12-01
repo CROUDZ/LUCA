@@ -15,7 +15,7 @@ import { useGraphStorage } from '../hooks/useGraphStorage';
 
 // Import des configurations
 import { APP_CONFIG } from '../config/constants';
-import type { DrawflowExport } from '../types';
+import type { DrawflowExport, Graph } from '../types';
 import type { RootStackParamList } from '../types/navigation.types';
 
 import createStyles from './NodeEditorScreenStyles';
@@ -36,12 +36,25 @@ import {
 } from '../engine/nodes/FlashLightConditionNode';
 import { initializeSignalSystem, resetSignalSystem, getSignalSystem } from '../engine/SignalSystem';
 import { nodeRegistry } from '../engine/NodeRegistry';
+import { triggerNode, triggerAll } from '../engine/nodes/TriggerNode';
 
 type NodeEditorScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'NodeEditor'>;
 
 interface NodeEditorScreenProps {
   navigation: NodeEditorScreenNavigationProp;
 }
+
+type GraphInitResult = {
+  graph: Graph;
+  triggerIds: number[];
+};
+
+type GraphSyncResolver = {
+  id: number;
+  resolve: (value: GraphInitResult) => void;
+  reject: (error: Error) => void;
+  timeout: ReturnType<typeof setTimeout>;
+};
 
 const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
   // États locaux pour l'UI
@@ -54,7 +67,114 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
   const [currentGraph, setCurrentGraph] = useState<DrawflowExport | null>(null);
   const [triggerNodeIds, setTriggerNodeIds] = useState<number[]>([]);
   const [hasFlashActionInGraph, setHasFlashActionInGraph] = useState(false);
+  const [cameraPermissionGranted, setCameraPermissionGranted] = useState<boolean | null>(null);
   const pendingSaveNameRef = useRef<string | null>(null);
+  const flashlightEventUnsubscribeRef = useRef<(() => void) | null>(null);
+  const pendingGraphSyncResolvers = useRef<GraphSyncResolver[]>([]);
+
+  const resolveGraphSyncWaiters = useCallback((result: GraphInitResult | null) => {
+    if (!result || pendingGraphSyncResolvers.current.length === 0) {
+      return;
+    }
+
+    const waiters = [...pendingGraphSyncResolvers.current];
+    pendingGraphSyncResolvers.current = [];
+    waiters.forEach(({ resolve, timeout }) => {
+      clearTimeout(timeout);
+      resolve(result);
+    });
+  }, []);
+
+  const rejectGraphSyncWaiters = useCallback((error: Error) => {
+    if (pendingGraphSyncResolvers.current.length === 0) {
+      return;
+    }
+
+    const waiters = [...pendingGraphSyncResolvers.current];
+    pendingGraphSyncResolvers.current = [];
+    waiters.forEach(({ reject, timeout }) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+  }, []);
+
+  const rebuildSignalSystem = useCallback(
+    async (graphData: DrawflowExport | null): Promise<GraphInitResult | null> => {
+      if (!graphData) {
+        return null;
+      }
+
+      logger.info('🔄 Initializing signal system...');
+
+      resetSignalSystem();
+
+      const graph = parseDrawflowGraph(graphData);
+      logger.info(`📊 Parsed graph: ${graph.nodes.size} nodes, ${graph.edges.length} connection(s)`);
+
+      const signalSystem = initializeSignalSystem(graph);
+      startMonitoringNativeTorch();
+      clearFlashlightAutoEmitRegistry();
+
+      if (flashlightEventUnsubscribeRef.current) {
+        flashlightEventUnsubscribeRef.current();
+        flashlightEventUnsubscribeRef.current = null;
+      }
+
+      if (signalSystem) {
+        flashlightEventUnsubscribeRef.current = signalSystem.subscribeToEvent(
+          'flashlight.permission.failed',
+          0,
+          () => {
+            logger.info(
+              '[NodeEditorScreen] Received flashlight.permission.failed - updating banner state'
+            );
+            setCameraPermissionGranted(false);
+          }
+        );
+      }
+
+      let handlersRegistered = 0;
+      graph.nodes.forEach((node) => {
+        const nodeDef = nodeRegistry.getNode(node.type);
+        if (nodeDef) {
+          try {
+            const resolvedSettings = {
+              ...(nodeDef.defaultSettings || {}),
+              ...(node.data?.settings || node.data || {}),
+            };
+
+            nodeDef.execute({
+              nodeId: node.id,
+              inputs: {},
+              inputsCount: node.inputs.length,
+              settings: resolvedSettings,
+              log: (message: string) => {
+                logger.debug(`[Node ${node.id}] ${message}`);
+              },
+            });
+            handlersRegistered++;
+          } catch (error) {
+            logger.error(`❌ Error executing node ${node.id} (${node.type}):`, error);
+          }
+        }
+      });
+
+      logger.info(`✅ Registered ${handlersRegistered} signal handlers`);
+
+      const graphNodes = Array.from(graph.nodes.values());
+      const triggers = graphNodes.filter((n) => n.type === 'input.trigger').map((n) => n.id);
+      setTriggerNodeIds(triggers);
+
+      const hasFlashAction = graphNodes.some((n) => n.type === 'action.flashlight');
+      setHasFlashActionInGraph(hasFlashAction);
+
+      logger.info(`🎯 Found ${triggers.length} trigger node(s):`, triggers);
+
+      return { graph, triggerIds: triggers };
+    },
+    [setCameraPermissionGranted, setHasFlashActionInGraph, setTriggerNodeIds]
+  );
+
 
   // Hook de stockage des graphes
   const {
@@ -67,6 +187,46 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
     autoSave,
     setCurrentSaveId,
   } = useGraphStorage();
+
+  const handleGraphExport = useCallback(
+    async (data: DrawflowExport) => {
+      try {
+        await autoSave(data);
+        setCurrentGraph(data);
+
+        if (pendingSaveNameRef.current) {
+          const saveName = pendingSaveNameRef.current;
+          pendingSaveNameRef.current = null;
+
+          try {
+            const save = await createSave(saveName, data);
+            if (save) {
+              setNewSaveName('');
+              setShowNewSaveInput(false);
+              Alert.alert('Success', `Save "${save.name}" created!`);
+            } else {
+              Alert.alert('Error', 'Failed to create save.');
+            }
+          } catch (error) {
+            logger.error('Failed to finalize save creation', error);
+            Alert.alert('Error', 'Failed to create save.');
+          }
+        }
+
+        const result = await rebuildSignalSystem(data);
+        if (!result) {
+          rejectGraphSyncWaiters(new Error('Graph rebuild produced no result'));
+          return;
+        }
+        resolveGraphSyncWaiters(result);
+      } catch (error) {
+        const normalizedError = error instanceof Error ? error : new Error(String(error));
+        rejectGraphSyncWaiters(normalizedError);
+        logger.error('[NodeEditorScreen] Failed to handle graph export', normalizedError);
+      }
+    },
+    [autoSave, createSave, rebuildSignalSystem, resolveGraphSyncWaiters, rejectGraphSyncWaiters]
+  );
 
   // Hook de communication WebView
   const {
@@ -86,34 +246,13 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
         if (save) {
           loadGraph(save.data);
           setCurrentGraph(save.data);
+          rebuildSignalSystem(save.data).catch((error) => {
+            logger.warn('[NodeEditorScreen] Failed to rebuild graph on ready load', error);
+          });
         }
       }
     },
-    onExport: async (data: DrawflowExport) => {
-      // Auto-sauvegarde
-      await autoSave(data);
-      // Mettre à jour le graphe actuel pour le système de signaux
-      setCurrentGraph(data);
-
-      if (pendingSaveNameRef.current) {
-        const saveName = pendingSaveNameRef.current;
-        pendingSaveNameRef.current = null;
-
-        try {
-          const save = await createSave(saveName, data);
-          if (save) {
-            setNewSaveName('');
-            setShowNewSaveInput(false);
-            Alert.alert('Success', `Save "${save.name}" created!`);
-          } else {
-            Alert.alert('Error', 'Failed to create save.');
-          }
-        } catch (error) {
-          logger.error('Failed to finalize save creation', error);
-          Alert.alert('Error', 'Failed to create save.');
-        }
-      }
-    },
+    onExport: handleGraphExport,
     onNodeSettingsChanged: (payload) => {
       try {
         logger.debug('[WebView] Node settings changed:', payload);
@@ -159,82 +298,86 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
     },
   });
 
-  /**
-   * Initialiser le système de signaux quand le graphe change
-   */
-  useEffect(() => {
-    const ss = getSignalSystem();
-    let unsubscribe: (() => void) | null = null;
-    if (ss) {
-      unsubscribe = ss.subscribeToEvent('flashlight.permission.failed', 0, () => {
-        logger.info('[NodeEditorScreen] Received flashlight.permission.failed - updating banner state');
-        setCameraPermissionGranted(false);
-      });
+  const waitForGraphSync = useCallback((): Promise<GraphInitResult> => {
+    if (!isReady) {
+      return Promise.reject(new Error('WebView not ready'));
     }
-  if (!currentGraph) return;
 
-  logger.debug('🔄 Initializing signal system...');
+    return new Promise<GraphInitResult>((resolve, reject) => {
+      const id = Date.now() + Math.random();
+      const timeout = setTimeout(() => {
+        pendingGraphSyncResolvers.current = pendingGraphSyncResolvers.current.filter(
+          (entry) => entry.id !== id
+        );
+        reject(new Error('Graph export timeout'));
+      }, 2000);
 
-    // Reset le système
-    resetSignalSystem();
+      pendingGraphSyncResolvers.current.push({ id, resolve, reject, timeout });
 
-    // Parser le graphe
-    const graph = parseDrawflowGraph(currentGraph);
-  logger.debug(`📊 Parsed graph: ${graph.nodes.size} nodes, ${graph.edges.length} connections`);
-
-    // Initialiser le système avec le graphe
-    initializeSignalSystem(graph);
-  startMonitoringNativeTorch();
-
-  // Exécuter tous les nœuds pour enregistrer leurs handlers
-  clearFlashlightAutoEmitRegistry();
-    let handlersRegistered = 0;
-    graph.nodes.forEach((node) => {
-      const nodeDef = nodeRegistry.getNode(node.type);
-      if (nodeDef) {
-        try {
-          const resolvedSettings = {
-            ...(nodeDef.defaultSettings || {}),
-            ...(node.data?.settings || node.data || {}),
-          };
-
-          nodeDef.execute({
-            nodeId: node.id,
-            inputs: {},
-            inputsCount: node.inputs.length,
-            settings: resolvedSettings,
-            log: (message: string) => {
-              logger.debug(`[Node ${node.id}] ${message}`);
-            },
-          });
-          handlersRegistered++;
-        } catch (error) {
-          logger.error(`❌ Error executing node ${node.id} (${node.type}):`, error);
-        }
+      const success = requestExport();
+      if (!success) {
+        clearTimeout(timeout);
+        pendingGraphSyncResolvers.current = pendingGraphSyncResolvers.current.filter(
+          (entry) => entry.id !== id
+        );
+        reject(new Error('Unable to request graph export'));
       }
     });
+  }, [isReady, requestExport]);
 
-  logger.debug(`✅ Registered ${handlersRegistered} signal handlers`);
+  const handleRunProgram = useCallback(async () => {
+    if (!isReady || triggerNodeIds.length === 0) {
+      return;
+    }
 
-    // Do NOT request permission on graph initialization. We'll show a UI banner
-    // linking to the permission flow instead. Permission requests should happen
-    // as part of explicit user actions (e.g., pressing Run, toggling flashlight
-    // in SignalControls, or firing a trigger with FlashLightAction).
+    logger.info('🚀 Launching program from', triggerNodeIds.length, 'trigger(s)');
 
-    // Trouver tous les nœuds Trigger
-    const graphNodes = Array.from(graph.nodes.values());
-    const triggers = graphNodes.filter((n) => n.type === 'input.trigger').map((n) => n.id);
-    setTriggerNodeIds(triggers);
+    if (hasFlashActionInGraph) {
+      try {
+        logger.info(
+          '[NodeEditorScreen] Flash action in graph - requesting camera permission if needed'
+        );
+        const allowed = await ensureCameraPermission();
+        if (!allowed) {
+          Alert.alert('Permission requise', 'La permission Caméra est nécessaire pour exécuter votre programme');
+          return;
+        }
+      } catch (error) {
+        logger.warn('[NodeEditorScreen] Permission request failed', error);
+        return;
+      }
+    }
 
-    const hasFlashAction = graphNodes.some((n) => n.type === 'action.flashlight');
-    setHasFlashActionInGraph(hasFlashAction);
+    let activeTriggerIds = triggerNodeIds;
+    try {
+      const result = await waitForGraphSync();
+      if (result?.triggerIds?.length) {
+        activeTriggerIds = result.triggerIds;
+      }
+    } catch (error) {
+      logger.warn('[NodeEditorScreen] Graph sync before run failed', error);
+    }
 
-  logger.debug(`🎯 Found ${triggers.length} trigger nodes:`, triggers);
-  return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
-  }, [currentGraph]);
+    const payload = {
+      timestamp: Date.now(),
+      source: 'run-button',
+    };
+
+    let triggeredCount = 0;
+    activeTriggerIds.forEach((nodeId) => {
+      triggerNode(nodeId, payload);
+      triggeredCount += 1;
+    });
+
+    if (triggeredCount === 0) {
+      logger.warn('[NodeEditorScreen] Aucun trigger ID actif - fallback triggerAll');
+      triggerAll(payload);
+    } else {
+      logger.debug(`[NodeEditorScreen] Emitted ${triggeredCount} trigger(s)`);
+    }
+  }, [hasFlashActionInGraph, isReady, triggerNodeIds, waitForGraphSync]);
 
   // Show a small banner if FlashLight nodes present and permission denied
-  const [cameraPermissionGranted, setCameraPermissionGranted] = useState<boolean | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -253,7 +396,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
         logger.warn('[NodeEditorScreen] Error checking camera permission for banner', e);
       }
     })();
-  }, [currentGraph]);
+  }, [currentGraph, setCameraPermissionGranted]);
 
   // Ajouter un log pour vérifier les settings des nodes après export
   useEffect(() => {
@@ -306,11 +449,14 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
         nodeInstanceTracker.reset();
         loadGraph(save.data);
         setCurrentGraph(save.data);
+        rebuildSignalSystem(save.data).catch((error) => {
+          logger.error('[NodeEditorScreen] Failed to rebuild graph after load', error);
+        });
         setShowSaveMenu(false);
         Alert.alert('Loaded', `Loaded "${save.name}"`);
       }
     },
-    [loadSave, loadGraph]
+    [loadSave, loadGraph, rebuildSignalSystem]
   );
 
   /**
@@ -389,6 +535,12 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
           clearWebViewGraph();
           setCurrentSaveId(null);
           nodeInstanceTracker.reset(); // Reset tous les compteurs
+          setCurrentGraph(null);
+          setTriggerNodeIds([]);
+          setHasFlashActionInGraph(false);
+          flashlightEventUnsubscribeRef.current?.();
+          flashlightEventUnsubscribeRef.current = null;
+          resetSignalSystem();
           logger.info('🗑️ Graph cleared');
         },
       },
@@ -401,6 +553,14 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
   const currentSaveName = useMemo(() => {
     return saves.find((s) => s.id === currentSaveId)?.name || 'Untitled';
   }, [saves, currentSaveId]);
+
+  useEffect(() => {
+    return () => {
+      flashlightEventUnsubscribeRef.current?.();
+      rejectGraphSyncWaiters(new Error('NodeEditorScreen unmounted'));
+      resetSignalSystem();
+    };
+  }, [rejectGraphSyncWaiters]);
 
   return (
     <View style={styles.container}>
@@ -456,7 +616,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
         <RunProgramButton
           triggerNodeIds={triggerNodeIds}
           isReady={isReady}
-          hasFlashAction={hasFlashActionInGraph}
+          onRunProgram={handleRunProgram}
         />
       )}
 

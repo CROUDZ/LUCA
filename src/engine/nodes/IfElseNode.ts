@@ -150,6 +150,7 @@ const IfElseNode: NodeDefinition = {
 
     // Basic safety check for the expression
     if (conditionType === 'expression' && !isExpressionSafe(settings.expression)) {
+      logger.warn(`[IfElse Node ${context.nodeId}] Unsafe expression blocked:`, settings.expression);
       return 'L\'expression contient des tokens non sûrs';
     }
 

@@ -32,6 +32,7 @@ import './ConfirmNode';
 // ============================================================================
 import './IfElseNode';
 import './LogicGateNode';
+import './VolumeConditionNodes';
 
 // ============================================================================
 // NODES DE CONTRÔLE DE FLUX
@@ -45,10 +46,11 @@ import './NotificationNode';
 import './VibrationNode';
 import './FlashLightActionNode';
 import './EventListenerNode';
+import './VolumeActionNodes';
 
 import { logger } from '../../utils/logger';
 
-logger.debug('✅ All nodes loaded (17 nodes total)');
+logger.debug('✅ All nodes loaded (21 nodes total)');
 
 // ============================================================================
 // EXPORTS DES NODES
@@ -58,10 +60,12 @@ export { default as PingNode } from './PingNode';
 export { default as TriggerNode } from './TriggerNode';
 export { default as IfElseNode } from './IfElseNode';
 export { default as LogicGateNode } from './LogicGateNode';
+export { VolumeUpConditionNode, VolumeDownConditionNode } from './VolumeConditionNodes';
 export { default as DelayNode } from './DelayNode';
 export { default as NotificationNode } from './NotificationNode';
 export { default as VibrationNode } from './VibrationNode';
 export { default as FlashLightActionNode } from './FlashLightActionNode';
+export { VolumeUpActionNode, VolumeDownActionNode } from './VolumeActionNodes';
 // ConfirmNode export (duplicate removed)
 
 // ============================================================================

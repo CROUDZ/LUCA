@@ -22,10 +22,103 @@ import type {
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 import { buildNodeCardHTML } from './templates/nodeCard';
 
-// Stocker l'état des entrées pour chaque node
+// Stocker l'état des entrées et la correspondance source -> entrée pour chaque node
 const nodeInputStates = new Map<number, Map<string, boolean>>();
+const nodeSourceKeyMap = new Map<number, Map<number, string>>();
 
 const LOGIC_GATE_ACCENT = '#3F51B5';
+
+const SUPPORTED_LOGIC_GATES = [
+  { value: 'AND', label: 'AND (ET)' },
+  { value: 'OR', label: 'OR (OU)' },
+  { value: 'NOT', label: 'NOT (NON)' },
+  { value: 'XOR', label: 'XOR' },
+  { value: 'NAND', label: 'NAND' },
+  { value: 'NOR', label: 'NOR' },
+  { value: 'XNOR', label: 'XNOR' },
+] as const;
+
+type LogicGateType = (typeof SUPPORTED_LOGIC_GATES)[number]['value'];
+
+function normalizeGateType(rawType?: string): LogicGateType {
+  const normalized = (rawType || '').toUpperCase();
+  const option = SUPPORTED_LOGIC_GATES.find((gate) => gate.value === normalized);
+  return option ? option.value : SUPPORTED_LOGIC_GATES[0].value;
+}
+
+function resolveInputKey(index: number): string {
+  if (index === 0) return 'input_a';
+  if (index === 1) return 'input_b';
+  return `input_${String.fromCharCode(97 + index)}`;
+}
+
+function getSourceInputKey(
+  nodeId: number,
+  sourceNodeId: number,
+  availableKeys: string[]
+): string {
+  if (!nodeSourceKeyMap.has(nodeId)) {
+    nodeSourceKeyMap.set(nodeId, new Map());
+  }
+
+  const sourceMap = nodeSourceKeyMap.get(nodeId)!;
+  if (sourceMap.has(sourceNodeId)) {
+    return sourceMap.get(sourceNodeId)!;
+  }
+
+  const usedKeys = new Set(sourceMap.values());
+  const key = availableKeys.find((candidate) => !usedKeys.has(candidate)) || availableKeys[availableKeys.length - 1] || 'input_a';
+  sourceMap.set(sourceNodeId, key);
+  return key;
+}
+
+function getMinimumInputsForGate(gateType: LogicGateType): number {
+  if (gateType === 'NOT') {
+    return 1;
+  }
+  if (gateType === 'OR') {
+    return 1;
+  }
+  return 2;
+}
+
+function resolveInputCountForGate(
+  gateType: LogicGateType,
+  configuredCount?: number,
+  actualCount?: number
+): number {
+  if (gateType === 'NOT') {
+    return 1;
+  }
+
+  const minInputs = getMinimumInputsForGate(gateType);
+  const normalizedConfigured = Math.min(
+    Math.max(
+      typeof configuredCount === 'number' ? Math.floor(configuredCount) : 2,
+      minInputs
+    ),
+    8
+  );
+
+  if (typeof actualCount === 'number' && actualCount > 0) {
+    const normalizedActual = Math.min(Math.max(actualCount, minInputs), 8);
+
+    if (gateType === 'OR') {
+      return normalizedActual;
+    }
+
+    if (normalizedActual >= normalizedConfigured) {
+      return normalizedActual;
+    }
+  }
+
+  return normalizedConfigured;
+}
+
+function clearNodeState(nodeId: number): void {
+  nodeInputStates.get(nodeId)?.clear();
+  nodeSourceKeyMap.get(nodeId)?.clear();
+}
 
 const LogicGateNode: NodeDefinition = {
   // ============================================================================
@@ -33,7 +126,7 @@ const LogicGateNode: NodeDefinition = {
   // ============================================================================
   id: 'condition.logic-gate',
   name: 'Logic Gate',
-  description: 'Applique des opérations logiques (AND, OR, NOT, XOR)',
+  description: 'Applique des opérations logiques (AND, OR, NOT, XOR, NAND, NOR)',
   category: 'Condition',
 
   // ============================================================================
@@ -90,10 +183,20 @@ const LogicGateNode: NodeDefinition = {
       const settings = context.settings || {};
       const signalSystem = getSignalSystem();
 
+      const requestedInputCount = Number.isFinite(Number(settings.inputCount))
+        ? Number(settings.inputCount)
+        : undefined;
+      const actualInputCount = typeof context.inputsCount === 'number' && context.inputsCount > 0
+        ? context.inputsCount
+        : undefined;
+
       if (signalSystem) {
         // Initialiser l'état des entrées
         if (!nodeInputStates.has(context.nodeId)) {
           nodeInputStates.set(context.nodeId, new Map());
+        }
+        if (!nodeSourceKeyMap.has(context.nodeId)) {
+          nodeSourceKeyMap.set(context.nodeId, new Map());
         }
 
         signalSystem.registerHandler(
@@ -101,15 +204,23 @@ const LogicGateNode: NodeDefinition = {
           async (signal: Signal): Promise<SignalPropagation> => {
             logger.debug(`[LogicGate Node ${context.nodeId}] Signal reçu`);
 
-            const gateType = settings.gateType || 'AND';
+            const gateType = normalizeGateType(settings.gateType);
             const inputStates = nodeInputStates.get(context.nodeId)!;
+            const invertSignal = settings.invertSignal ?? false;
+            const resolvedInputCount = resolveInputCountForGate(
+              gateType,
+              requestedInputCount,
+              actualInputCount
+            );
+            const inputKeys = Array.from({ length: resolvedInputCount }, (_, i) => resolveInputKey(i));
 
             try {
               // Mettre à jour l'état des entrées depuis le signal
               // On assume que le signal contient l'information de quelle entrée est activée
-              const inputKey = signal.data?.inputKey || 'input_a';
-              const inputValue = signal.data?.inputValue !== undefined 
-                ? Boolean(signal.data.inputValue) 
+              const inputKey = signal.data?.inputKey
+                || getSourceInputKey(context.nodeId, signal.sourceNodeId, inputKeys);
+              const inputValue = signal.data?.inputValue !== undefined
+                ? Boolean(signal.data.inputValue)
                 : true;
 
               inputStates.set(inputKey, inputValue);
@@ -127,11 +238,9 @@ const LogicGateNode: NodeDefinition = {
                 logger.debug(`[LogicGate Node ${context.nodeId}] NOT ${inputA} = ${result}`);
 
                 if (settings.resetAfterEval) {
-                  inputStates.clear();
+                  clearNodeState(context.nodeId);
                 }
 
-                // Appliquer l'inversion si nécessaire
-                const invertSignal = settings.invertSignal ?? false;
                 const finalResult = invertSignal ? !result : result;
 
                 return {
@@ -147,11 +256,6 @@ const LogicGateNode: NodeDefinition = {
               }
 
               // Pour les autres portes, vérifier qu'on a toutes les entrées
-              const inputCount = settings.inputCount || 2;
-              const inputKeys = Array.from({ length: inputCount }, (_, i) =>
-                i === 0 ? 'input_a' : i === 1 ? 'input_b' : `input_${String.fromCharCode(97 + i)}`
-              );
-
               const allInputsReceived = inputKeys.every((key) => inputStates.has(key));
 
               if (!allInputsReceived) {
@@ -177,6 +281,9 @@ const LogicGateNode: NodeDefinition = {
                 case 'XOR':
                   result = values.filter((v) => v).length === 1;
                   break;
+                case 'XNOR':
+                  result = values.filter((v) => v).length !== 1;
+                  break;
                 case 'NAND':
                   result = !values.every((v) => v);
                   break;
@@ -193,11 +300,10 @@ const LogicGateNode: NodeDefinition = {
 
               // Réinitialiser les entrées si demandé
               if (settings.resetAfterEval) {
-                inputStates.clear();
+                clearNodeState(context.nodeId);
               }
 
               // Appliquer l'inversion si nécessaire
-              const invertSignal = settings.invertSignal ?? false;
               const finalResult = invertSignal ? !result : result;
 
               return {
@@ -214,7 +320,7 @@ const LogicGateNode: NodeDefinition = {
             } catch (error) {
               logger.error(`[LogicGate Node ${context.nodeId}] Erreur:`, error);
               if (settings.resetAfterEval) {
-                inputStates.clear();
+                clearNodeState(context.nodeId);
               }
               return { propagate: false };
             }
@@ -239,17 +345,33 @@ const LogicGateNode: NodeDefinition = {
   // HTML PERSONNALISÉ
   // ============================================================================
   generateHTML: (settings: Record<string, any>) => {
-    const gateType = settings.gateType || 'AND';
-    // no invert control: UI simplified
-    const body = ``;
+    const gateType = normalizeGateType(settings.gateType);
+    const gateLabel =
+      SUPPORTED_LOGIC_GATES.find((gate) => gate.value === gateType)?.label || gateType;
+    const options = SUPPORTED_LOGIC_GATES.map((gate) => {
+      const selectedAttr = gate.value === gateType ? ' selected' : '';
+      return `<option value="${gate.value}"${selectedAttr}>${gate.label}</option>`;
+    }).join('');
+
+    const body = `
+      <div class="logic-gate-control">
+        <label class="logic-gate-label">Type de logique</label>
+        <div class="logic-gate-select-wrapper">
+          <select class="logic-gate-select" aria-label="Choisir la logique">
+            ${options}
+          </select>
+        </div>
+        <p class="logic-gate-helper">Sélectionnez l'opération appliquée aux entrées A/B.</p>
+      </div>
+    `;
 
     return buildNodeCardHTML({
       title: 'Logic Gate',
-      subtitle: gateType,
+      subtitle: gateLabel,
       iconName: 'settings_input_component',
       category: 'Condition',
       accentColor: LOGIC_GATE_ACCENT,
-      chips: [{ label: gateType, tone: 'info' }],
+      chips: [{ label: gateLabel, tone: 'info' }],
       body,
     });
   },
@@ -263,9 +385,11 @@ export default LogicGateNode;
 // Fonction helper pour réinitialiser l'état d'une node
 export function resetLogicGateState(nodeId: number): void {
   nodeInputStates.delete(nodeId);
+  nodeSourceKeyMap.delete(nodeId);
 }
 
 // Fonction helper pour réinitialiser tous les états
 export function resetAllLogicGateStates(): void {
   nodeInputStates.clear();
+  nodeSourceKeyMap.clear();
 }

@@ -6,13 +6,7 @@ const GRAPH_ANALYSIS_DISABLED = typeof window !== 'undefined'
     ? (!!window.ReactNativeWebView && !window.__ENABLE_GRAPH_ANALYTICS__)
     : false;
 
-if (GRAPH_ANALYSIS_DISABLED) {
-    window.DrawflowEditor.analyzeGraph = () => {};
-    window.DrawflowEditor.updateConnectedInputs = () => {};
-    window.DrawflowEditor.isGraphAnalysisDisabled = true;
-} else {
-
-function analyzeGraph() {
+function analyzeGraphImpl() {
     const data = window.DrawflowEditor.editor.drawflow.drawflow.Home.data;
     const nodeIds = Object.keys(data);
     
@@ -142,7 +136,7 @@ function analyzeGraph() {
     window.DrawflowEditor.refreshFlashlightStatus?.();
 }
 
-function updateConnectedInputs() {
+function updateConnectedInputsImpl() {
     const data = window.DrawflowEditor.editor.drawflow.drawflow.Home.data;
     
     document.querySelectorAll('.input').forEach(input => input.classList.remove('connected'));
@@ -164,16 +158,55 @@ function updateConnectedInputs() {
     window.DrawflowEditor.refreshFlashlightStatus?.();
 }
 
-window.DrawflowEditor.analyzeGraph = analyzeGraph;
-window.DrawflowEditor.updateConnectedInputs = updateConnectedInputs;
-
-['nodeCreated', 'nodeRemoved', 'connectionCreated', 'connectionRemoved'].forEach(event => {
-    window.DrawflowEditor.editor.on(event, () => setTimeout(() => {
-        window.DrawflowEditor.analyzeGraph();
-        window.DrawflowEditor.updateConnectedInputs();
-        window.DrawflowEditor.exportGraph();
-        window.DrawflowEditor.refreshFlashlightStatus?.();
-    }, 100));
-});
-
+if (GRAPH_ANALYSIS_DISABLED) {
+    window.DrawflowEditor.analyzeGraph = () => {};
+    window.DrawflowEditor.updateConnectedInputs = () => {};
+    window.DrawflowEditor.isGraphAnalysisDisabled = true;
+} else {
+    window.DrawflowEditor.analyzeGraph = analyzeGraphImpl;
+    window.DrawflowEditor.updateConnectedInputs = updateConnectedInputsImpl;
 }
+
+const EVENTS_TO_EXPORT = ['nodeCreated', 'nodeRemoved', 'connectionCreated', 'connectionRemoved'];
+
+function bindGraphExportListeners(editor) {
+    if (!editor || typeof editor.on !== 'function') {
+        return false;
+    }
+
+    if (window.DrawflowEditor.__graphExportListenersAttached) {
+        return true;
+    }
+
+    EVENTS_TO_EXPORT.forEach((event) => {
+        editor.on(event, () => {
+            setTimeout(() => {
+                if (!GRAPH_ANALYSIS_DISABLED) {
+                    window.DrawflowEditor.analyzeGraph();
+                    window.DrawflowEditor.updateConnectedInputs();
+                    window.DrawflowEditor.refreshFlashlightStatus?.();
+                }
+                window.DrawflowEditor.exportGraph?.();
+            }, 100);
+        });
+    });
+
+    window.DrawflowEditor.__graphExportListenersAttached = true;
+    return true;
+}
+
+function ensureGraphExportListeners(attempt = 0) {
+    const editor = window.DrawflowEditor?.editor;
+    if (bindGraphExportListeners(editor)) {
+        return;
+    }
+
+    if (attempt > 20) {
+        console.warn('[NodeEditorWeb] Impossible de lier les événements Drawflow - export automatique désactivé');
+        return;
+    }
+
+    setTimeout(() => ensureGraphExportListeners(attempt + 1), 150);
+}
+
+ensureGraphExportListeners();
