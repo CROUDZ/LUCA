@@ -20,7 +20,11 @@ interface RunProgramButtonProps {
   onRunProgram?: () => void | Promise<void>;
 }
 
-const RunProgramButton: React.FC<RunProgramButtonProps> = ({ triggerNodeIds, isReady, onRunProgram }) => {
+const RunProgramButton: React.FC<RunProgramButtonProps> = ({
+  triggerNodeIds,
+  isReady,
+  onRunProgram,
+}) => {
   const hasTriggers = triggerNodeIds.length > 0;
   const isEnabled = isReady && hasTriggers;
 
@@ -40,23 +44,27 @@ const RunProgramButton: React.FC<RunProgramButtonProps> = ({ triggerNodeIds, isR
   }, [theme]);
 
   // build component styles using theme values so they are available at render
-  const styles = useMemo(() => StyleSheet.create({
-    button: {
-      position: 'absolute',
-      bottom: 8,
-      left: 8,
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: stylesFromTheme.buttonBg,
-      alignItems: 'center',
-      justifyContent: 'center',
-      shadowColor: stylesFromTheme.buttonShadow,
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.3,
-      shadowRadius: 6,
-    },
-  }), [stylesFromTheme]);
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        button: {
+          position: 'absolute',
+          bottom: 8,
+          left: 8,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: stylesFromTheme.buttonBg,
+          alignItems: 'center',
+          justifyContent: 'center',
+          shadowColor: stylesFromTheme.buttonShadow,
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: 0.3,
+          shadowRadius: 6,
+        },
+      }),
+    [stylesFromTheme]
+  );
 
   const handlePress = () => {
     if (!isEnabled) return;
@@ -64,11 +72,9 @@ const RunProgramButton: React.FC<RunProgramButtonProps> = ({ triggerNodeIds, isR
   };
 
   if (isEnabled) {
-  return (
+    return (
       <TouchableOpacity
-        style={[
-          styles.button
-        ]}
+        style={[styles.button]}
         onPress={handlePress}
         disabled={!isEnabled}
         activeOpacity={0.7}

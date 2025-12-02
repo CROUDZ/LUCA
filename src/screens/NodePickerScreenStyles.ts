@@ -3,7 +3,10 @@ import type { AppTheme } from '../styles/theme';
 import { hexToRgba } from '../styles/colorUtils';
 
 export const createStyles = (theme: AppTheme) => {
-  const cardBackground = hexToRgba(theme.colors.backgroundSecondary, theme.mode === 'dark' ? 0.8 : 0.95);
+  const cardBackground = hexToRgba(
+    theme.colors.backgroundSecondary,
+    theme.mode === 'dark' ? 0.8 : 0.95
+  );
   const disabledBackground = hexToRgba(theme.colors.backgroundSecondary, 0.4);
 
   return StyleSheet.create({
@@ -83,7 +86,12 @@ export const createStyles = (theme: AppTheme) => {
     nodeTypeDescription: { fontSize: 12, color: theme.colors.textSecondary },
     emptyState: { alignItems: 'center', justifyContent: 'center', padding: 40, marginTop: 60 },
     emptyStateText: { fontSize: 16, fontWeight: '600', color: theme.colors.text, marginTop: 12 },
-    emptyStateSubtext: { fontSize: 14, color: theme.colors.textSecondary, marginTop: 4, textAlign: 'center' },
+    emptyStateSubtext: {
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+      marginTop: 4,
+      textAlign: 'center',
+    },
     nodeTypeItemDisabled: { opacity: 0.6, backgroundColor: disabledBackground },
     nodeTypeNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
     nodeTypeNameDisabled: { color: theme.colors.textSecondary },
@@ -110,7 +118,12 @@ export const createStyles = (theme: AppTheme) => {
     },
     badgeText: { fontSize: 11, fontWeight: '700', color: theme.colors.text, letterSpacing: 0.3 },
     badgeTextDisabled: { color: theme.colors.error },
-    nodeTypeLimitWarning: { fontSize: 11, color: theme.colors.warning, marginTop: 4, fontStyle: 'italic' },
+    nodeTypeLimitWarning: {
+      fontSize: 11,
+      color: theme.colors.warning,
+      marginTop: 4,
+      fontStyle: 'italic',
+    },
   });
 };
 

@@ -45,7 +45,7 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
 
       try {
         webRef.current.postMessage(JSON.stringify(message));
-  logger.debug('📤 Sent to WebView:', message.type);
+        logger.debug('📤 Sent to WebView:', message.type);
         return true;
       } catch (error) {
         logError(
@@ -65,7 +65,7 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
     (event: WebViewMessageEvent) => {
       try {
         const message: WebViewMessage = JSON.parse(event.nativeEvent.data);
-  logger.debug('📨 Message from WebView:', message.type);
+        logger.debug('📨 Message from WebView:', message.type);
 
         switch (message.type) {
           case 'READY':
@@ -149,7 +149,7 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
             : fallbackHtml,
         };
 
-  logger.debug('📦 Node data prepared:', nodeData);
+        logger.debug('📦 Node data prepared:', nodeData);
       }
 
       return sendMessage({

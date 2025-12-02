@@ -106,7 +106,10 @@ const VibrationNode: NodeDefinition = {
                     timestamp: Date.now(),
                   });
                 } catch (emitErr) {
-                  logger.warn(`[Vibration Node ${context.nodeId}] Impossible d'émettre l'évènement permission`, emitErr);
+                  logger.warn(
+                    `[Vibration Node ${context.nodeId}] Impossible d'émettre l'évènement permission`,
+                    emitErr
+                  );
                 }
 
                 return {
@@ -124,9 +127,10 @@ const VibrationNode: NodeDefinition = {
               // Déterminer le pattern de vibration
               switch (vibrationType) {
                 case 'simple': {
-                  const duration = context.inputs.duration !== undefined
-                    ? Number(context.inputs.duration)
-                    : (settings.duration || 400);
+                  const duration =
+                    context.inputs.duration !== undefined
+                      ? Number(context.inputs.duration)
+                      : settings.duration || 400;
                   Vibration.vibrate(duration);
                   break;
                 }
@@ -195,7 +199,7 @@ const VibrationNode: NodeDefinition = {
       warning: '⚠',
       error: '✗',
     };
-    
+
     return buildNodeCardHTML({
       title: 'Vibration',
       subtitle: typeLabels[vibrationType] || 'Simple',

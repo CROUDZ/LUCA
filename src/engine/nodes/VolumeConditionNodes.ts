@@ -1,5 +1,9 @@
 import { registerNode } from '../NodeRegistry';
-import type { NodeDefinition, NodeExecutionContext, NodeExecutionResult } from '../../types/node.types';
+import type {
+  NodeDefinition,
+  NodeExecutionContext,
+  NodeExecutionResult,
+} from '../../types/node.types';
 import { getSignalSystem, type Signal } from '../SignalSystem';
 import { logger } from '../../utils/logger';
 import { buildNodeCardHTML } from './templates/nodeCard';
@@ -71,7 +75,9 @@ function createExecute(direction: VolumeDirection): NodeDefinition['execute'] {
 
     if (autoEmit && !hasInputs) {
       autoEmitRegistry.set(context.nodeId, { direction, invert });
-      logger.info(`[VolumeConditionNode] Auto-emit enabled for node ${context.nodeId} (direction=${direction}, invert=${invert})`);
+      logger.info(
+        `[VolumeConditionNode] Auto-emit enabled for node ${context.nodeId} (direction=${direction}, invert=${invert})`
+      );
     } else {
       autoEmitRegistry.delete(context.nodeId);
     }
@@ -97,7 +103,10 @@ function createExecute(direction: VolumeDirection): NodeDefinition['execute'] {
   };
 }
 
-function buildHTML(options: { name: string; description: string; color: string; icon: string }, settings: Record<string, any>) {
+function buildHTML(
+  options: { name: string; description: string; color: string; icon: string },
+  settings: Record<string, any>
+) {
   const invertSignal = settings?.invertSignal ?? false;
   const autoEmit = settings?.autoEmitOnChange !== false;
   const subtitle = invertSignal ? 'Signal inversé' : 'Signal direct';
@@ -188,4 +197,8 @@ const VolumeDownConditionNode = createVolumeConditionNode({
 registerNode(VolumeUpConditionNode);
 registerNode(VolumeDownConditionNode);
 
-export { VolumeUpConditionNode, VolumeDownConditionNode, autoEmitRegistry as __TESTING_AUTO_EMIT_REGISTRY };
+export {
+  VolumeUpConditionNode,
+  VolumeDownConditionNode,
+  autoEmitRegistry as __TESTING_AUTO_EMIT_REGISTRY,
+};

@@ -21,17 +21,22 @@ async function emitPermissionEvent(eventName: string, payload: Record<string, an
  * Generic Android permission requester with safe fallbacks.
  * Returns a structured PermissionResult and emits events on changes.
  */
-export async function requestAndroidPermission(permission: string, rationale?: { title?: string; message?: string }): Promise<PermissionResult> {
+export async function requestAndroidPermission(
+  permission: string,
+  rationale?: { title?: string; message?: string }
+): Promise<PermissionResult> {
   try {
     if (!PermissionsAndroid || typeof PermissionsAndroid.request !== 'function') {
-      logger.warn('[Permissions] PermissionsAndroid API missing – assuming granted in this environment');
+      logger.warn(
+        '[Permissions] PermissionsAndroid API missing – assuming granted in this environment'
+      );
       await emitPermissionEvent('permission.granted', { permission, platform: Platform?.OS });
       return { granted: true, status: 'granted' };
     }
 
     const rationalePayload = (rationale ?? {
       title: 'Permission requise',
-      message: 'Cette application a besoin d\'une permission pour fonctionner correctement.',
+      message: "Cette application a besoin d'une permission pour fonctionner correctement.",
       buttonPositive: 'OK',
       buttonNegative: 'Refuser',
       buttonNeutral: 'Plus tard',
@@ -56,7 +61,10 @@ export async function requestAndroidPermission(permission: string, rationale?: {
     return { granted: false, status: 'denied' };
   } catch (err) {
     logger.warn('[Permissions] requestAndroidPermission error', err);
-    await emitPermissionEvent('permission.error', { permission, error: err instanceof Error ? err.message : String(err) });
+    await emitPermissionEvent('permission.error', {
+      permission,
+      error: err instanceof Error ? err.message : String(err),
+    });
     return { granted: false, status: 'error' };
   }
 }
@@ -67,7 +75,7 @@ export async function checkAndroidPermission(permission: string): Promise<boolea
       logger.debug('[Permissions] PermissionsAndroid.check unavailable – assuming granted');
       return true;
     }
-  const granted = await PermissionsAndroid.check(permission as any);
+    const granted = await PermissionsAndroid.check(permission as any);
     return !!granted;
   } catch (err) {
     logger.warn('[Permissions] checkAndroidPermission failed', err);
@@ -102,7 +110,11 @@ export async function ensureCameraPermission(): Promise<boolean> {
             { text: 'Ouvrir', onPress: () => Linking?.openSettings?.() },
           ]
         );
-        try { Linking?.openSettings?.(); } catch (e) { logger.warn('[Permissions] Linking.openSettings failed', e); }
+        try {
+          Linking?.openSettings?.();
+        } catch (e) {
+          logger.warn('[Permissions] Linking.openSettings failed', e);
+        }
       } catch (e) {
         logger.warn('[Permissions] Could not show NEVER_ASK alert', e);
       }
@@ -130,8 +142,9 @@ export async function ensureVibrationPermission(): Promise<boolean> {
   try {
     if (Platform?.OS !== 'android') return true;
 
-    const vibrationPerm = ((PermissionsAndroid.PERMISSIONS as Record<string, string> | undefined)?.VIBRATE)
-      ?? 'android.permission.VIBRATE';
+    const vibrationPerm =
+      (PermissionsAndroid.PERMISSIONS as Record<string, string> | undefined)?.VIBRATE ??
+      'android.permission.VIBRATE';
     const alreadyGranted = await checkAndroidPermission(vibrationPerm);
     if (alreadyGranted) return true;
 
@@ -172,8 +185,9 @@ export async function ensureVibrationPermission(): Promise<boolean> {
 export async function hasVibrationPermission(): Promise<boolean> {
   try {
     if (Platform?.OS !== 'android') return true;
-    const vibrationPerm = ((PermissionsAndroid.PERMISSIONS as Record<string, string> | undefined)?.VIBRATE)
-      ?? 'android.permission.VIBRATE';
+    const vibrationPerm =
+      (PermissionsAndroid.PERMISSIONS as Record<string, string> | undefined)?.VIBRATE ??
+      'android.permission.VIBRATE';
     return await checkAndroidPermission(vibrationPerm);
   } catch (err) {
     logger.warn('[Permissions] hasVibrationPermission failed', err);

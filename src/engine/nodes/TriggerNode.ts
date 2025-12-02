@@ -34,7 +34,7 @@ export function triggerNode(nodeId: number, data?: any): void {
 
   const signalSystem = getSignalSystem();
   if (!signalSystem) {
-  logger.error('[Trigger] Signal system not initialized');
+    logger.error('[Trigger] Signal system not initialized');
     return;
   }
 
@@ -50,7 +50,7 @@ export function triggerAll(data?: any): void {
 
   const signalSystem = getSignalSystem();
   if (!signalSystem) {
-  logger.error('[Trigger] Signal system not initialized');
+    logger.error('[Trigger] Signal system not initialized');
     return;
   }
 

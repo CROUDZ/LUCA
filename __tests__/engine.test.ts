@@ -17,26 +17,26 @@ const testGraph: DrawflowExport = {
   drawflow: {
     Home: {
       data: {
-        "1": {
+        '1': {
           id: 1,
-          name: "Test Trigger",
-          data: { type: "input.trigger" },
-          class: "trigger-node",
-          html: "<div>Test Trigger</div>",
+          name: 'Test Trigger',
+          data: { type: 'input.trigger' },
+          class: 'trigger-node',
+          html: '<div>Test Trigger</div>',
           typenode: false,
           inputs: {},
-          outputs: { output_1: { connections: [{ node: "2", output: "input_1" }] } },
+          outputs: { output_1: { connections: [{ node: '2', output: 'input_1' }] } },
           pos_x: 100,
           pos_y: 100,
         },
-        "2": {
+        '2': {
           id: 2,
-          name: "Test Action",
-          data: { type: "action.log" },
-          class: "action-node",
-          html: "<div>Test Action</div>",
+          name: 'Test Action',
+          data: { type: 'action.log' },
+          class: 'action-node',
+          html: '<div>Test Action</div>',
           typenode: false,
-          inputs: { input_1: { connections: [{ node: "1", input: "output_1" }] } },
+          inputs: { input_1: { connections: [{ node: '1', input: 'output_1' }] } },
           outputs: {},
           pos_x: 300,
           pos_y: 100,

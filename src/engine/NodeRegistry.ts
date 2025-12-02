@@ -24,7 +24,7 @@ class NodeRegistry {
       this.categories.add(definition.category);
     }
 
-  logger.debug(`✅ Registered node: ${definition.id} (${definition.name})`);
+    logger.debug(`✅ Registered node: ${definition.id} (${definition.name})`);
   }
 
   /**
@@ -170,15 +170,15 @@ export function loadAllNodes(): void {
     require('./nodes/index');
 
     const stats = nodeRegistry.getStats();
-  logger.debug(`✅ Loaded ${stats.total} nodes across ${stats.categories} categories`);
-  logger.debug('📊 Nodes by category:', stats.byCategory);
+    logger.debug(`✅ Loaded ${stats.total} nodes across ${stats.categories} categories`);
+    logger.debug('📊 Nodes by category:', stats.byCategory);
 
     // Afficher toutes les nodes chargées
     const allNodes = nodeRegistry.getAllNodes();
-  logger.debug('📝 Nodes loaded:', allNodes.map((n) => n.id).join(', '));
+    logger.debug('📝 Nodes loaded:', allNodes.map((n) => n.id).join(', '));
   } catch (error) {
-  logger.error('❌ Error loading nodes:', error);
-  logger.error('Error details:', error);
+    logger.error('❌ Error loading nodes:', error);
+    logger.error('Error details:', error);
   }
 }
 

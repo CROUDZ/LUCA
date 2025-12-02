@@ -18,7 +18,10 @@ import type { AppStateStatus, NativeEventSubscription } from 'react-native';
 
 const ACTIVITY_WAIT_TIMEOUT_MS = 2000;
 
-async function waitForActiveAppState(nodeId: number, timeoutMs = ACTIVITY_WAIT_TIMEOUT_MS): Promise<boolean> {
+async function waitForActiveAppState(
+  nodeId: number,
+  timeoutMs = ACTIVITY_WAIT_TIMEOUT_MS
+): Promise<boolean> {
   try {
     if (!AppState?.addEventListener) {
       return true;
@@ -30,7 +33,9 @@ async function waitForActiveAppState(nodeId: number, timeoutMs = ACTIVITY_WAIT_T
       return true;
     }
 
-    logger.debug(`[Confirm Node ${nodeId}] AppState=${currentState} → attente d'une activité active avant d'afficher l'alerte`);
+    logger.debug(
+      `[Confirm Node ${nodeId}] AppState=${currentState} → attente d'une activité active avant d'afficher l'alerte`
+    );
 
     return await new Promise<boolean>((resolve) => {
       let resolved = false;
@@ -63,7 +68,10 @@ async function waitForActiveAppState(nodeId: number, timeoutMs = ACTIVITY_WAIT_T
       subscription = AppState.addEventListener('change', handleChange);
     });
   } catch (error) {
-    logger.warn(`[Confirm Node ${nodeId}] Impossible de vérifier AppState, tentative d'afficher l'alerte quand même`, error);
+    logger.warn(
+      `[Confirm Node ${nodeId}] Impossible de vérifier AppState, tentative d'afficher l'alerte quand même`,
+      error
+    );
     return true;
   }
 }
@@ -77,24 +85,25 @@ function runAfterUIReady(callback: () => void) {
   callback();
 }
 
-async function promptConfirmation(
-  {
-    question,
-    confirmLabel,
-    cancelLabel,
-    signal,
+async function promptConfirmation({
+  question,
+  confirmLabel,
+  cancelLabel,
+  signal,
+  nodeId,
+  waitTimeoutMs,
+}: {
+  question: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  signal: Signal;
+  nodeId: number;
+  waitTimeoutMs?: number;
+}): Promise<SignalPropagation> {
+  const canShowAlert = await waitForActiveAppState(
     nodeId,
-    waitTimeoutMs,
-  }: {
-    question: string;
-    confirmLabel: string;
-    cancelLabel: string;
-    signal: Signal;
-    nodeId: number;
-    waitTimeoutMs?: number;
-  }
-): Promise<SignalPropagation> {
-  const canShowAlert = await waitForActiveAppState(nodeId, waitTimeoutMs ?? ACTIVITY_WAIT_TIMEOUT_MS);
+    waitTimeoutMs ?? ACTIVITY_WAIT_TIMEOUT_MS
+  );
 
   if (!canShowAlert) {
     return { propagate: false, data: signal.data };
@@ -110,7 +119,8 @@ async function promptConfirmation(
             { text: cancelLabel, onPress: () => resolve({ propagate: false, data: signal.data }) },
             {
               text: confirmLabel,
-              onPress: () => resolve({ propagate: true, data: { ...signal.data, confirmed: true } }),
+              onPress: () =>
+                resolve({ propagate: true, data: { ...signal.data, confirmed: true } }),
             },
           ],
           { cancelable: true }
@@ -136,14 +146,25 @@ const ConfirmNode: NodeDefinition = {
   color: '#3F51B5',
 
   inputs: [
-    { name: 'signal_in', type: 'any', label: 'Signal In', description: 'Signal d\'entrée', required: false },
+    {
+      name: 'signal_in',
+      type: 'any',
+      label: 'Signal In',
+      description: "Signal d'entrée",
+      required: false,
+    },
   ],
   outputs: [
-    { name: 'signal_out', type: 'any', label: 'Signal Out', description: 'Signal de sortie en cas de confirmation' },
+    {
+      name: 'signal_out',
+      type: 'any',
+      label: 'Signal Out',
+      description: 'Signal de sortie en cas de confirmation',
+    },
   ],
 
   defaultSettings: {
-    question: "Continuer l’itération ?",
+    question: 'Continuer l’itération ?',
     confirmLabel: 'Oui',
     cancelLabel: 'Non',
     autoConfirm: false, // pour tests automatisés on peut forcer

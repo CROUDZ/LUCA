@@ -10,10 +10,20 @@ describe('FlashLight event integration', () => {
     // Simple graph: EventListener -> Ping
     const graph = {
       nodes: new Map([
-        [1, { id: 1, name: 'EventListener', type: 'events.listener', data: { eventName: 'flashlight.changed' }, inputs: [], outputs: [2] }],
+        [
+          1,
+          {
+            id: 1,
+            name: 'EventListener',
+            type: 'events.listener',
+            data: { eventName: 'flashlight.changed' },
+            inputs: [],
+            outputs: [2],
+          },
+        ],
         [2, { id: 2, name: 'Ping', type: 'action.ping', data: {}, inputs: [1], outputs: [] }],
       ]),
-      edges: [ { from: 1, to: 2 } ],
+      edges: [{ from: 1, to: 2 }],
     };
 
     initializeSignalSystem(graph);
@@ -48,7 +58,17 @@ describe('FlashLight event integration', () => {
 
     const graph = {
       nodes: new Map([
-        [1, { id: 1, name: 'FlashLight', type: 'condition.flashlight', data: { autoEmitOnChange: true }, inputs: [], outputs: [2] }],
+        [
+          1,
+          {
+            id: 1,
+            name: 'FlashLight',
+            type: 'condition.flashlight',
+            data: { autoEmitOnChange: true },
+            inputs: [],
+            outputs: [2],
+          },
+        ],
         [2, { id: 2, name: 'Ping', type: 'action.ping', data: {}, inputs: [1], outputs: [] }],
       ]),
       edges: [{ from: 1, to: 2 }],

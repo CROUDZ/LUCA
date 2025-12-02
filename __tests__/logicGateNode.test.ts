@@ -130,7 +130,10 @@ function buildSingleInputGraph(gateType: string): Graph {
   };
 }
 
-async function setupGraph(gateType: string, builder: GraphBuilder = buildLogicGateGraph): Promise<void> {
+async function setupGraph(
+  gateType: string,
+  builder: GraphBuilder = buildLogicGateGraph
+): Promise<void> {
   const graph = builder(gateType);
   initializeSignalSystem(graph);
   loadAllNodes();

@@ -11,7 +11,10 @@ import { AppThemeProvider } from './src/styles/theme';
 // Import de toutes les nodes via l'index
 // Cela charge automatiquement DemoNode, FlashLightConditionNode, PingNode et TriggerNode
 import './src/engine/nodes';
-import { startMonitoringNativeTorch, stopMonitoringNativeTorch } from './src/engine/nodes/FlashLightConditionNode';
+import {
+  startMonitoringNativeTorch,
+  stopMonitoringNativeTorch,
+} from './src/engine/nodes/FlashLightConditionNode';
 
 function App() {
   // Afficher les stats des nodes au démarrage
@@ -22,7 +25,13 @@ function App() {
       const stats = nodeRegistry.getStats();
       logger.debug(`✅ Loaded ${stats.total} nodes across ${stats.categories} categories`);
       logger.debug('📊 Nodes by category:', stats.byCategory);
-      logger.debug('📝 All nodes:', nodeRegistry.getAllNodes().map((n) => n.name).join(', '));
+      logger.debug(
+        '📝 All nodes:',
+        nodeRegistry
+          .getAllNodes()
+          .map((n) => n.name)
+          .join(', ')
+      );
 
       // Afficher les détails de chaque node
       const allNodes = nodeRegistry.getAllNodes();

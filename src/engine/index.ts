@@ -1,6 +1,6 @@
 /**
  * Export centralisé du système de signaux
- * 
+ *
  * Ce fichier réexporte tous les éléments nécessaires pour utiliser
  * le système de signaux et les nodes dans l'application.
  */
@@ -59,19 +59,19 @@ export {
   // Trigger
   triggerNode,
   triggerAll,
-  
+
   // FlashLight
   setFlashlightState,
   getFlashlightState,
-  
+
   // Ping
   getPingCount,
   resetPingCount,
-  
+
   // Logic Gate
   resetLogicGateState,
   resetAllLogicGateStates,
-  
+
   // Event Listener
   unsubscribeEventListener,
   unsubscribeAllEventListeners,

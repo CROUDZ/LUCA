@@ -144,14 +144,20 @@ const IfElseNode: NodeDefinition = {
       return 'Nom de variable manquant pour la condition';
     }
 
-    if (conditionType === 'comparison' && (settings.comparisonValue === undefined || settings.comparisonOperator === undefined)) {
+    if (
+      conditionType === 'comparison' &&
+      (settings.comparisonValue === undefined || settings.comparisonOperator === undefined)
+    ) {
       return 'Opérateur/valeur de comparaison manquant';
     }
 
     // Basic safety check for the expression
     if (conditionType === 'expression' && !isExpressionSafe(settings.expression)) {
-      logger.warn(`[IfElse Node ${context.nodeId}] Unsafe expression blocked:`, settings.expression);
-      return 'L\'expression contient des tokens non sûrs';
+      logger.warn(
+        `[IfElse Node ${context.nodeId}] Unsafe expression blocked:`,
+        settings.expression
+      );
+      return "L'expression contient des tokens non sûrs";
     }
 
     return true;
@@ -178,13 +184,13 @@ const IfElseNode: NodeDefinition = {
               } else if (settings.conditionType === 'variable' && settings.variableName) {
                 testValue = signalSystem.getVariable(settings.variableName);
               } else if (settings.conditionType === 'expression' && settings.expression) {
-                  if (!isExpressionSafe(settings.expression)) {
-                    throw new Error('Expression contains disallowed tokens');
-                  }
-                  // Evaluate safely in the simplest way we can in this environment
-                  const variables = signalSystem.getAllVariables();
-                  testValue = safeEvalExpression(settings.expression, variables, signal);
-                  conditionResult = Boolean(testValue);
+                if (!isExpressionSafe(settings.expression)) {
+                  throw new Error('Expression contains disallowed tokens');
+                }
+                // Evaluate safely in the simplest way we can in this environment
+                const variables = signalSystem.getAllVariables();
+                testValue = safeEvalExpression(settings.expression, variables, signal);
+                conditionResult = Boolean(testValue);
               } else {
                 testValue = signal.data;
               }
@@ -238,7 +244,9 @@ const IfElseNode: NodeDefinition = {
               const invertSignal = settings.invertSignal ?? false;
               const finalResult = invertSignal ? !conditionResult : conditionResult;
               // Debug after finalizing result
-              logger.debug(`[IfElse Node ${context.nodeId}] testValue=${testValue} conditionResult=${conditionResult} invert=${invertSignal} finalResult=${finalResult}`);
+              logger.debug(
+                `[IfElse Node ${context.nodeId}] testValue=${testValue} conditionResult=${conditionResult} invert=${invertSignal} finalResult=${finalResult}`
+              );
 
               // Obtenir les IDs des nodes de sortie
               // eslint-disable-next-line dot-notation
@@ -321,8 +329,8 @@ const IfElseNode: NodeDefinition = {
       iconName: 'call_split',
       category: 'Condition',
       accentColor: IF_ELSE_NODE_ACCENT,
-  chips: [{ label: type.toUpperCase(), tone: 'info' }],
-  body,
+      chips: [{ label: type.toUpperCase(), tone: 'info' }],
+      body,
     });
   },
 };

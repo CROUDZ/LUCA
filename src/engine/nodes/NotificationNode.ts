@@ -173,7 +173,12 @@ const NotificationNode: NodeDefinition = {
       iconName: 'notifications',
       category: 'Action',
       accentColor: NOTIFICATION_NODE_ACCENT,
-      chips: [{ label: notificationType.toUpperCase(), tone: notificationType === 'alert' ? 'warning' : 'info' }],
+      chips: [
+        {
+          label: notificationType.toUpperCase(),
+          tone: notificationType === 'alert' ? 'warning' : 'info',
+        },
+      ],
       description: 'Affiche un message natif ou console selon le mode choisi.',
     });
   },

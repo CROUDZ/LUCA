@@ -378,52 +378,6 @@ body {
             border-color: var(--node-anchor-connected-border, rgba(var(--editor-brand-rgb), 0.85));
             background: var(--node-anchor-active, rgba(var(--editor-brand-soft-rgb), 0.45));
         }
-        /* Debug: invert controls removed from templates; styles cleaned */
-
-        .zoom-controls {
-                    position: absolute;
-                    right: 16px;
-                    bottom: 24px;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 10px;
-                    padding: 10px;
-                    background: rgba(var(--luca-background-muted-rgb, 18, 20, 43), 0.88);
-                    border: 1px solid rgba(var(--editor-brand-soft-rgb), 0.2);
-                    border-radius: 14px;
-                    box-shadow: 0 8px 22px rgba(var(--luca-shadow-dark-rgb, 4, 2, 12), 0.35);
-                    pointer-events: auto;
-                    z-index: 9999;
-                }
-
-        .zoom-controls-buttons {
-                    display: flex;
-                    gap: 8px;
-                }
-
-        .zoom-control-btn {
-                    width: 42px;
-                    height: 42px;
-                    border-radius: 12px;
-                    border: 1px solid rgba(var(--editor-brand-soft-rgb), 0.4);
-                    background: rgba(var(--editor-brand-contrast-rgb, 76, 29, 149), 0.55);
-                    color: var(--editor-text-primary, #f9fafb);
-                    font-size: 17px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: background 0.15s ease;
-                }
-
-        .zoom-control-btn:active {
-                    transform: scale(0.96);
-                }
-
-        .zoom-indicator {
-                    text-align: center;
-                    font-size: 12px;
-                    color: var(--editor-text-secondary, #cbd5f5);
-                    letter-spacing: 0.08em;
-                }
 
 .drawflow .connection .main-path {
     fill: none;
@@ -692,18 +646,6 @@ body {
         height: 28px;
         font-size: 18px;
     }
-
-    .zoom-controls {
-        right: 12px;
-        bottom: 16px;
-        padding: 10px;
-    }
-
-    .zoom-control-btn {
-        width: 40px;
-        height: 40px;
-        font-size: 16px;
-    }
 }
 
 @media (max-width: 600px) {
@@ -776,25 +718,6 @@ body {
     .node-info-item {
         padding: 8px 10px;
     }
-
-    .zoom-controls {
-        position: fixed;
-        left: 50%;
-        bottom: 12px;
-        transform: translateX(-50%);
-        flex-direction: row;
-        gap: 12px;
-        padding: 10px 12px;
-    }
-
-    .zoom-controls-buttons {
-        gap: 6px;
-    }
-
-    .zoom-control-btn {
-        width: 38px;
-        height: 38px;
-    }
 }
 
 @media (max-width: 520px) {
@@ -855,17 +778,6 @@ body {
     .node-card__footer {
         font-size: 10px;
         letter-spacing: 0.08em;
-    }
-
-    .zoom-controls {
-        gap: 8px;
-        padding: 8px 10px;
-    }
-
-    .zoom-control-btn {
-        width: 34px;
-        height: 34px;
-        font-size: 14px;
     }
 }
 

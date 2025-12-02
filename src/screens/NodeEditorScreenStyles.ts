@@ -66,8 +66,8 @@ export const createStyles = (theme: AppTheme) => {
     buttonText: { color: theme.colors.text, fontSize: 13, fontWeight: '600' },
     fabButton: {
       position: 'absolute',
-      bottom: 10,
-      right: 10,
+      bottom: 8,
+      right: 8,
       width: 56,
       height: 56,
       borderRadius: 28,

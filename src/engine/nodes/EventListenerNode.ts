@@ -51,7 +51,7 @@ const EventListenerNode: NodeDefinition = {
   // ============================================================================
   id: 'events.listener',
   name: 'Event Listener',
-  description: "Écoute un événement du SignalSystem et propage un signal",
+  description: 'Écoute un événement du SignalSystem et propage un signal',
   category: 'Events',
 
   // ============================================================================
@@ -131,9 +131,10 @@ const EventListenerNode: NodeDefinition = {
             `[EventListener ${context.nodeId}] Événement reçu (${eventName}) #${triggerCount}`
           );
 
-          const mergedPayload = mergePayload && eventData && typeof eventData === 'object'
-            ? { ...eventData }
-            : undefined;
+          const mergedPayload =
+            mergePayload && eventData && typeof eventData === 'object'
+              ? { ...eventData }
+              : undefined;
 
           await signalSystem.emitSignal(context.nodeId, {
             eventName,
@@ -199,7 +200,7 @@ const EventListenerNode: NodeDefinition = {
       iconName: 'sensors',
       category: 'Events',
       accentColor: EVENT_LISTENER_ACCENT,
-      description: 'Propage un signal lorsqu\'un événement natif est émis.',
+      description: "Propage un signal lorsqu'un événement natif est émis.",
     });
   },
 };

@@ -1,8 +1,16 @@
 import { registerNode } from '../NodeRegistry';
-import type { NodeDefinition, NodeExecutionContext, NodeExecutionResult } from '../../types/node.types';
+import type {
+  NodeDefinition,
+  NodeExecutionContext,
+  NodeExecutionResult,
+} from '../../types/node.types';
 import { getSignalSystem, type Signal } from '../SignalSystem';
 import { logger } from '../../utils/logger';
-import { adjustSystemVolume, getVolumeInfo, type VolumeDirection } from '../../utils/volumeController';
+import {
+  adjustSystemVolume,
+  getVolumeInfo,
+  type VolumeDirection,
+} from '../../utils/volumeController';
 
 function createVolumeActionNode(options: {
   id: string;
@@ -48,7 +56,8 @@ function createVolumeActionNode(options: {
       }
 
       const stepsSetting = Number(context.settings?.steps ?? 1);
-      const steps = Number.isFinite(stepsSetting) && stepsSetting > 0 ? Math.round(stepsSetting) : 1;
+      const steps =
+        Number.isFinite(stepsSetting) && stepsSetting > 0 ? Math.round(stepsSetting) : 1;
       const showUI = context.settings?.showSystemUI === true;
       const propagateSignal = context.settings?.propagateSignal !== false;
 
@@ -96,15 +105,15 @@ function createVolumeActionNode(options: {
           </div>
           <div class="node-info-item">
             <span class="node-info-label">UI système</span>
-            <span class="node-info-badge ${showUI ? 'node-info-badge--success' : 'node-info-badge--warning'}">${
-              showUI ? 'Visible' : 'Masquée'
-            }</span>
+            <span class="node-info-badge ${
+              showUI ? 'node-info-badge--success' : 'node-info-badge--warning'
+            }">${showUI ? 'Visible' : 'Masquée'}</span>
           </div>
           <div class="node-info-item">
             <span class="node-info-label">Propagation</span>
-            <span class="node-info-badge ${propagateSignal ? 'node-info-badge--success' : 'node-info-badge--warning'}">${
-              propagateSignal ? 'Active' : 'Bloquée'
-            }</span>
+            <span class="node-info-badge ${
+              propagateSignal ? 'node-info-badge--success' : 'node-info-badge--warning'
+            }">${propagateSignal ? 'Active' : 'Bloquée'}</span>
           </div>
         </div>
       `;

@@ -1,4 +1,9 @@
-import { DeviceEventEmitter, NativeModules, Platform, type EmitterSubscription } from 'react-native';
+import {
+  DeviceEventEmitter,
+  NativeModules,
+  Platform,
+  type EmitterSubscription,
+} from 'react-native';
 import { logger } from './logger';
 
 export type VolumeDirection = 'up' | 'down';
@@ -25,7 +30,11 @@ export interface VolumeInfo {
 type ButtonListener = (event: VolumeButtonEvent) => void;
 
 type VolumeNativeModuleShape = {
-  adjustVolume?: (direction: VolumeDirection, steps: number, showUI: boolean) => Promise<VolumeInfo>;
+  adjustVolume?: (
+    direction: VolumeDirection,
+    steps: number,
+    showUI: boolean
+  ) => Promise<VolumeInfo>;
   setVolume?: (level: number, showUI: boolean) => Promise<VolumeInfo>;
   getVolumeInfo?: () => Promise<VolumeInfo>;
 };
@@ -129,7 +138,10 @@ function ensureNativeListeners() {
     return;
   }
 
-  buttonSubscription = DeviceEventEmitter.addListener('hardware.volume.button', handleNativeButtonEvent);
+  buttonSubscription = DeviceEventEmitter.addListener(
+    'hardware.volume.button',
+    handleNativeButtonEvent
+  );
   levelSubscription = DeviceEventEmitter.addListener('volume.level.changed', handleLevelChange);
 }
 
@@ -178,7 +190,10 @@ export async function adjustSystemVolume(
   }
 }
 
-export async function setSystemVolume(level: number, showUI: boolean = false): Promise<VolumeInfo | null> {
+export async function setSystemVolume(
+  level: number,
+  showUI: boolean = false
+): Promise<VolumeInfo | null> {
   if (!VolumeNativeModule?.setVolume) {
     if (!warnedMissingModule) {
       logger.warn('[VolumeService] setVolume unavailable: VolumeModule missing');

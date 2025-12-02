@@ -44,19 +44,19 @@ describe('Signal System', () => {
       ],
     };
 
-  // Initialiser le système
-  initializeSignalSystem(graph);
+    // Initialiser le système
+    initializeSignalSystem(graph);
 
-  // Charger toutes les nodes et exécuter le graphe pour que les handlers
-  // des nodes (ex: FlashLight, Ping) s'enregistrent dans le SignalSystem.
-  const { loadAllNodes } = require('../src/engine/NodeRegistry');
-  loadAllNodes();
+    // Charger toutes les nodes et exécuter le graphe pour que les handlers
+    // des nodes (ex: FlashLight, Ping) s'enregistrent dans le SignalSystem.
+    const { loadAllNodes } = require('../src/engine/NodeRegistry');
+    loadAllNodes();
 
-  const { executeGraph } = require('../src/engine/engine');
-  // Exécuter le graphe afin d'enregistrer les handlers des nodes
-  // (les nodes font des registerHandler dans leur exécution)
-  // Nous ignorons le résultat d'évaluation dans ces tests
-  await executeGraph(graph);
+    const { executeGraph } = require('../src/engine/engine');
+    // Exécuter le graphe afin d'enregistrer les handlers des nodes
+    // (les nodes font des registerHandler dans leur exécution)
+    // Nous ignorons le résultat d'évaluation dans ces tests
+    await executeGraph(graph);
     resetPingCount();
   });
 
@@ -65,8 +65,8 @@ describe('Signal System', () => {
   });
 
   it('should propagate signal when flashlight is on', async () => {
-  // Activer la lampe torche
-  await setFlashlightState(true);
+    // Activer la lampe torche
+    await setFlashlightState(true);
 
     // Déclencher le signal
     triggerNode(1, { test: 'data' });
@@ -80,7 +80,7 @@ describe('Signal System', () => {
 
   it('should block signal when flashlight is off', async () => {
     // Désactiver la lampe torche
-  await setFlashlightState(false);
+    await setFlashlightState(false);
 
     // Déclencher le signal
     triggerNode(1, { test: 'data' });
@@ -93,7 +93,7 @@ describe('Signal System', () => {
   });
 
   it('should handle multiple signals', async () => {
-  await setFlashlightState(true);
+    await setFlashlightState(true);
 
     // Déclencher plusieurs signaux
     triggerNode(1);

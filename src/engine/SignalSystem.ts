@@ -82,13 +82,13 @@ export class SignalSystem {
   private handlers: Map<number, SignalHandler> = new Map();
   private signalQueue: Signal[] = [];
   private isProcessing: boolean = false;
-  
+
   // Contexte d'exécution global
   private globalContext: ExecutionContext;
-  
+
   // Système d'événements
   private eventHandlers: Map<string, EventSubscription[]> = new Map();
-  
+
   // Statistiques et métriques
   private stats: {
     totalSignals: number;
@@ -106,7 +106,7 @@ export class SignalSystem {
     this.graph = graph;
     this.globalContext = this.createNewContext();
   }
-  
+
   /**
    * Créer un nouveau contexte d'exécution
    */
@@ -118,14 +118,14 @@ export class SignalSystem {
       metadata: new Map(),
     };
   }
-  
+
   /**
    * Obtenir le contexte global
    */
   getContext(): ExecutionContext {
     return this.globalContext;
   }
-  
+
   /**
    * Définir une variable dans le contexte global
    */
@@ -133,28 +133,28 @@ export class SignalSystem {
     this.globalContext.variables.set(name, value);
     logger.debug(`[SignalSystem] Variable définie: ${name} =`, value);
   }
-  
+
   /**
    * Obtenir une variable du contexte global
    */
   getVariable(name: string, defaultValue?: any): any {
     return this.globalContext.variables.get(name) ?? defaultValue;
   }
-  
+
   /**
    * Vérifier si une variable existe
    */
   hasVariable(name: string): boolean {
     return this.globalContext.variables.has(name);
   }
-  
+
   /**
    * Supprimer une variable
    */
   deleteVariable(name: string): boolean {
     return this.globalContext.variables.delete(name);
   }
-  
+
   /**
    * Obtenir toutes les variables
    */
@@ -165,20 +165,23 @@ export class SignalSystem {
     });
     return vars;
   }
-  
+
   /**
    * Émettre un événement personnalisé
    */
   emitEvent(eventName: string, data?: any): void {
     const handlers = this.eventHandlers.get(eventName);
-  // Always record the last emitted event for diagnostics even if there
-  // are no subscribers. Tests rely on this metric to assert emission.
-  this.stats.lastEmittedEvent = eventName;
+    // Always record the last emitted event for diagnostics even if there
+    // are no subscribers. Tests rely on this metric to assert emission.
+    this.stats.lastEmittedEvent = eventName;
 
-  if (handlers && handlers.length > 0) {
+    if (handlers && handlers.length > 0) {
       // Use info for normal event emissions to avoid LogBox stack traces
       // for everyday event traffic. Keep warn/error for real problems.
-      logger.info(`[SignalSystem] Événement émis: ${eventName} (subscribers: ${handlers.length})`, data);
+      logger.info(
+        `[SignalSystem] Événement émis: ${eventName} (subscribers: ${handlers.length})`,
+        data
+      );
       handlers.forEach((subscription) => {
         try {
           Promise.resolve(subscription.handler(data));
@@ -189,10 +192,10 @@ export class SignalSystem {
           );
         }
       });
-  // lastEmittedEvent set above when event emitted
+      // lastEmittedEvent set above when event emitted
     }
   }
-  
+
   /**
    * S'abonner à un événement
    */
@@ -200,14 +203,18 @@ export class SignalSystem {
     if (!this.eventHandlers.has(eventName)) {
       this.eventHandlers.set(eventName, []);
     }
-    
+
     const subscription: EventSubscription = { eventName, handler, nodeId };
     this.eventHandlers.get(eventName)!.push(subscription);
-    
-  // Node subscription is a normal operation — keep it at info level to avoid
-  // surfacing a full stack trace in development tools.
-  logger.info(`[SignalSystem] Node ${nodeId} abonnée à l'événement: ${eventName} (total subscribers: ${this.eventHandlers.get(eventName)!.length})`);
-    
+
+    // Node subscription is a normal operation — keep it at info level to avoid
+    // surfacing a full stack trace in development tools.
+    logger.info(
+      `[SignalSystem] Node ${nodeId} abonnée à l'événement: ${eventName} (total subscribers: ${
+        this.eventHandlers.get(eventName)!.length
+      })`
+    );
+
     // Retourner une fonction de désabonnement
     return () => {
       const handlers = this.eventHandlers.get(eventName);
@@ -219,7 +226,7 @@ export class SignalSystem {
       }
     };
   }
-  
+
   /**
    * Désabonner toutes les souscriptions d'une node
    */
@@ -239,9 +246,11 @@ export class SignalSystem {
    */
   registerHandler(nodeId: number, handler: SignalHandler): void {
     this.handlers.set(nodeId, handler);
-  // Handlers registration is expected during node initialization; use info
-  // level so LogBox does not show an error stack for routine operations.
-  logger.info(`[SignalSystem] Handler enregistré pour node ${nodeId}. Total handlers: ${this.handlers.size}`);
+    // Handlers registration is expected during node initialization; use info
+    // level so LogBox does not show an error stack for routine operations.
+    logger.info(
+      `[SignalSystem] Handler enregistré pour node ${nodeId}. Total handlers: ${this.handlers.size}`
+    );
   }
 
   /**
@@ -263,7 +272,7 @@ export class SignalSystem {
       context: context || this.globalContext,
     };
 
-  logger.debug(`[SignalSystem] Signal émis depuis node ${sourceNodeId}`, signal);
+    logger.debug(`[SignalSystem] Signal émis depuis node ${sourceNodeId}`, signal);
     this.stats.totalSignals++;
 
     // Ajouter à la queue
@@ -279,7 +288,11 @@ export class SignalSystem {
    * Émettre un signal immédiatement sans passer par la queue (synchronous propagation)
    * Utile pour des sources haute fréquence qui ne doivent pas créer une longue file d'attente.
    */
-  async emitSignalImmediate(sourceNodeId: number, data?: any, context?: ExecutionContext): Promise<void> {
+  async emitSignalImmediate(
+    sourceNodeId: number,
+    data?: any,
+    context?: ExecutionContext
+  ): Promise<void> {
     const signal: Signal = {
       id: `signal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       sourceNodeId,
@@ -316,7 +329,11 @@ export class SignalSystem {
   /**
    * Propager un signal à travers le graphe
    */
-  private async propagateSignal(signal: Signal, currentNodeId: number, allowedOutputs?: number[]): Promise<void> {
+  private async propagateSignal(
+    signal: Signal,
+    currentNodeId: number,
+    allowedOutputs?: number[]
+  ): Promise<void> {
     const node = this.graph.nodes.get(currentNodeId);
     if (!node) return;
 
@@ -340,15 +357,14 @@ export class SignalSystem {
           logger.debug(`[SignalSystem] Propagation du signal vers node ${outputNodeId}`);
 
           const startTime = Date.now();
-          
+
           // Exécuter le handler
           const result = await Promise.resolve(handler(signal));
 
           const executionTime = Date.now() - startTime;
-          
+
           // Mettre à jour les statistiques
-          this.stats.averageExecutionTime = 
-            (this.stats.averageExecutionTime + executionTime) / 2;
+          this.stats.averageExecutionTime = (this.stats.averageExecutionTime + executionTime) / 2;
 
           // Si le handler demande de continuer la propagation
           if (result.propagate) {
@@ -383,7 +399,9 @@ export class SignalSystem {
         }
       } else {
         // Si pas de handler, propager directement
-  logger.debug(`[SignalSystem] Pas de handler pour node ${outputNodeId}, propagation directe`);
+        logger.debug(
+          `[SignalSystem] Pas de handler pour node ${outputNodeId}, propagation directe`
+        );
         await this.propagateSignal(signal, outputNodeId);
       }
     }
@@ -418,7 +436,7 @@ export class SignalSystem {
     eventHandlersCount: number;
     lastEmittedEvent: string | null;
   } {
-  return {
+    return {
       registeredHandlers: this.handlers.size,
       queuedSignals: this.signalQueue.length,
       isProcessing: this.isProcessing,
@@ -426,8 +444,8 @@ export class SignalSystem {
       failedSignals: this.stats.failedSignals,
       averageExecutionTime: this.stats.averageExecutionTime,
       variablesCount: this.globalContext.variables.size,
-    eventHandlersCount: this.eventHandlers.size,
-    lastEmittedEvent: (this.stats.lastEmittedEvent ?? null) as string | null,
+      eventHandlersCount: this.eventHandlers.size,
+      lastEmittedEvent: (this.stats.lastEmittedEvent ?? null) as string | null,
     };
   }
 }

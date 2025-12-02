@@ -20,14 +20,14 @@ describe('FlashLightConditionNode - camera permissions on Android', () => {
 
     const { setFlashlightState } = require('../src/engine/nodes/FlashLightConditionNode');
 
-  // Même si la permission a été refusée, nous ne voulons pas empêcher le
-  // graphe d'utiliser l'état de la lampe torche (pour permettre des règles
-  // logiques indépendantes du matériel). Donc la fonction ne rejette plus.
-  await expect(setFlashlightState(true)).resolves.toBeUndefined();
+    // Même si la permission a été refusée, nous ne voulons pas empêcher le
+    // graphe d'utiliser l'état de la lampe torche (pour permettre des règles
+    // logiques indépendantes du matériel). Donc la fonction ne rejette plus.
+    await expect(setFlashlightState(true)).resolves.toBeUndefined();
 
-  // Et l'état logique interne est mis à jour
-  const { getFlashlightState } = require('../src/engine/nodes/FlashLightConditionNode');
-  expect(getFlashlightState()).toBe(true);
+    // Et l'état logique interne est mis à jour
+    const { getFlashlightState } = require('../src/engine/nodes/FlashLightConditionNode');
+    expect(getFlashlightState()).toBe(true);
   });
 
   it('opens settings when NEVER_ASK_AGAIN', async () => {
@@ -53,7 +53,6 @@ describe('FlashLightConditionNode - camera permissions on Android', () => {
     const RN = require('react-native');
     expect(RN.Linking.openSettings).toHaveBeenCalled();
   });
-
 });
 
 export {};

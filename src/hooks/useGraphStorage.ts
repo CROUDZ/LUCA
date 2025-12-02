@@ -92,7 +92,7 @@ export function useGraphStorage() {
 
       if (success) {
         setCurrentSaveId(newSave.id);
-  logger.info('💾 Created save:', newSave.name);
+        logger.info('💾 Created save:', newSave.name);
         return newSave;
       }
 
@@ -113,7 +113,7 @@ export function useGraphStorage() {
       const success = await savesToStorage(updatedSaves);
 
       if (success) {
-  logger.info('💾 Updated save:', saveId);
+        logger.info('💾 Updated save:', saveId);
         return true;
       }
 
@@ -128,7 +128,7 @@ export function useGraphStorage() {
   const autoSave = useCallback(
     async (data: DrawflowExport) => {
       if (!currentSaveId) {
-  logger.debug('💾 No active save for auto-save');
+        logger.debug('💾 No active save for auto-save');
         return false;
       }
 
@@ -220,7 +220,7 @@ export function useGraphStorage() {
       const save = getSave(saveId);
       if (save) {
         setCurrentSaveId(saveId);
-  logger.info('📂 Loaded save:', save.name);
+        logger.info('📂 Loaded save:', save.name);
         return save;
       }
       return null;

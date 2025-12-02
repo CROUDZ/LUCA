@@ -22,6 +22,7 @@ import createStyles from './NodeEditorScreenStyles';
 import { useAppTheme } from '../styles/theme';
 import SaveMenu from '../components/SaveMenu';
 import RunProgramButton from '../components/RunProgramButton';
+import TopControlsBar from '../components/TopControlsBar';
 import { nodeInstanceTracker } from '../engine/NodeInstanceTracker';
 import { subscribeNodeAdded } from '../utils/NodePickerEvents';
 import { logger } from '../utils/logger';
@@ -59,8 +60,8 @@ type GraphSyncResolver = {
 const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
   // États locaux pour l'UI
   const [showSaveMenu, setShowSaveMenu] = useState(false);
-    const { theme: appTheme } = useAppTheme();
-    const styles = useMemo(() => createStyles(appTheme), [appTheme]);
+  const { theme: appTheme } = useAppTheme();
+  const styles = useMemo(() => createStyles(appTheme), [appTheme]);
 
   const [showNewSaveInput, setShowNewSaveInput] = useState(false);
   const [newSaveName, setNewSaveName] = useState('');
@@ -109,7 +110,9 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
       resetSignalSystem();
 
       const graph = parseDrawflowGraph(graphData);
-      logger.info(`📊 Parsed graph: ${graph.nodes.size} nodes, ${graph.edges.length} connection(s)`);
+      logger.info(
+        `📊 Parsed graph: ${graph.nodes.size} nodes, ${graph.edges.length} connection(s)`
+      );
 
       const signalSystem = initializeSignalSystem(graph);
       startMonitoringNativeTorch();
@@ -174,7 +177,6 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
     },
     [setCameraPermissionGranted, setHasFlashActionInGraph, setTriggerNodeIds]
   );
-
 
   // Hook de stockage des graphes
   const {
@@ -259,11 +261,11 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
         const { nodeId, settings } = payload || {};
         if (!nodeId) return;
         const graph = parseDrawflowGraph(currentGraph || { drawflow: { Home: { data: {} } } });
-  const node = graph.nodes.get(Number(nodeId));
-  // If not present in graph yet, fall back to nodeType coming from the webview
-  const nodeType = (node && node.type) || payload?.nodeType;
-  if (!node && !nodeType) return;
-  const nodeDef = nodeRegistry.getNode(nodeType || node?.type);
+        const node = graph.nodes.get(Number(nodeId));
+        // If not present in graph yet, fall back to nodeType coming from the webview
+        const nodeType = (node && node.type) || payload?.nodeType;
+        if (!node && !nodeType) return;
+        const nodeDef = nodeRegistry.getNode(nodeType || node?.type);
         const ss = getSignalSystem();
         if (ss) {
           // Unregister existing handler and re-register with new settings
@@ -339,7 +341,10 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
         );
         const allowed = await ensureCameraPermission();
         if (!allowed) {
-          Alert.alert('Permission requise', 'La permission Caméra est nécessaire pour exécuter votre programme');
+          Alert.alert(
+            'Permission requise',
+            'La permission Caméra est nécessaire pour exécuter votre programme'
+          );
           return;
         }
       } catch (error) {
@@ -383,7 +388,9 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
     (async () => {
       try {
         const hasFlashAction = currentGraph
-          ? Array.from(parseDrawflowGraph(currentGraph).nodes.values()).some(n => n.type === 'action.flashlight')
+          ? Array.from(parseDrawflowGraph(currentGraph).nodes.values()).some(
+              (n) => n.type === 'action.flashlight'
+            )
           : false;
 
         if (hasFlashAction) {
@@ -403,7 +410,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
     if (!currentGraph) return;
     try {
       const nodes = currentGraph.drawflow?.Home?.data || {};
-      Object.keys(nodes).forEach(id => {
+      Object.keys(nodes).forEach((id) => {
         const n = nodes[id];
         if ((n.class || '').includes('condition-node') || (n.class || '').includes('condition')) {
           logger.debug(`[Web to RN] Node ${id} settings:`, n.data?.settings || n.data || {});
@@ -489,9 +496,9 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
       const y =
         Math.random() * APP_CONFIG.nodes.randomOffsetRange + APP_CONFIG.nodes.defaultPosition.y;
 
-  logger.info('➕ Adding node:', nodeType);
+      logger.info('➕ Adding node:', nodeType);
       addNode(nodeType, x, y, { type: nodeType });
-      
+
       // Forcer l'export après ajout pour mettre à jour le graphe
       setTimeout(() => {
         requestExport();
@@ -500,27 +507,30 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
     [addNode, requestExport]
   );
 
-    // Subscribe to NodePicker events instead of passing callback through navigation params
-    useEffect(() => {
-      const unsubscribe = subscribeNodeAdded((nodeType: string) => {
-        handleAddNode(nodeType);
+  // Subscribe to NodePicker events instead of passing callback through navigation params
+  useEffect(() => {
+    const unsubscribe = subscribeNodeAdded((nodeType: string) => {
+      handleAddNode(nodeType);
 
-        // Si l'utilisateur ajoute une node FlashLight action, demander la permission
-        if (nodeType === 'action.flashlight') {
-          (async () => {
-            try {
-              const granted = await ensureCameraPermission();
-              if (!granted) {
-                Alert.alert('Permission requise', 'LUCA a besoin de la permission Caméra pour utiliser FlashLight nodes.');
-              }
-            } catch (e) {
-              logger.warn('[NodeEditorScreen] ensureCameraPermission on node add failed', e);
+      // Si l'utilisateur ajoute une node FlashLight action, demander la permission
+      if (nodeType === 'action.flashlight') {
+        (async () => {
+          try {
+            const granted = await ensureCameraPermission();
+            if (!granted) {
+              Alert.alert(
+                'Permission requise',
+                'LUCA a besoin de la permission Caméra pour utiliser FlashLight nodes.'
+              );
             }
-          })();
-        }
-      });
-      return unsubscribe;
-    }, [handleAddNode]);
+          } catch (e) {
+            logger.warn('[NodeEditorScreen] ensureCameraPermission on node add failed', e);
+          }
+        })();
+      }
+    });
+    return unsubscribe;
+  }, [handleAddNode]);
 
   /**
    * Effacer le graphe
@@ -566,7 +576,9 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
     <View style={styles.container}>
       {cameraPermissionGranted === false && (
         <View style={styles.permissionBanner}>
-          <Text style={styles.permissionText}>LUCA needs Camera permission to use FlashLight nodes</Text>
+          <Text style={styles.permissionText}>
+            LUCA needs Camera permission to use FlashLight nodes
+          </Text>
           <TouchableOpacity
             style={styles.permissionButton}
             onPress={async () => {
@@ -574,7 +586,10 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
                 const granted = await ensureCameraPermission();
                 setCameraPermissionGranted(granted);
                 if (!granted) {
-                  Alert.alert('Permission requise', 'LUCA needs Camera permission to use FlashLight nodes');
+                  Alert.alert(
+                    'Permission requise',
+                    'LUCA needs Camera permission to use FlashLight nodes'
+                  );
                 }
               } catch (e) {
                 logger.error('[NodeEditorScreen] Permission request failed', e);
@@ -606,10 +621,10 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
           const { nativeEvent } = syntheticEvent;
           logger.error('❌ WebView error:', nativeEvent);
         }}
-  onLoad={() => logger.debug('📄 WebView loaded')}
+        onLoad={() => logger.debug('📄 WebView loaded')}
       />
 
-    {/* Signal controls removed - manual flashlight toggling is handled elsewhere */}
+      {/* Signal controls removed - manual flashlight toggling is handled elsewhere */}
 
       {/* Bouton Run Program en bas de l'écran - uniquement si un Trigger node est présent */}
       {triggerNodeIds.length > 0 && (
@@ -620,54 +635,15 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
         />
       )}
 
-      {/* Contrôles React Native */}
-      <View style={styles.controls}>
-        <TouchableOpacity
-          style={[styles.button, styles.buttonPrimary, !isReady && styles.buttonDisabled]}
-          onPress={() => setShowSaveMenu(true)}
-          disabled={!isReady}
-        >
-          <Icon name="save" size={16} color={appTheme.colors.primary} style={styles.buttonIcon} />
-          <Text style={styles.buttonText}>Saves</Text>
-        </TouchableOpacity>
-
-        {currentSaveId && (
-          <TouchableOpacity
-            style={[styles.button, styles.buttonSuccess, !isReady && styles.buttonDisabled]}
-            onPress={handleManualSave}
-            disabled={!isReady}
-          >
-            <Icon name="check" size={16} color={appTheme.colors.success} style={styles.buttonIcon} />
-            <Text style={styles.buttonText}>Save</Text>
-          </TouchableOpacity>
-        )}
-
-        <TouchableOpacity
-          style={[styles.button, styles.buttonDanger, !isReady && styles.buttonDisabled]}
-          onPress={handleClearGraph}
-          disabled={!isReady}
-        >
-          <Icon name="delete-outline" size={16} color={appTheme.colors.error} style={styles.buttonIcon} />
-          <Text style={styles.buttonText}>Clear</Text>
-        </TouchableOpacity>
-
-      </View>
-
-      {/* Indicateur de statut */}
-      <View style={styles.status}>
-        <View style={styles.statusRow}>
-          <Icon name={isReady ? 'check-circle' : 'sync'} size={14} color={isReady ? appTheme.colors.success : appTheme.colors.textSecondary} />
-          <Text style={[styles.statusText, isReady && styles.statusReady]}>
-            {isReady ? 'Ready' : 'Loading...'}
-          </Text>
-        </View>
-        {currentSaveId && (
-          <View style={styles.statusRow}>
-            <Icon name="folder" size={12} color={appTheme.colors.text} />
-            <Text style={styles.currentSaveText}>{currentSaveName}</Text>
-          </View>
-        )}
-      </View>
+      {/* Barre de contrôles supérieure */}
+      <TopControlsBar
+        isReady={isReady}
+        currentSaveId={currentSaveId}
+        currentSaveName={currentSaveName}
+        onOpenSaveMenu={() => setShowSaveMenu(true)}
+        onManualSave={handleManualSave}
+        onClearGraph={handleClearGraph}
+      />
 
       {/* Modal Save Menu */}
       <SaveMenu
@@ -687,7 +663,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
       {/* Bouton FAB pour ouvrir le NodePicker */}
       <TouchableOpacity
         style={[styles.fabButton, !isReady && styles.fabButtonDisabled]}
-  onPress={() => navigation.navigate('NodePicker')}
+        onPress={() => navigation.navigate('NodePicker')}
         disabled={!isReady}
         activeOpacity={0.8}
       >
@@ -698,4 +674,3 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
 };
 
 export default NodeEditorScreen;
-

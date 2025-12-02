@@ -90,7 +90,7 @@ const PingNode: NodeDefinition = {
   // EXÉCUTION
   // ============================================================================
   execute: async (context: NodeExecutionContext): Promise<NodeExecutionResult> => {
-            try {
+    try {
       const settings = context.settings || {};
       const showAlert = settings.showAlert !== false;
       const propagateSignal = settings.propagateSignal !== false;
@@ -145,7 +145,9 @@ const PingNode: NodeDefinition = {
                 },
               };
             } else {
-              logger.debug(`[Ping Node ${context.nodeId}] ⊗ Signal arrêté (propagation désactivée)`);
+              logger.debug(
+                `[Ping Node ${context.nodeId}] ⊗ Signal arrêté (propagation désactivée)`
+              );
               return {
                 propagate: false,
                 data: signal.data,

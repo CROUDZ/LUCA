@@ -61,9 +61,39 @@ const { getPingCount, resetPingCount } = require('../src/engine/nodes/PingNode')
 function buildGraph(confirmData: Record<string, any>) {
   return {
     nodes: new Map([
-      [1, { id: 1, name: 'Trigger', type: 'input.trigger', data: { autoTrigger: false }, inputs: [], outputs: [2] }],
-      [2, { id: 2, name: 'Confirm', type: 'action.confirm', data: confirmData, inputs: [1], outputs: [3] }],
-      [3, { id: 3, name: 'Ping', type: 'action.ping', data: { showAlert: false }, inputs: [2], outputs: [] }],
+      [
+        1,
+        {
+          id: 1,
+          name: 'Trigger',
+          type: 'input.trigger',
+          data: { autoTrigger: false },
+          inputs: [],
+          outputs: [2],
+        },
+      ],
+      [
+        2,
+        {
+          id: 2,
+          name: 'Confirm',
+          type: 'action.confirm',
+          data: confirmData,
+          inputs: [1],
+          outputs: [3],
+        },
+      ],
+      [
+        3,
+        {
+          id: 3,
+          name: 'Ping',
+          type: 'action.ping',
+          data: { showAlert: false },
+          inputs: [2],
+          outputs: [],
+        },
+      ],
     ]),
     edges: [
       { from: 1, to: 2 },

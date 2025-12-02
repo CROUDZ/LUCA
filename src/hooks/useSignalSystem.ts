@@ -70,11 +70,11 @@ export function useSignalSystem(): UseSignalSystemReturn {
       initializeSignalSystem(graph);
 
       setIsInitialized(true);
-    logger.debug('[useSignalSystem] Système initialisé avec', graph.nodes.size, 'nodes');
+      logger.debug('[useSignalSystem] Système initialisé avec', graph.nodes.size, 'nodes');
 
       return graph;
     } catch (error) {
-    logger.error("[useSignalSystem] Erreur lors de l'initialisation:", error);
+      logger.error("[useSignalSystem] Erreur lors de l'initialisation:", error);
       return null;
     }
   }, []);
@@ -95,19 +95,19 @@ export function useSignalSystem(): UseSignalSystemReturn {
     setIsInitialized(false);
     setPingCount(0);
     setSystemStats(null);
-  logger.debug('[useSignalSystem] Système réinitialisé');
+    logger.debug('[useSignalSystem] Système réinitialisé');
   }, []);
 
   // Déclencher un signal
   const triggerSignal = useCallback(
     (nodeId: number, data?: any) => {
       if (!isInitialized) {
-  logger.warn('[useSignalSystem] Système non initialisé');
+        logger.warn('[useSignalSystem] Système non initialisé');
         return;
       }
 
       triggerNode(nodeId, data);
-  logger.debug('[useSignalSystem] Signal déclenché depuis node', nodeId);
+      logger.debug('[useSignalSystem] Signal déclenché depuis node', nodeId);
 
       // Rafraîchir les stats après un délai
       setTimeout(() => {
@@ -122,14 +122,14 @@ export function useSignalSystem(): UseSignalSystemReturn {
   const setFlashlight = useCallback((enabled: boolean) => {
     setFlashlightState(enabled).catch(() => {});
     setFlashlightStateLocal(enabled);
-  logger.debug('[useSignalSystem] Lampe torche:', enabled ? 'ON' : 'OFF');
+    logger.debug('[useSignalSystem] Lampe torche:', enabled ? 'ON' : 'OFF');
   }, []);
 
   // Réinitialiser le compteur de pings
   const resetPings = useCallback(() => {
     resetPingCount();
     setPingCount(0);
-  logger.debug('[useSignalSystem] Compteur de pings réinitialisé');
+    logger.debug('[useSignalSystem] Compteur de pings réinitialisé');
   }, []);
 
   // Mettre à jour les stats périodiquement

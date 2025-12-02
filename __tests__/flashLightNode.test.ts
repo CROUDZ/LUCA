@@ -8,18 +8,23 @@ describe('FlashLightConditionNode - react-native-torch integration', () => {
   it('calls react-native-torch.switchState when available', async () => {
     const torchSwitchMock = jest.fn();
 
-  // Mock react-native to avoid permission checks on iOS
-  jest.doMock('react-native', () => ({ Platform: { OS: 'ios' } }));
+    // Mock react-native to avoid permission checks on iOS
+    jest.doMock('react-native', () => ({ Platform: { OS: 'ios' } }));
 
-  // Mock le module natif
-    jest.doMock('react-native-torch', () => ({
-      switchState: torchSwitchMock,
-    }), { virtual: true });
+    // Mock le module natif
+    jest.doMock(
+      'react-native-torch',
+      () => ({
+        switchState: torchSwitchMock,
+      }),
+      { virtual: true }
+    );
 
     // Importer le module après avoir mocké pour éviter le cache
-    const { setFlashlightState, getFlashlightState } = require(
-      '../src/engine/nodes/FlashLightConditionNode'
-    );
+    const {
+      setFlashlightState,
+      getFlashlightState,
+    } = require('../src/engine/nodes/FlashLightConditionNode');
 
     // Appel
     await setFlashlightState(true);

@@ -63,7 +63,12 @@ const SaveMenu: React.FC<SaveMenuProps> = ({
                 style={styles.newSaveButton}
                 onPress={() => onShowNewSaveInput(true)}
               >
-                <Icon name="add" size={20} color={theme.colors.success} style={styles.newSaveIcon} />
+                <Icon
+                  name="add"
+                  size={20}
+                  color={theme.colors.success}
+                  style={styles.newSaveIcon}
+                />
                 <Text style={styles.newSaveButtonText}>New Save</Text>
               </TouchableOpacity>
             ) : (
@@ -113,7 +118,12 @@ const SaveMenu: React.FC<SaveMenuProps> = ({
                     <Pressable style={styles.saveItemContent} onPress={() => onLoadSave(save.id)}>
                       <View style={styles.saveNameRow}>
                         {currentSaveId === save.id && (
-                            <Icon name="check-circle" size={16} color={theme.colors.primary} style={styles.checkIcon} />
+                          <Icon
+                            name="check-circle"
+                            size={16}
+                            color={theme.colors.primary}
+                            style={styles.checkIcon}
+                          />
                         )}
                         <Text style={styles.saveName}>{save.name}</Text>
                       </View>
@@ -122,9 +132,12 @@ const SaveMenu: React.FC<SaveMenuProps> = ({
                         <Text style={styles.saveDate}>{formatDate(save.timestamp)}</Text>
                       </View>
                     </Pressable>
-                      <TouchableOpacity style={styles.deleteButton} onPress={() => onDeleteSave(save.id)}>
-                        <Icon name="delete" size={20} color={theme.colors.error} />
-                      </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={() => onDeleteSave(save.id)}
+                    >
+                      <Icon name="delete" size={20} color={theme.colors.error} />
+                    </TouchableOpacity>
                   </View>
                 ))
               )}

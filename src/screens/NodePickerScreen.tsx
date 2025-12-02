@@ -16,10 +16,7 @@ import type { RootStackParamList } from '../types/navigation.types';
 import { emitNodeAdded } from '../utils/NodePickerEvents';
 import { logger } from '../utils/logger';
 
-type NodePickerScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'NodePicker'
->;
+type NodePickerScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'NodePicker'>;
 
 type NodePickerScreenRouteProp = RouteProp<RootStackParamList, 'NodePicker'>;
 
@@ -40,11 +37,14 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
       const stats = nodeRegistry.getStats();
       const allNodes = nodeRegistry.getAllNodes();
 
-  // Keep minimal debug logs — emit only in development
-  logger.debug('📦 NodePickerScreen: Loaded categories:', cats);
-  logger.debug('📊 NodeRegistry stats:', stats);
-  logger.debug('📝 All registered nodes:', allNodes.map((n) => `${n.id} (${n.name})`).join(', '));
-  logger.debug('🔍 Total nodes registered:', allNodes.length);
+      // Keep minimal debug logs — emit only in development
+      logger.debug('📦 NodePickerScreen: Loaded categories:', cats);
+      logger.debug('📊 NodeRegistry stats:', stats);
+      logger.debug(
+        '📝 All registered nodes:',
+        allNodes.map((n) => `${n.id} (${n.name})`).join(', ')
+      );
+      logger.debug('🔍 Total nodes registered:', allNodes.length);
 
       setCategories(cats);
     };
@@ -79,8 +79,8 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
     // Incrémenter le compteur
     nodeInstanceTracker.addInstance(nodeType);
 
-  // Emit the event so the editor can handle it
-  emitNodeAdded(nodeType);
+    // Emit the event so the editor can handle it
+    emitNodeAdded(nodeType);
 
     // Retourner à l'écran précédent
     navigation.goBack();
@@ -91,7 +91,7 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
       <View style={styles.pageContainer}>
         {/* Header avec bouton retour */}
         <View style={styles.header}>
-            <TouchableOpacity
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
@@ -138,13 +138,21 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
                             <Icon
                               name={nodeType.icon}
                               size={32}
-                              color={isDisabled ? theme.colors.textSecondary : nodeType.color || theme.colors.primary}
+                              color={
+                                isDisabled
+                                  ? theme.colors.textSecondary
+                                  : nodeType.color || theme.colors.primary
+                              }
                             />
                           ) : (
                             <FAIcon
                               name={nodeType.icon}
                               size={28}
-                              color={isDisabled ? theme.colors.textSecondary : nodeType.color || theme.colors.primary}
+                              color={
+                                isDisabled
+                                  ? theme.colors.textSecondary
+                                  : nodeType.color || theme.colors.primary
+                              }
                             />
                           )}
                         </View>

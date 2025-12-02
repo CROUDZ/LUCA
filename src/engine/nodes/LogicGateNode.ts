@@ -29,9 +29,9 @@ const nodeSourceKeyMap = new Map<number, Map<number, string>>();
 const LOGIC_GATE_ACCENT = '#3F51B5';
 
 const SUPPORTED_LOGIC_GATES = [
-  { value: 'AND', label: 'AND (ET)' },
-  { value: 'OR', label: 'OR (OU)' },
-  { value: 'NOT', label: 'NOT (NON)' },
+  { value: 'AND', label: 'AND' },
+  { value: 'OR', label: 'OR' },
+  { value: 'NOT', label: 'NOT' },
   { value: 'XOR', label: 'XOR' },
   { value: 'NAND', label: 'NAND' },
   { value: 'NOR', label: 'NOR' },
@@ -52,11 +52,7 @@ function resolveInputKey(index: number): string {
   return `input_${String.fromCharCode(97 + index)}`;
 }
 
-function getSourceInputKey(
-  nodeId: number,
-  sourceNodeId: number,
-  availableKeys: string[]
-): string {
+function getSourceInputKey(nodeId: number, sourceNodeId: number, availableKeys: string[]): string {
   if (!nodeSourceKeyMap.has(nodeId)) {
     nodeSourceKeyMap.set(nodeId, new Map());
   }
@@ -67,7 +63,10 @@ function getSourceInputKey(
   }
 
   const usedKeys = new Set(sourceMap.values());
-  const key = availableKeys.find((candidate) => !usedKeys.has(candidate)) || availableKeys[availableKeys.length - 1] || 'input_a';
+  const key =
+    availableKeys.find((candidate) => !usedKeys.has(candidate)) ||
+    availableKeys[availableKeys.length - 1] ||
+    'input_a';
   sourceMap.set(sourceNodeId, key);
   return key;
 }
@@ -93,10 +92,7 @@ function resolveInputCountForGate(
 
   const minInputs = getMinimumInputsForGate(gateType);
   const normalizedConfigured = Math.min(
-    Math.max(
-      typeof configuredCount === 'number' ? Math.floor(configuredCount) : 2,
-      minInputs
-    ),
+    Math.max(typeof configuredCount === 'number' ? Math.floor(configuredCount) : 2, minInputs),
     8
   );
 
@@ -186,9 +182,10 @@ const LogicGateNode: NodeDefinition = {
       const requestedInputCount = Number.isFinite(Number(settings.inputCount))
         ? Number(settings.inputCount)
         : undefined;
-      const actualInputCount = typeof context.inputsCount === 'number' && context.inputsCount > 0
-        ? context.inputsCount
-        : undefined;
+      const actualInputCount =
+        typeof context.inputsCount === 'number' && context.inputsCount > 0
+          ? context.inputsCount
+          : undefined;
 
       if (signalSystem) {
         // Initialiser l'état des entrées
@@ -212,16 +209,18 @@ const LogicGateNode: NodeDefinition = {
               requestedInputCount,
               actualInputCount
             );
-            const inputKeys = Array.from({ length: resolvedInputCount }, (_, i) => resolveInputKey(i));
+            const inputKeys = Array.from({ length: resolvedInputCount }, (_, i) =>
+              resolveInputKey(i)
+            );
 
             try {
               // Mettre à jour l'état des entrées depuis le signal
               // On assume que le signal contient l'information de quelle entrée est activée
-              const inputKey = signal.data?.inputKey
-                || getSourceInputKey(context.nodeId, signal.sourceNodeId, inputKeys);
-              const inputValue = signal.data?.inputValue !== undefined
-                ? Boolean(signal.data.inputValue)
-                : true;
+              const inputKey =
+                signal.data?.inputKey ||
+                getSourceInputKey(context.nodeId, signal.sourceNodeId, inputKeys);
+              const inputValue =
+                signal.data?.inputValue !== undefined ? Boolean(signal.data.inputValue) : true;
 
               inputStates.set(inputKey, inputValue);
 
@@ -259,9 +258,7 @@ const LogicGateNode: NodeDefinition = {
               const allInputsReceived = inputKeys.every((key) => inputStates.has(key));
 
               if (!allInputsReceived) {
-                logger.debug(
-                  `[LogicGate Node ${context.nodeId}] Attente des autres entrées...`
-                );
+                logger.debug(`[LogicGate Node ${context.nodeId}] Attente des autres entrées...`);
                 // Ne pas propager, attendre les autres entrées
                 return { propagate: false };
               }

@@ -28,11 +28,14 @@ const formatDelayDisplay = (delayMs: number): string => {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds - minutes * 60;
     const minutePart = `${minutes}m`;
-    const secondsPart = seconds > 0 ? `${Number.isInteger(seconds) ? seconds : Number(seconds.toFixed(2))}s` : '';
+    const secondsPart =
+      seconds > 0 ? `${Number.isInteger(seconds) ? seconds : Number(seconds.toFixed(2))}s` : '';
     return secondsPart ? `${minutePart} ${secondsPart}` : minutePart;
   }
 
-  const secondsValue = Number.isInteger(totalSeconds) ? totalSeconds : Number(totalSeconds.toFixed(2));
+  const secondsValue = Number.isInteger(totalSeconds)
+    ? totalSeconds
+    : Number(totalSeconds.toFixed(2));
   return `${secondsValue}s`;
 };
 
@@ -114,7 +117,9 @@ const DelayNode: NodeDefinition = {
               if (context.inputs.delay_ms !== undefined) {
                 delayMs = Number(context.inputs.delay_ms);
               } else if (settings.useVariableDelay && settings.delayVariableName) {
-                delayMs = Number(signalSystem.getVariable(settings.delayVariableName, settings.delayMs));
+                delayMs = Number(
+                  signalSystem.getVariable(settings.delayVariableName, settings.delayMs)
+                );
               } else {
                 delayMs = settings.delayMs || 1000;
               }
@@ -164,8 +169,8 @@ const DelayNode: NodeDefinition = {
     const delayMs = Number.isFinite(Number(settings.delayMs)) ? Number(settings.delayMs) : 1000;
     const safeDelay = Math.max(0, delayMs);
     const displayDelay = formatDelayDisplay(safeDelay);
-  const inputValue = formatSecondsInputValue(safeDelay);
-  const valueAttribute = inputValue ? `value="${inputValue}"` : '';
+    const inputValue = formatSecondsInputValue(safeDelay);
+    const valueAttribute = inputValue ? `value="${inputValue}"` : '';
 
     const body = `
       <div class="delay-control">

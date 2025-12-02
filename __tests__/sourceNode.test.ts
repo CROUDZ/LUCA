@@ -4,7 +4,7 @@
 // ones that use 'input.trigger' and 'events.emitter' instead.
 
 test('Source node removed — no tests', () => {
-	// The Source node implementation has been removed from the codebase.
-	// This placeholder ensures we don't leave a skipped test in the suite.
-	expect(true).toBe(true);
+  // The Source node implementation has been removed from the codebase.
+  // This placeholder ensures we don't leave a skipped test in the suite.
+  expect(true).toBe(true);
 });
