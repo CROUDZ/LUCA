@@ -19,6 +19,7 @@ import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
+  NodeMeta,
 } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 import { buildNodeCardHTML } from './templates/nodeCard';
@@ -308,7 +309,7 @@ const IfElseNode: NodeDefinition = {
   // ============================================================================
   // HTML PERSONNALISÉ
   // ============================================================================
-  generateHTML: (settings: Record<string, any>) => {
+  generateHTML: (settings: Record<string, any>, nodeMeta?: NodeMeta) => {
     const type = settings.conditionType || 'expression';
     let displayText = '';
 
@@ -327,7 +328,7 @@ const IfElseNode: NodeDefinition = {
       title: 'If/Else',
       subtitle: displayText,
       iconName: 'call_split',
-      category: 'Condition',
+      category: nodeMeta?.category || 'Flow Control',
       accentColor: IF_ELSE_NODE_ACCENT,
       chips: [{ label: type.toUpperCase(), tone: 'info' }],
       body,

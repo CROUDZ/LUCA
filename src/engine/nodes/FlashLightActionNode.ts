@@ -15,6 +15,7 @@ import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
+  NodeMeta,
 } from '../../types/node.types';
 import { logger } from '../../utils/logger';
 import {
@@ -241,7 +242,7 @@ const FlashLightActionNode: NodeDefinition = {
     // Validation basique - vérifier que les fonctions de lampe torche sont disponibles
     return true;
   },
-  generateHTML: (settings: Record<string, any>): string => {
+  generateHTML: (settings: Record<string, any>, nodeMeta?: NodeMeta): string => {
     const mode = settings?.mode || 'toggle';
     const value = settings?.value === true;
     const propagateSignal = settings?.propagateSignal !== false;
@@ -271,7 +272,7 @@ const FlashLightActionNode: NodeDefinition = {
       title: 'FlashLight Action',
       subtitle: modeLabel,
       iconName: 'flashlight_on',
-      category: 'Action',
+      category: nodeMeta?.category || 'Action',
       accentColor: FLASHLIGHT_ACTION_COLOR,
       body,
     });

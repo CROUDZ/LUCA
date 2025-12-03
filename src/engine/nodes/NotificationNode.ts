@@ -17,6 +17,7 @@ import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
+  NodeMeta,
 } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 import { logger } from '../../utils/logger';
@@ -162,7 +163,7 @@ const NotificationNode: NodeDefinition = {
   // ============================================================================
   // HTML PERSONNALISÉ
   // ============================================================================
-  generateHTML: (settings: Record<string, any>) => {
+  generateHTML: (settings: Record<string, any>, nodeMeta?: NodeMeta) => {
     const message = settings.message || 'Notification';
     const shortMessage = message.length > 22 ? `${message.substring(0, 22)}…` : message;
     const notificationType = settings.notificationType || 'alert';
@@ -171,7 +172,7 @@ const NotificationNode: NodeDefinition = {
       title: 'Notification',
       subtitle: shortMessage,
       iconName: 'notifications',
-      category: 'Action',
+      category: nodeMeta?.category || 'Action',
       accentColor: NOTIFICATION_NODE_ACCENT,
       chips: [
         {

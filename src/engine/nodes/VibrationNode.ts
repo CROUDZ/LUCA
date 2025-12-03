@@ -18,6 +18,7 @@ import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
+  NodeMeta,
 } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 import { Vibration } from 'react-native';
@@ -190,7 +191,7 @@ const VibrationNode: NodeDefinition = {
   // ============================================================================
   // HTML PERSONNALISÉ
   // ============================================================================
-  generateHTML: (settings: Record<string, any>) => {
+  generateHTML: (settings: Record<string, any>, nodeMeta?: NodeMeta) => {
     const vibrationType = settings.vibrationType || 'simple';
     const typeLabels: Record<string, string> = {
       simple: 'Simple',
@@ -204,7 +205,7 @@ const VibrationNode: NodeDefinition = {
       title: 'Vibration',
       subtitle: typeLabels[vibrationType] || 'Simple',
       iconName: 'vibration',
-      category: 'Action',
+      category: nodeMeta?.category || 'Action',
       accentColor: VIBRATION_NODE_ACCENT,
       description: 'Déclenche une vibration native selon le pattern choisi.',
     });

@@ -139,7 +139,7 @@ const ConfirmNode: NodeDefinition = {
   id: 'action.confirm',
   name: 'Confirm',
   description: "Affiche une question de confirmation (ex: 'Continuer l’itération ?')",
-  category: 'Interaction',
+  category: 'Control',
 
   icon: 'help-outline',
   iconFamily: 'material',

@@ -18,6 +18,7 @@ import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
+  NodeMeta,
 } from '../../types/node.types';
 import { getSignalSystem } from '../SignalSystem';
 import { logger } from '../../utils/logger';
@@ -68,7 +69,7 @@ const TriggerNode: NodeDefinition = {
   id: 'input.trigger',
   name: 'Trigger',
   description: 'Déclenche manuellement un signal dans le graphe',
-  category: 'Input',
+  category: 'Control',
 
   // ============================================================================
   // APPARENCE
@@ -157,12 +158,12 @@ const TriggerNode: NodeDefinition = {
   // ============================================================================
   // HTML (pour l'affichage dans le graphe)
   // ============================================================================
-  generateHTML: (_settings: Record<string, any>): string => {
+  generateHTML: (_settings: Record<string, any>, nodeMeta?: NodeMeta): string => {
     return buildNodeCardHTML({
       title: 'Trigger',
       subtitle: 'Start signal',
       iconName: 'play_circle',
-      category: 'Input',
+      category: nodeMeta?.category || 'Input',
       accentColor: TRIGGER_NODE_ACCENT,
       description: 'Déclenche manuellement un signal pour tester un graphe.',
     });

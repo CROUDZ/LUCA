@@ -145,7 +145,15 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
           class: `${nodeDefinition.category.toLowerCase()}-node`,
           data: { type: nodeType, ...data },
           html: nodeDefinition.generateHTML
-            ? nodeDefinition.generateHTML(data || {})
+            ? nodeDefinition.generateHTML(data || {}, {
+                id: nodeDefinition.id,
+                name: nodeDefinition.name,
+                category: nodeDefinition.category,
+                description: nodeDefinition.description,
+                icon: nodeDefinition.icon,
+                iconFamily: nodeDefinition.iconFamily,
+                color: nodeDefinition.color,
+              })
             : fallbackHtml,
         };
 

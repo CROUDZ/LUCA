@@ -18,6 +18,7 @@ import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
+  NodeMeta,
 } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 import { buildNodeCardHTML } from './templates/nodeCard';
@@ -56,7 +57,7 @@ const DelayNode: NodeDefinition = {
   id: 'flow.delay',
   name: 'Delay',
   description: 'Introduit un délai avant de propager le signal',
-  category: 'Flow Control',
+  category: 'Control',
 
   // ============================================================================
   // APPARENCE
@@ -165,7 +166,7 @@ const DelayNode: NodeDefinition = {
   // ============================================================================
   // HTML PERSONNALISÉ
   // ============================================================================
-  generateHTML: (settings: Record<string, any>) => {
+  generateHTML: (settings: Record<string, any>, nodeMeta?: NodeMeta) => {
     const delayMs = Number.isFinite(Number(settings.delayMs)) ? Number(settings.delayMs) : 1000;
     const safeDelay = Math.max(0, delayMs);
     const displayDelay = formatDelayDisplay(safeDelay);
@@ -192,7 +193,7 @@ const DelayNode: NodeDefinition = {
       title: 'Delay',
       subtitle: displayDelay,
       iconName: 'schedule',
-      category: 'Flow Control',
+      category: nodeMeta?.category || 'Control',
       accentColor: DELAY_NODE_ACCENT,
       body,
     });

@@ -368,7 +368,7 @@ function initTransformListeners() {
     container.addEventListener('wheel', handleWheel, { passive: false });
     
     listenersInitialized = true;
-    console.log('[NodeEditorWeb] Transform listeners initialized');
+    window.DrawflowEditor.debugLog && window.DrawflowEditor.debugLog('[NodeEditorWeb] Transform listeners initialized');
 }
 
 // Initialiser immédiatement si le container existe, sinon après un délai

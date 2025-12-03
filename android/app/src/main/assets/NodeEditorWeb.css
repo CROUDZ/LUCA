@@ -378,6 +378,27 @@ body {
             border-color: var(--node-anchor-connected-border, rgba(var(--editor-brand-rgb), 0.85));
             background: var(--node-anchor-active, rgba(var(--editor-brand-soft-rgb), 0.45));
         }
+        
+        /* Quand on crée une connexion depuis un input, mettre en évidence les outputs */
+        body.creating-connection-from-input .drawflow .drawflow-node .input {
+            border-color: var(--node-anchor-border, rgba(var(--node-neutral-rgb), 0.75));
+            background: var(--node-anchor-default, rgba(var(--node-neutral-rgb), 0.25));
+        }
+        body.creating-connection-from-input .drawflow .drawflow-node .output {
+            border-color: var(--node-anchor-connected-border, rgba(var(--editor-brand-rgb), 0.85));
+            background: var(--node-anchor-active, rgba(var(--editor-brand-soft-rgb), 0.45));
+        }
+        
+        /* Zone de drop élargie pour les nœuds lors de la création de connexion */
+        body.creating-connection .drawflow .drawflow-node,
+        body.creating-connection-from-input .drawflow .drawflow-node {
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        body.creating-connection .drawflow .drawflow-node:hover,
+        body.creating-connection-from-input .drawflow .drawflow-node:hover {
+            border-color: var(--node-anchor-connected-border, rgba(var(--editor-brand-rgb), 0.7));
+            box-shadow: 0 0 20px rgba(var(--editor-brand-rgb), 0.3);
+        }
 
 .drawflow .connection .main-path {
     fill: none;

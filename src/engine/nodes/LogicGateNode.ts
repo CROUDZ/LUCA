@@ -18,6 +18,7 @@ import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
+  NodeMeta,
 } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 import { buildNodeCardHTML } from './templates/nodeCard';
@@ -341,7 +342,7 @@ const LogicGateNode: NodeDefinition = {
   // ============================================================================
   // HTML PERSONNALISÉ
   // ============================================================================
-  generateHTML: (settings: Record<string, any>) => {
+  generateHTML: (settings: Record<string, any>, nodeMeta?: NodeMeta) => {
     const gateType = normalizeGateType(settings.gateType);
     const gateLabel =
       SUPPORTED_LOGIC_GATES.find((gate) => gate.value === gateType)?.label || gateType;
@@ -366,7 +367,7 @@ const LogicGateNode: NodeDefinition = {
       title: 'Logic Gate',
       subtitle: gateLabel,
       iconName: 'settings_input_component',
-      category: 'Condition',
+      category: nodeMeta?.category || 'Condition',
       accentColor: LOGIC_GATE_ACCENT,
       chips: [{ label: gateLabel, tone: 'info' }],
       body,

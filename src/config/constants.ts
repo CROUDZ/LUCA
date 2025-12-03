@@ -2,7 +2,7 @@
  * Configuration et constantes de l'application LUCA
  */
 
-import type { AppConfig, NodeType } from '../types';
+import type { AppConfig } from '../types';
 import { basePalette } from '../styles/global';
 import { hexToRgba } from '../styles/colorUtils';
 
@@ -33,80 +33,6 @@ export const APP_CONFIG: AppConfig = {
     randomOffsetRange: 300,
   },
 };
-
-// ============================================================================
-// Types de nœuds disponibles
-// ============================================================================
-
-export const NODE_TYPES: NodeType[] = [
-  {
-    id: 'texture',
-    name: 'Texture',
-    icon: 'image',
-    iconFamily: 'material',
-    description: 'Image texture node',
-    category: 'input',
-  },
-  {
-    id: 'color',
-    name: 'Color',
-    icon: 'color-lens',
-    iconFamily: 'material',
-    description: 'Color input',
-    category: 'input',
-  },
-  {
-    id: 'mix',
-    name: 'Mix',
-    icon: 'palette',
-    iconFamily: 'material',
-    description: 'Mix two inputs',
-    category: 'shader',
-  },
-  {
-    id: 'math',
-    name: 'Math',
-    icon: 'calculator',
-    iconFamily: 'fontawesome',
-    description: 'Mathematical operation',
-    category: 'math',
-  },
-  {
-    id: 'colorRamp',
-    name: 'Color Ramp',
-    icon: 'gradient',
-    iconFamily: 'material',
-    description: 'Color gradient mapping',
-    category: 'shader',
-  },
-  {
-    id: 'noise',
-    name: 'Noise',
-    icon: 'grain',
-    iconFamily: 'material',
-    description: 'Procedural noise texture',
-    category: 'input',
-  },
-  {
-    id: 'output',
-    name: 'Output',
-    icon: 'output',
-    iconFamily: 'material',
-    description: 'Final output node',
-    category: 'output',
-  },
-];
-
-// ============================================================================
-// Catégories de nœuds
-// ============================================================================
-
-export const NODE_CATEGORIES = {
-  input: { name: 'Input', icon: 'input', color: basePalette.secondary },
-  shader: { name: 'Shader', icon: 'brush', color: basePalette.primary },
-  math: { name: 'Math', icon: 'functions', color: basePalette.success },
-  output: { name: 'Output', icon: 'output', color: basePalette.warning },
-} as const;
 
 // ============================================================================
 // Messages d'erreur

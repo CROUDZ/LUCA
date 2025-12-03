@@ -1,6 +1,12 @@
 /* global Drawflow */
 // INITIALISATION
 
+// Debug logging conditionnel (désactivé en production)
+const DEBUG = false;
+function debugLog(...args) {
+    if (DEBUG) console.log(...args);
+}
+
 const container = document.getElementById('drawflow');
 const editor = new Drawflow(container);
 editor.reroute = true;
@@ -13,3 +19,4 @@ editor.start();
 window.DrawflowEditor = window.DrawflowEditor || {};
 window.DrawflowEditor.editor = editor;
 window.DrawflowEditor.container = container;
+window.DrawflowEditor.debugLog = debugLog;

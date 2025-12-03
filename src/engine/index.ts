@@ -72,9 +72,6 @@ export {
   resetLogicGateState,
   resetAllLogicGateStates,
 
-  // Event Listener
-  unsubscribeEventListener,
-  unsubscribeAllEventListeners,
   // Confirm helper
   ConfirmNode,
   // Source node removed (start/stop helpers no longer exported)

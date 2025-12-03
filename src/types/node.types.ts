@@ -83,7 +83,19 @@ export interface NodeDefinition {
   validate?: (context: NodeExecutionContext) => boolean | string;
 
   // Fonction pour générer le HTML (optionnelle)
-  generateHTML?: (settings: Record<string, any>) => string;
+  // Le second paramètre contient les métadonnées du node (category, name, etc.)
+  generateHTML?: (settings: Record<string, any>, nodeMeta?: NodeMeta) => string;
+}
+
+// Métadonnées passées à generateHTML pour permettre l'accès aux propriétés du node
+export interface NodeMeta {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  icon: string;
+  iconFamily: 'material' | 'fontawesome';
+  color?: string;
 }
 
 // ============================================================================

@@ -81,7 +81,7 @@ document.addEventListener('change', (e) => {
             // Mettre à jour la valeur
             nodeData.data.settings.invertSignal = e.target.checked;
             
-            console.log(`[InvertSignal] Node ${nodeId}: invertSignal set to ${e.target.checked}`);
+            window.DrawflowEditor.debugLog && window.DrawflowEditor.debugLog(`[InvertSignal] Node ${nodeId}: invertSignal set to ${e.target.checked}`);
             
             // Déclencher l'export automatique
             window.DrawflowEditor.exportGraph();

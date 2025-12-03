@@ -8,6 +8,7 @@ import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
+  NodeMeta,
 } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 import { logger } from '../../utils/logger';
@@ -312,7 +313,7 @@ const FlashLightConditionNode: NodeDefinition = {
     const ss = getSignalSystem();
     return ss ? true : 'Signal system not initialized';
   },
-  generateHTML: (settings: Record<string, any>): string => {
+  generateHTML: (settings: Record<string, any>, nodeMeta?: NodeMeta): string => {
     const invertSignal = settings?.invertSignal ?? false;
     const autoEmit = settings?.autoEmitOnChange ?? true;
     const statusText = autoEmit ? 'Auto-émission active' : 'Écoute uniquement';
@@ -331,7 +332,7 @@ const FlashLightConditionNode: NodeDefinition = {
       subtitle: invertSignal ? 'Signal inversé' : 'Signal direct',
       description: statusText,
       iconName: 'flashlight_on',
-      category: 'Condition',
+      category: nodeMeta?.category || 'Condition',
       accentColor: FLASHLIGHT_CONDITION_COLOR,
       chips: [],
       body,

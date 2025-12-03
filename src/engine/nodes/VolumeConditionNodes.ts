@@ -3,6 +3,7 @@ import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
+  NodeMeta,
 } from '../../types/node.types';
 import { getSignalSystem, type Signal } from '../SignalSystem';
 import { logger } from '../../utils/logger';
@@ -105,7 +106,8 @@ function createExecute(direction: VolumeDirection): NodeDefinition['execute'] {
 
 function buildHTML(
   options: { name: string; description: string; color: string; icon: string },
-  settings: Record<string, any>
+  settings: Record<string, any>,
+  nodeMeta?: NodeMeta
 ) {
   const invertSignal = settings?.invertSignal ?? false;
   const autoEmit = settings?.autoEmitOnChange !== false;
@@ -128,7 +130,7 @@ function buildHTML(
     subtitle,
     description: statusText,
     iconName: options.icon,
-    category: 'Condition',
+    category: nodeMeta?.category || 'Condition',
     accentColor: options.color,
     body,
   });
@@ -172,7 +174,8 @@ function createVolumeConditionNode(options: {
     },
     execute: createExecute(options.direction),
     validate: () => true,
-    generateHTML: (settings: Record<string, any>) => buildHTML(options, settings),
+    generateHTML: (settings: Record<string, any>, nodeMeta?: NodeMeta) =>
+      buildHTML(options, settings, nodeMeta),
   };
 }
 

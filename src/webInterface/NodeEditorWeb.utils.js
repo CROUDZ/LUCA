@@ -128,11 +128,11 @@ function exportGraph() {
         Object.keys(nodes).forEach(id => {
             const n = nodes[id];
             if ((n.class || '').includes('condition-node') || (n.class || '').includes('condition')) {
-                console.log('[Web EXPORT] Node', id, 'settings=', n.data?.settings || n.data || {});
+                window.DrawflowEditor.debugLog && window.DrawflowEditor.debugLog('[Web EXPORT] Node', id, 'settings=', n.data?.settings || n.data || {});
             }
         });
     } catch (err) {
-        console.error('[Web EXPORT] Failed to parse nodes for debug', err);
+        // Silently ignore debug errors
     }
     if (window.ReactNativeWebView) {
         window.ReactNativeWebView.postMessage(JSON.stringify({
