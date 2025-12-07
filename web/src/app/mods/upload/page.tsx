@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 const CATEGORIES = ['Logic', 'Math', 'Timing', 'Network', 'Device', 'Data', 'UI', 'Other'];
 
@@ -72,9 +73,12 @@ interface NodeDescriptor {
 
 export default function UploadPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [verificationNotice, setVerificationNotice] = useState<string | null>(null);
+  const [verificationLink, setVerificationLink] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -104,6 +108,13 @@ export default function UploadPage() {
     setError(null);
 
     try {
+      if (!session?.user) {
+        throw new Error('Vous devez être connecté pour publier un mod');
+      }
+      if (!session.user.verified) {
+        throw new Error('Votre email doit être vérifié pour publier un mod');
+      }
+
       // Validation basique
       if (!formData.displayName.trim()) {
         throw new Error('Le nom d\'affichage est requis');
@@ -117,6 +128,7 @@ export default function UploadPage() {
 
       const name = formData.name || generateName(formData.displayName);
       const tags = formData.tags.split(',').map(t => t.trim()).filter(Boolean);
+  const authorDisplayName = session.user.name || session.user.email || 'Anonymous';
 
       // Parse le code pour extraire nodeTypes si présent
       let nodeTypes: Record<string, NodeDescriptor> = {};
@@ -168,12 +180,14 @@ export default function UploadPage() {
         tags,
         mainCode: formData.code,
         nodeTypes,
+        authorId: session.user.id,
+        authorName: authorDisplayName,
         manifest: {
           name,
           displayName: formData.displayName,
           description: formData.description,
           version: formData.version,
-          author: 'Anonymous', // TODO: Use authenticated user
+          author: authorDisplayName,
           category: formData.category,
           tags,
           lucaVersion: '>=1.0.0',
@@ -203,6 +217,109 @@ export default function UploadPage() {
       setLoading(false);
     }
   };
+
+  const requestVerificationEmail = async () => {
+    if (!session?.user?.email) return;
+
+    setLoading(true);
+    setError(null);
+    setVerificationNotice(null);
+    setVerificationLink(null);
+
+    try {
+      const response = await fetch('/api/auth/request-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: session.user.email }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Impossible d'envoyer l'email de vérification");
+      }
+
+      setVerificationNotice(data.message || 'Email de vérification envoyé');
+      if (data.verificationUrl) {
+        setVerificationLink(data.verificationUrl as string);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (status === 'loading') {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="h-8 bg-gray-800/80 rounded w-1/3 mb-6 animate-pulse" />
+        <div className="h-96 bg-gray-800/60 rounded-xl border border-gray-700 animate-pulse" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-16 text-center">
+        <div className="bg-gray-800 border border-gray-700 rounded-2xl p-10 shadow-xl">
+          <h1 className="text-3xl font-bold mb-3">Connexion requise</h1>
+          <p className="text-gray-400 mb-6">Connectez-vous pour publier vos mods et suivre vos envois.</p>
+          <Link
+            href={`/login?callbackUrl=${encodeURIComponent('/mods/upload')}`}
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition"
+          >
+            Se connecter
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session.user?.verified) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-16 text-center">
+        <div className="bg-gray-800 border border-gray-700 rounded-2xl p-10 shadow-xl space-y-4">
+          <div className="mx-auto w-14 h-14 rounded-full bg-yellow-500/20 text-yellow-300 flex items-center justify-center text-2xl">
+            !
+          </div>
+          <h1 className="text-3xl font-bold">Vérifiez votre email</h1>
+          <p className="text-gray-300">
+            Nous devons confirmer votre adresse ({session.user.email}) avant de publier un mod.
+          </p>
+          {verificationNotice && (
+            <div className="bg-green-600/15 border border-green-500/40 rounded-lg px-4 py-3 text-green-200">
+              {verificationNotice}
+              {verificationLink && (
+                <div className="text-xs mt-2 break-all text-green-100">
+                  Lien de test : <a className="underline" href={verificationLink}>{verificationLink}</a>
+                </div>
+              )}
+            </div>
+          )}
+          {error && (
+            <div className="bg-red-600/15 border border-red-500/40 rounded-lg px-4 py-3 text-red-200">
+              {error}
+            </div>
+          )}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              type="button"
+              onClick={requestVerificationEmail}
+              disabled={loading}
+              className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition disabled:opacity-60"
+            >
+              {loading ? 'Envoi...' : 'Renvoyer l\'email de vérification'}
+            </button>
+            <Link
+              href="/login"
+              className="px-6 py-3 rounded-lg border border-gray-600 text-gray-200 hover:border-gray-400 transition"
+            >
+              Changer d&apos;adresse email
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (success) {
     return (

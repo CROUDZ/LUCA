@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import crypto from 'crypto';
 import { Prisma } from '@prisma/client';
 import { sendModSubmissionNotification } from '@/lib/discord';
+import { auth } from '@/auth';
 
 // GET /api/mods - Liste tous les mods approuvés
 export async function GET(request: NextRequest) {
@@ -112,6 +113,21 @@ export async function GET(request: NextRequest) {
 // POST /api/mods - Créer un nouveau mod
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    if (!session.user.verified) {
+      return NextResponse.json(
+        { error: 'Email verification required' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     
     const {
@@ -127,7 +143,6 @@ export async function POST(request: NextRequest) {
       permissions,
       license,
       repositoryUrl,
-      authorId,
       authorName,
     } = body;
 
@@ -156,23 +171,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Obtenir ou créer l'auteur
-    let finalAuthorId = authorId;
-    if (!finalAuthorId) {
-      const anonEmail = `anonymous-${name}@luca-mods.local`;
-      let author = await prisma.user.findUnique({ where: { email: anonEmail } });
-      
-      if (!author) {
-        author = await prisma.user.create({
-          data: {
-            name: authorName || 'Anonymous',
-            email: anonEmail,
-            role: 'USER',
-          },
-        });
-      }
-      finalAuthorId = author.id;
-    }
+    const finalAuthorId = session.user.id;
+    const finalAuthorName = authorName || session.user.name || session.user.email || 'Anonymous';
 
     // Calculer le checksum du code
     const checksum = crypto.createHash('sha256').update(mainCode).digest('hex');
@@ -186,6 +186,7 @@ export async function POST(request: NextRequest) {
       description,
       main: 'main.mjs',
       api_version: '1.0.0',
+      author: finalAuthorName,
       permissions: permissions || [],
       node_types: nodeTypes || {},
       compatibility: {
