@@ -1,0 +1,31 @@
+{
+  "extends": "@react-native/typescript-config",
+  "compilerOptions": {
+    "lib": ["esnext", "dom"],
+    "strict": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "types": ["node"],
+    "paths": {
+      "@types/*": ["app/src/types/*"],
+      "@utils/*": ["app/src/utils/*"],
+      "@hooks/*": ["app/src/hooks/*"],
+      "@config/*": ["app/src/config/*"],
+      "@screens/*": ["app/src/screens/*"],
+      "@engine/*": ["app/src/engine/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["**/node_modules", "**/Pods", "**/android", "**/ios"]
+}

@@ -1,0 +1,123 @@
+{
+  "manifest_version": 1,
+  "name": "example-counter-node",
+  "version": "1.0.0",
+  "display_name": "Counter Node",
+  "description": "A simple counter node that increments a value and demonstrates the mod API",
+  "author": {
+    "name": "LUCA Community",
+    "email": "mods@luca-app.example",
+    "url": "https://github.com/CROUDZ/LUCA"
+  },
+  "main": "main.mjs",
+  "api_version": "1.0.0",
+  "permissions": [
+    "storage.read",
+    "storage.write"
+  ],
+  "node_types": [
+    {
+      "type": "counter",
+      "label": "Counter",
+      "category": "Logic",
+      "description": "Increments a counter each time it receives a signal",
+      "inputs": [
+        {
+          "id": "trigger",
+          "label": "Trigger",
+          "type": "signal",
+          "required": true
+        },
+        {
+          "id": "reset",
+          "label": "Reset",
+          "type": "signal",
+          "required": false
+        },
+        {
+          "id": "step",
+          "label": "Step",
+          "type": "number",
+          "default": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "count",
+          "label": "Count",
+          "type": "number"
+        },
+        {
+          "id": "onIncrement",
+          "label": "On Increment",
+          "type": "signal"
+        }
+      ],
+      "config": {
+        "initialValue": 0,
+        "maxValue": null,
+        "wrapAround": false
+      },
+      "color": "#4CAF50",
+      "icon": "counter"
+    },
+    {
+      "type": "timer",
+      "label": "Timer",
+      "category": "Timing",
+      "description": "Emits a signal at regular intervals",
+      "inputs": [
+        {
+          "id": "start",
+          "label": "Start",
+          "type": "signal"
+        },
+        {
+          "id": "stop",
+          "label": "Stop",
+          "type": "signal"
+        },
+        {
+          "id": "interval",
+          "label": "Interval (ms)",
+          "type": "number",
+          "default": 1000
+        }
+      ],
+      "outputs": [
+        {
+          "id": "tick",
+          "label": "Tick",
+          "type": "signal"
+        },
+        {
+          "id": "elapsed",
+          "label": "Elapsed (ms)",
+          "type": "number"
+        }
+      ],
+      "config": {
+        "autoStart": false,
+        "repeatCount": -1
+      },
+      "color": "#FF9800",
+      "icon": "timer"
+    }
+  ],
+  "dependencies": {},
+  "compatibility": {
+    "luca_min": "1.0.0",
+    "platforms": ["android", "ios", "web"]
+  },
+  "integrity": {
+    "hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "signature": "ed25519:...",
+    "key_id": "luca-community-key-2024"
+  },
+  "metadata": {
+    "repository": "https://github.com/CROUDZ/LUCA-mods",
+    "license": "MIT",
+    "keywords": ["counter", "logic", "timer", "utility"],
+    "icon": "assets/icon.png"
+  }
+}

@@ -2,9 +2,9 @@ import React, { useEffect } from 'react';
 import { render, waitFor } from '@testing-library/react-native';
 import { act } from 'react-test-renderer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useGraphStorage } from '../src/hooks/useGraphStorage';
-import type { DrawflowExport } from '../src/types';
-import { APP_CONFIG } from '../src/config/constants';
+import { useGraphStorage } from '../app/src/hooks/useGraphStorage';
+import type { DrawflowExport } from '../app/src/types';
+import { APP_CONFIG } from '../app/src/config/constants';
 
 jest.mock('react-native', () => ({
   Alert: { alert: jest.fn() },

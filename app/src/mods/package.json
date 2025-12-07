@@ -1,0 +1,42 @@
+{
+  "name": "luca-mods",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "LUCA Modding System - Core components",
+  "scripts": {
+    "validate": "node core/validator.mjs",
+    "registry": "node registry/server.mjs",
+    "test": "node --experimental-vm-modules ../node_modules/jest/bin/jest.js --testPathPattern=mods"
+  },
+  "dependencies": {
+    "acorn": "^8.11.0",
+    "adm-zip": "^0.5.10",
+    "better-sqlite3": "^9.2.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "tweetnacl": "^1.0.3",
+    "tweetnacl-util": "^0.15.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/multer": "^1.4.11"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "luca",
+    "modding",
+    "sandbox",
+    "plugins",
+    "nodes"
+  ],
+  "author": "LUCA Team",
+  "license": "MIT"
+}

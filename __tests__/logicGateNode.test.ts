@@ -5,7 +5,7 @@
 jest.resetModules();
 jest.mock('react-native', () => ({ Alert: { alert: jest.fn() } }));
 
-import type { Graph } from '../src/types';
+import type { Graph } from '../app/src/types';
 
 const { initializeSignalSystem, resetSignalSystem } = require('../src/engine/SignalSystem');
 const { triggerNode } = require('../src/engine/nodes/TriggerNode');

@@ -10,7 +10,7 @@ const { initializeSignalSystem, resetSignalSystem } = require('../src/engine/Sig
 const { setFlashlightState } = require('../src/engine/nodes/FlashLightConditionNode');
 const { triggerNode } = require('../src/engine/nodes/TriggerNode');
 const { getPingCount, resetPingCount } = require('../src/engine/nodes/PingNode');
-import type { Graph } from '../src/types';
+import type { Graph } from '../app/src/types';
 
 describe('Signal System', () => {
   let graph: Graph;

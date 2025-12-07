@@ -12,7 +12,7 @@ const { getPingCount, resetPingCount } = require('../src/engine/nodes/PingNode')
 const { loadAllNodes } = require('../src/engine/NodeRegistry');
 const { executeGraph } = require('../src/engine/engine');
 
-import type { Graph } from '../src/types';
+import type { Graph } from '../app/src/types';
 
 describe('IfElseNode', () => {
   let graph: Graph;

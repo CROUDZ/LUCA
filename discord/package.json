@@ -1,0 +1,33 @@
+{
+  "name": "luca-discord-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "LUCA Discord Bot with TypeScript, Express, and advanced event handling",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src --ext .ts",
+    "generate:prisma": "cd .. && npx prisma generate"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.1.0",
+    "discord.js": "^14.16.3",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.14.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -78,3 +78,7 @@ yarn-error.log
 /.bundle/
 
 package-lock.json
+/generated/prisma
+
+# Discord bot token
+/discord/.env

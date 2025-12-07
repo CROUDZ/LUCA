@@ -9,8 +9,8 @@ import {
   validateGraph,
   findSourceNodes,
   findOutputNodes,
-} from '../src/engine/engine';
-import type { DrawflowExport } from '../src/types';
+} from '../app/src/engine/engine';
+import type { DrawflowExport } from '../app/src/types';
 
 // Test graph for unit tests
 const testGraph: DrawflowExport = {

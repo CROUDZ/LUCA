@@ -2,13 +2,13 @@ import {
   initializeSignalSystem,
   resetSignalSystem,
   getSignalSystem,
-} from '../src/engine/SignalSystem';
+} from '../app/src/engine/SignalSystem';
 import FlashLightConditionNode, {
   setFlashlightState,
   clearFlashlightAutoEmitRegistry,
   syncFlashlightFromNative,
-} from '../src/engine/nodes/FlashLightConditionNode';
-import type { Graph } from '../src/types';
+} from '../app/src/engine/nodes/FlashLightConditionNode';
+import type { Graph } from '../app/src/types';
 
 jest.mock('react-native', () => ({
   NativeModules: {},

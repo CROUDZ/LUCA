@@ -1,0 +1,213 @@
+# CI/CD Configuration pour LUCA Modding System
+# GitHub Actions workflow
+
+name: Mod Validation CI
+
+on:
+  push:
+    paths:
+      - 'src/mods/**'
+  pull_request:
+    paths:
+      - 'src/mods/**'
+  workflow_dispatch:
+    inputs:
+      mod_path:
+        description: 'Path to mod to validate'
+        required: false
+        default: ''
+
+jobs:
+  validate-core:
+    name: Validate Core Mod System
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run mod system tests
+        run: npm test -- --testPathPattern=mods
+      
+      - name: Lint mod system code
+        run: npx eslint src/mods/**/*.mjs --ext .mjs
+  
+  validate-example-mods:
+    name: Validate Example Mods
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm install -g acorn@8
+      
+      - name: Validate example-counter-node
+        run: |
+          node src/mods/core/validator.mjs src/mods/examples/example-counter-node --strict
+      
+      - name: Check manifest schema
+        run: |
+          node -e "
+            const manifest = require('./src/mods/examples/example-counter-node/manifest.json');
+            const required = ['manifest_version', 'name', 'version', 'main', 'api_version'];
+            const missing = required.filter(f => !manifest[f]);
+            if (missing.length) {
+              console.error('Missing fields:', missing);
+              process.exit(1);
+            }
+            console.log('Manifest OK');
+          "
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run security audit
+        run: npm audit --audit-level=high
+      
+      - name: Scan for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./src/mods
+          extra_args: --only-verified
+      
+      - name: Check for dangerous patterns
+        run: |
+          echo "Scanning for dangerous patterns..."
+          
+          # Check for eval
+          if grep -r "eval(" src/mods/examples --include="*.mjs" --include="*.js"; then
+            echo "ERROR: eval() found in example mods"
+            exit 1
+          fi
+          
+          # Check for child_process
+          if grep -r "child_process" src/mods/examples --include="*.mjs" --include="*.js"; then
+            echo "ERROR: child_process found in example mods"
+            exit 1
+          fi
+          
+          # Check for fs
+          if grep -r "require.*fs" src/mods/examples --include="*.mjs" --include="*.js"; then
+            echo "ERROR: fs require found in example mods"
+            exit 1
+          fi
+          
+          echo "Security scan passed"
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [validate-core, security-scan]
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Start registry server
+        run: |
+          node src/mods/registry/server.mjs &
+          sleep 5
+          curl -f http://localhost:3001/health || exit 1
+        env:
+          JWT_SECRET: test-secret
+      
+      - name: Test mod upload
+        run: |
+          # Create test user
+          TOKEN=$(curl -s -X POST http://localhost:3001/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"username":"admin","password":"admin"}' | jq -r .token)
+          
+          # Package example mod
+          cd src/mods/examples/example-counter-node
+          zip -r ../example-counter-node.zip .
+          cd ..
+          
+          # Upload
+          curl -f -X POST http://localhost:3001/api/mods/upload \
+            -H "Authorization: Bearer $TOKEN" \
+            -F "mod=@example-counter-node.zip"
+          
+          # Verify listed
+          curl -f http://localhost:3001/api/mods | jq .
+
+  publish:
+    name: Publish to Registry
+    runs-on: ubuntu-latest
+    needs: [integration-test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Package mods
+        run: |
+          for mod_dir in src/mods/examples/*/; do
+            mod_name=$(basename "$mod_dir")
+            echo "Packaging $mod_name..."
+            cd "$mod_dir"
+            zip -r "../../dist/${mod_name}.zip" .
+            cd -
+          done
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mod-packages
+          path: src/mods/dist/*.zip
+      
+      # Optionnel: push vers un registry externe
+      # - name: Publish to registry
+      #   run: |
+      #     for zip in src/mods/dist/*.zip; do
+      #       curl -X POST "${{ secrets.REGISTRY_URL }}/api/mods/upload" \
+      #         -H "Authorization: ApiKey ${{ secrets.REGISTRY_API_KEY }}" \
+      #         -F "mod=@$zip"
+      #     done

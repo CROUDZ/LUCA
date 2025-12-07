@@ -1,0 +1,198 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// @prisma-version: 5.22.0
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+// Generator pour Prisma Accelerate (commenté pour l'instant)
+// generator client {
+//   provider = "prisma-client"
+//   output   = "../generated/prisma"
+// }
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================================
+// USER MANAGEMENT
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  passwordHash  String?
+  avatarUrl     String?
+  bio           String?
+  role          UserRole  @default(USER)
+  verified      Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  mods          Mod[]
+  reviews       ModReview[]
+  apiKeys       ApiKey[]
+  downloads     ModDownload[]
+
+  @@index([email])
+}
+
+enum UserRole {
+  USER
+  DEVELOPER
+  MODERATOR
+  ADMIN
+}
+
+// ============================================================================
+// MOD SYSTEM
+// ============================================================================
+
+model Mod {
+  id            String      @id @default(cuid())
+  name          String      @unique  // Identifiant unique (lowercase, hyphens)
+  displayName   String               // Nom affiché
+  description   String
+  longDescription String?   @db.Text
+  
+  // Versioning
+  version       String               // Version actuelle (semver)
+  apiVersion    String      @default("1.0.0")
+  
+  // Code & Configuration
+  mainCode      String      @db.Text // Code JavaScript du mod
+  manifest      Json                 // manifest.json complet
+  
+  // Metadata
+  category      String      @default("Other")
+  tags          String[]
+  iconUrl       String?
+  screenshotUrls String[]
+  repositoryUrl String?
+  license       String      @default("MIT")
+  
+  // Node Types (stockés comme JSON)
+  nodeTypes     Json                 // Array des node_types
+  
+  // Security
+  permissions   String[]             // Permissions requises
+  checksum      String               // SHA-256 du code
+  signature     String?              // Signature ed25519
+  verified      Boolean     @default(false)
+  approved      Boolean     @default(false)
+  
+  // Stats
+  downloads     Int         @default(0)
+  rating        Float       @default(0)
+  reviewCount   Int         @default(0)
+  
+  // Status
+  status        ModStatus   @default(PENDING)
+  rejectionReason String?
+  
+  // Timestamps
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  publishedAt   DateTime?
+  
+  // Relations
+  authorId      String
+  author        User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  versions      ModVersion[]
+  reviews       ModReview[]
+  downloadLogs  ModDownload[]
+
+  @@index([name])
+  @@index([authorId])
+  @@index([status])
+  @@index([category])
+  @@index([downloads])
+  @@index([rating])
+}
+
+enum ModStatus {
+  DRAFT       // En cours d'édition
+  PENDING     // En attente de review
+  APPROVED    // Approuvé et publié
+  REJECTED    // Rejeté
+  SUSPENDED   // Suspendu (violation)
+  ARCHIVED    // Archivé par l'auteur
+}
+
+model ModVersion {
+  id          String    @id @default(cuid())
+  version     String
+  changelog   String?   @db.Text
+  mainCode    String    @db.Text
+  manifest    Json
+  checksum    String
+  
+  createdAt   DateTime  @default(now())
+  
+  modId       String
+  mod         Mod       @relation(fields: [modId], references: [id], onDelete: Cascade)
+  
+  @@unique([modId, version])
+  @@index([modId])
+}
+
+model ModReview {
+  id        String    @id @default(cuid())
+  rating    Int       // 1-5
+  comment   String?   @db.Text
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  modId     String
+  mod       Mod       @relation(fields: [modId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([modId, userId])
+  @@index([modId])
+}
+
+model ModDownload {
+  id        String    @id @default(cuid())
+  version   String
+  platform  String    // android, ios, web
+  
+  createdAt DateTime  @default(now())
+  
+  modId     String
+  mod       Mod       @relation(fields: [modId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([modId])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// API KEYS
+// ============================================================================
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  name        String
+  keyHash     String    @unique
+  permissions String[]
+  
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  
+  createdAt   DateTime  @default(now())
+  
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([keyHash])
+}

@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
+# Navigate to the app directory
+cd "$(dirname "$0")/../app"
 
+# Copy web interface assets to Android
 mkdir -p android/app/src/main/assets
 cp -r src/webInterface/. android/app/src/main/assets/
 
@@ -28,4 +30,4 @@ else
   echo "[dev] adb not found; skipping reverse port configuration"
 fi
 
-react-native run-android
+npx react-native run-android
