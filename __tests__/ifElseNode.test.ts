@@ -41,7 +41,17 @@ describe('IfElseNode', () => {
 
   it('should propagate when expression is true', async () => {
     const nodes = new Map([
-      [1, { id: 1, name: 'Trigger', type: 'input.trigger', data: {}, inputs: [], outputs: [2] }],
+      [
+        1,
+        {
+          id: 1,
+          name: 'Trigger',
+          type: 'input.trigger',
+          data: { settings: { continuousMode: false } },
+          inputs: [],
+          outputs: [2],
+        },
+      ],
       [
         2,
         {
@@ -67,7 +77,17 @@ describe('IfElseNode', () => {
 
   it('should not propagate when expression is false', async () => {
     const nodes = new Map([
-      [1, { id: 1, name: 'Trigger', type: 'input.trigger', data: {}, inputs: [], outputs: [2] }],
+      [
+        1,
+        {
+          id: 1,
+          name: 'Trigger',
+          type: 'input.trigger',
+          data: { settings: { continuousMode: false } },
+          inputs: [],
+          outputs: [2],
+        },
+      ],
       [
         2,
         {
@@ -92,7 +112,17 @@ describe('IfElseNode', () => {
 
   it('should propagate on comparison match', async () => {
     const nodes = new Map([
-      [1, { id: 1, name: 'Trigger', type: 'input.trigger', data: {}, inputs: [], outputs: [2] }],
+      [
+        1,
+        {
+          id: 1,
+          name: 'Trigger',
+          type: 'input.trigger',
+          data: { settings: { continuousMode: false } },
+          inputs: [],
+          outputs: [2],
+        },
+      ],
       [
         2,
         {
@@ -123,7 +153,17 @@ describe('IfElseNode', () => {
 
   it('should use variable when conditionType is variable', async () => {
     const nodes = new Map([
-      [1, { id: 1, name: 'Trigger', type: 'input.trigger', data: {}, inputs: [], outputs: [2] }],
+      [
+        1,
+        {
+          id: 1,
+          name: 'Trigger',
+          type: 'input.trigger',
+          data: { settings: { continuousMode: false } },
+          inputs: [],
+          outputs: [2],
+        },
+      ],
       [
         2,
         {
@@ -152,7 +192,17 @@ describe('IfElseNode', () => {
 
   it('should invert signal when invertSignal is true', async () => {
     const nodes = new Map([
-      [1, { id: 1, name: 'Trigger', type: 'input.trigger', data: {}, inputs: [], outputs: [2] }],
+      [
+        1,
+        {
+          id: 1,
+          name: 'Trigger',
+          type: 'input.trigger',
+          data: { settings: { continuousMode: false } },
+          inputs: [],
+          outputs: [2],
+        },
+      ],
       [
         2,
         {
@@ -179,7 +229,17 @@ describe('IfElseNode', () => {
 
   it('should not load node when expression is unsafe', async () => {
     const nodes = new Map([
-      [1, { id: 1, name: 'Trigger', type: 'input.trigger', data: {}, inputs: [], outputs: [2] }],
+      [
+        1,
+        {
+          id: 1,
+          name: 'Trigger',
+          type: 'input.trigger',
+          data: { settings: { continuousMode: false } },
+          inputs: [],
+          outputs: [2],
+        },
+      ],
       [
         2,
         {

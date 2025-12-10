@@ -67,7 +67,7 @@ function buildGraph(confirmData: Record<string, any>) {
           id: 1,
           name: 'Trigger',
           type: 'input.trigger',
-          data: { autoTrigger: false },
+          data: { autoTrigger: false, settings: { continuousMode: false } },
           inputs: [],
           outputs: [2],
         },

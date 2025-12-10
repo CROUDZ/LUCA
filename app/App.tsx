@@ -9,6 +9,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { nodeRegistry } from './src/engine/NodeRegistry';
 import { logger } from './src/utils/logger';
 import { modStorage } from './src/utils/modStorage';
+import { backgroundService } from './src/utils/backgroundService';
 import {
   startMonitoringNativeTorch,
   stopMonitoringNativeTorch,
@@ -30,11 +31,15 @@ function App() {
     // Log des nodes chargées au démarrage
     const stats = nodeRegistry.getStats();
     logger.debug(`🚀 App: ${stats.total} nodes loaded across ${stats.categories} categories`);
+
+    // Assurer l'exécution continue en arrière-plan
+    backgroundService.start();
     
     // Démarrer le monitoring de la torche (pour détecter les changements via l'OS)
     startMonitoringNativeTorch();
 
     return () => {
+      backgroundService.stop();
       stopMonitoringNativeTorch();
     };
   }, []);

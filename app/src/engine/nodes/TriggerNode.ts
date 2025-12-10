@@ -24,13 +24,24 @@ import { getSignalSystem } from '../SignalSystem';
 import { logger } from '../../utils/logger';
 import { buildNodeCardHTML } from './templates/nodeCard';
 
-// Map pour stocker les références aux nodes trigger
-const triggerNodes = new Map<number, () => void>();
+// Map pour stocker les références et le mode des nodes trigger
+type TriggerMode = 'pulse' | 'continuous';
+// Map pour stocker les références aux nodes trigger et leur mode
+type TriggerEntry = {
+  mode: 'continuous' | 'pulse';
+  defaultData?: any;
+};
+
+const triggerNodes = new Map<number, TriggerEntry>();
 
 /**
  * Fonction helper pour déclencher manuellement une node trigger
  */
-export function triggerNode(nodeId: number, data?: any): void {
+export function triggerNode(
+  nodeId: number,
+  data?: any,
+  options?: { mode?: TriggerMode; state?: 'start' | 'stop' }
+): void {
   logger.info(`[Trigger] Déclenchement manuel de la node ${nodeId}`);
 
   const signalSystem = getSignalSystem();
@@ -39,8 +50,23 @@ export function triggerNode(nodeId: number, data?: any): void {
     return;
   }
 
-  // Émettre le signal
-  signalSystem.emitSignal(nodeId, data);
+  const entry = triggerNodes.get(nodeId);
+  const mode = entry?.mode || 'pulse';
+  const payload = data ?? entry?.defaultData;
+
+  if (mode === 'continuous') {
+    // Signal manuel : source = 'manual', s'arrête uniquement par toggle manuel
+    signalSystem
+      .toggleContinuousSignal(nodeId, payload, undefined, { 
+        forceState: options?.state,
+        source: 'manual',
+        originNodeId: nodeId,
+      })
+      .catch((err) => logger.error('[Trigger] Continuous toggle failed', err));
+    return;
+  }
+
+  signalSystem.emitSignal(nodeId, payload);
 }
 
 /**
@@ -55,8 +81,15 @@ export function triggerAll(data?: any): void {
     return;
   }
 
-  for (const nodeId of triggerNodes.keys()) {
-    signalSystem.emitSignal(nodeId, data);
+  for (const [nodeId, entry] of triggerNodes.entries()) {
+    const payload = data ?? entry.defaultData;
+    if (entry.mode === 'continuous') {
+      signalSystem.toggleContinuousSignal(nodeId, payload).catch((err) =>
+        logger.error('[Trigger] Continuous toggle failed', err)
+      );
+      continue;
+    }
+    signalSystem.emitSignal(nodeId, payload);
   }
 }
 
@@ -99,6 +132,7 @@ const TriggerNode: NodeDefinition = {
     autoTrigger: false, // Déclencher automatiquement au démarrage
     autoTriggerDelay: 0, // Délai avant déclenchement auto (ms)
     triggerData: {}, // Données à inclure dans le signal
+    continuousMode: true, // Mode interrupteur (start/stop signal continu)
   },
 
   // ============================================================================
@@ -109,14 +143,13 @@ const TriggerNode: NodeDefinition = {
       const settings = context.settings || {};
       const autoTrigger = settings.autoTrigger === true;
       const autoTriggerDelay = settings.autoTriggerDelay || 0;
-      const triggerData = settings.triggerData || {};
+        const triggerData = settings.triggerData || {};
+        const continuousMode = settings.continuousMode !== false;
 
       // Enregistrer cette node comme trigger
-      triggerNodes.set(context.nodeId, () => {
-        const signalSystem = getSignalSystem();
-        if (signalSystem) {
-          signalSystem.emitSignal(context.nodeId, triggerData);
-        }
+      triggerNodes.set(context.nodeId, {
+        mode: continuousMode ? 'continuous' : 'pulse',
+        defaultData: triggerData,
       });
 
       // Auto-déclenchement si activé
@@ -159,13 +192,17 @@ const TriggerNode: NodeDefinition = {
   // HTML (pour l'affichage dans le graphe)
   // ============================================================================
   generateHTML: (_settings: Record<string, any>, nodeMeta?: NodeMeta): string => {
+    const continuous = _settings?.continuousMode !== false;
     return buildNodeCardHTML({
       title: 'Trigger',
-      subtitle: 'Start signal',
+      subtitle: continuous ? 'Mode interrupteur' : 'Impulsion',
       iconName: 'play_circle',
       category: nodeMeta?.category || 'Input',
       accentColor: TRIGGER_NODE_ACCENT,
-      description: 'Déclenche manuellement un signal pour tester un graphe.',
+      description: continuous
+        ? 'Appui 1: ON (écoute), Appui 2: OFF'
+        : 'Émet une impulsion unique.',
+      chips: [{ label: continuous ? 'Toggle' : 'Pulse', tone: continuous ? 'info' : 'default' }],
     });
   },
 };

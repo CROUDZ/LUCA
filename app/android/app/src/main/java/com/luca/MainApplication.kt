@@ -18,6 +18,8 @@ class MainApplication : Application(), ReactApplication {
             // add(MyReactNativePackage())
             add(TorchPackage())
             add(VolumePackage())
+            add(VoiceRecognitionPackage())
+            add(BackgroundServicePackage())
         },
     )
   }

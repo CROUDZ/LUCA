@@ -26,6 +26,11 @@ export interface Signal {
   data?: any;
   // Contexte partagé pour cette propagation de signal
   context?: ExecutionContext;
+  // Pour les signaux continus (mode interrupteur)
+  continuous?: boolean;
+  state?: 'start' | 'stop';
+  // Source du signal : manual (trigger bouton) ou auto (auto-émission condition)
+  source?: 'manual' | 'auto';
 }
 
 export interface SignalHandler {
@@ -88,6 +93,16 @@ export class SignalSystem {
 
   // Système d'événements
   private eventHandlers: Map<string, EventSubscription[]> = new Map();
+
+  // Signaux continus actifs (mode interrupteur)
+  // Stocke les données du signal + la source (manual/auto) pour gérer l'arrêt
+  private continuousSignals: Map<number, { 
+    data?: any; 
+    context?: ExecutionContext;
+    source: 'manual' | 'auto';
+    startedAt: number;
+    originNodeId: number; // Node qui a démarré le signal (pour auto-émission)
+  }> = new Map();
 
   // Statistiques et métriques
   private stats: {
@@ -261,6 +276,184 @@ export class SignalSystem {
   }
 
   /**
+   * Vérifier si un signal continu est actif pour une node
+   */
+  isContinuousSignalActive(nodeId: number): boolean {
+    return this.continuousSignals.has(nodeId);
+  }
+
+  /**
+   * Obtenir les données du signal continu actif
+   */
+  getContinuousSignalData(nodeId: number): { 
+    data?: any; 
+    context?: ExecutionContext;
+    source: 'manual' | 'auto';
+    startedAt: number;
+    originNodeId: number;
+  } | undefined {
+    return this.continuousSignals.get(nodeId);
+  }
+
+  /**
+   * Obtenir tous les signaux continus actifs (pour le feedback visuel)
+   */
+  getActiveContinuousSignals(): Map<number, { 
+    data?: any; 
+    source: 'manual' | 'auto';
+    startedAt: number;
+    originNodeId: number;
+  }> {
+    return new Map(this.continuousSignals);
+  }
+
+  /**
+   * Basculer un signal continu (mode interrupteur)
+   * Si le signal est actif, il s'arrête. Sinon, il démarre.
+   * 
+   * @param sourceNodeId - Node qui émet le signal
+   * @param data - Données à associer au signal
+   * @param context - Contexte d'exécution
+   * @param options - Options de contrôle :
+   *   - forceState: forcer start ou stop
+   *   - source: 'manual' (trigger bouton) ou 'auto' (auto-émission)
+   *   - originNodeId: node à l'origine du signal (pour auto-émission)
+   */
+  async toggleContinuousSignal(
+    sourceNodeId: number,
+    data?: any,
+    context?: ExecutionContext,
+    options?: { 
+      forceState?: 'start' | 'stop';
+      source?: 'manual' | 'auto';
+      originNodeId?: number;
+    }
+  ): Promise<'started' | 'stopped'> {
+    const currentlyActive = this.continuousSignals.has(sourceNodeId);
+    const targetState = options?.forceState ?? (currentlyActive ? 'stop' : 'start');
+    const signalSource = options?.source ?? 'manual';
+    const originNodeId = options?.originNodeId ?? sourceNodeId;
+
+    if (targetState === 'start' && !currentlyActive) {
+      // Démarrer le signal continu
+      this.continuousSignals.set(sourceNodeId, { 
+        data, 
+        context,
+        source: signalSource,
+        startedAt: Date.now(),
+        originNodeId,
+      });
+      
+      const signal: Signal = {
+        id: `signal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        sourceNodeId,
+        timestamp: Date.now(),
+        data,
+        context: context || this.globalContext,
+        continuous: true,
+        state: 'start',
+        source: signalSource,
+      };
+
+      logger.info(`[SignalSystem] Signal continu DÉMARRÉ pour node ${sourceNodeId} (source: ${signalSource})`);
+      this.stats.totalSignals++;
+
+      // Émettre un événement pour le feedback visuel
+      this.emitEvent('signal.continuous.started', {
+        nodeId: sourceNodeId,
+        source: signalSource,
+        originNodeId,
+        timestamp: Date.now(),
+      });
+
+      this.signalQueue.push(signal);
+      if (!this.isProcessing) {
+        await this.processQueue();
+      }
+
+      return 'started';
+    } else if (targetState === 'stop' && currentlyActive) {
+      // Arrêter le signal continu
+      const storedData = this.continuousSignals.get(sourceNodeId);
+      this.continuousSignals.delete(sourceNodeId);
+
+      const signal: Signal = {
+        id: `signal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        sourceNodeId,
+        timestamp: Date.now(),
+        data: storedData?.data ?? data,
+        context: storedData?.context || context || this.globalContext,
+        continuous: true,
+        state: 'stop',
+        source: storedData?.source ?? signalSource,
+      };
+
+      logger.info(`[SignalSystem] Signal continu ARRÊTÉ pour node ${sourceNodeId} (était source: ${storedData?.source})`);
+      this.stats.totalSignals++;
+
+      // Émettre un événement pour le feedback visuel
+      this.emitEvent('signal.continuous.stopped', {
+        nodeId: sourceNodeId,
+        source: storedData?.source ?? signalSource,
+        originNodeId: storedData?.originNodeId ?? originNodeId,
+        timestamp: Date.now(),
+        duration: storedData ? Date.now() - storedData.startedAt : 0,
+      });
+
+      this.signalQueue.push(signal);
+      if (!this.isProcessing) {
+        await this.processQueue();
+      }
+
+      return 'stopped';
+    }
+
+    // Pas de changement d'état
+    return currentlyActive ? 'started' : 'stopped';
+  }
+
+  /**
+   * Arrêter un signal continu uniquement si la source correspond
+   * Utile pour les auto-émissions qui doivent s'arrêter quand leur condition est fausse
+   */
+  async stopContinuousSignalIfSource(
+    sourceNodeId: number,
+    expectedSource: 'manual' | 'auto',
+    originNodeId?: number
+  ): Promise<boolean> {
+    const signalData = this.continuousSignals.get(sourceNodeId);
+    
+    if (!signalData) {
+      return false; // Pas de signal actif
+    }
+
+    // Si la source ne correspond pas, ne pas arrêter
+    if (signalData.source !== expectedSource) {
+      logger.debug(`[SignalSystem] Signal ${sourceNodeId} non arrêté car source différente (attendu: ${expectedSource}, actuel: ${signalData.source})`);
+      return false;
+    }
+
+    // Pour les auto-émissions, vérifier aussi l'origine si spécifiée
+    if (originNodeId !== undefined && signalData.originNodeId !== originNodeId) {
+      logger.debug(`[SignalSystem] Signal ${sourceNodeId} non arrêté car origine différente`);
+      return false;
+    }
+
+    await this.toggleContinuousSignal(sourceNodeId, undefined, undefined, { forceState: 'stop' });
+    return true;
+  }
+
+  /**
+   * Arrêter tous les signaux continus (utile lors du reset)
+   */
+  async stopAllContinuousSignals(): Promise<void> {
+    const activeNodes = Array.from(this.continuousSignals.keys());
+    for (const nodeId of activeNodes) {
+      await this.toggleContinuousSignal(nodeId, undefined, undefined, { forceState: 'stop' });
+    }
+  }
+
+  /**
    * Émettre un signal depuis une node source
    */
   async emitSignal(sourceNodeId: number, data?: any, context?: ExecutionContext): Promise<void> {
@@ -416,6 +609,7 @@ export class SignalSystem {
     this.isProcessing = false;
     this.globalContext = this.createNewContext();
     this.eventHandlers.clear();
+    this.continuousSignals.clear();
     this.stats.totalSignals = 0;
     this.stats.failedSignals = 0;
     this.stats.averageExecutionTime = 0;
@@ -435,6 +629,7 @@ export class SignalSystem {
     variablesCount: number;
     eventHandlersCount: number;
     lastEmittedEvent: string | null;
+    activeContinuousSignals: number;
   } {
     return {
       registeredHandlers: this.handlers.size,
@@ -446,6 +641,7 @@ export class SignalSystem {
       variablesCount: this.globalContext.variables.size,
       eventHandlersCount: this.eventHandlers.size,
       lastEmittedEvent: (this.stats.lastEmittedEvent ?? null) as string | null,
+      activeContinuousSignals: this.continuousSignals.size,
     };
   }
 }

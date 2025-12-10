@@ -95,6 +95,13 @@ const FlashLightActionNode: NodeDefinition = {
           logger.info(`[FlashLightAction ${context.nodeId}] 🔥 SIGNAL RECEIVED! Processing...`);
           logger.debug(`[FlashLightAction ${context.nodeId}] Signal data:`, signal);
 
+          if (signal?.continuous && signal.state === 'stop') {
+            return {
+              propagate: propagateSignal,
+              data: { ...(signal?.data ?? {}), flashlightState: getFlashlightState(), stopped: true },
+            };
+          }
+
           let newState: boolean;
           if (mode === 'set') {
             newState = value;

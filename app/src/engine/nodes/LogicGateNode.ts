@@ -202,6 +202,18 @@ const LogicGateNode: NodeDefinition = {
           async (signal: Signal): Promise<SignalPropagation> => {
             logger.debug(`[LogicGate Node ${context.nodeId}] Signal reçu`);
 
+            if (signal.continuous && signal.state === 'stop') {
+              clearNodeState(context.nodeId);
+              // eslint-disable-next-line dot-notation
+              const node = signalSystem['graph'].nodes.get(context.nodeId);
+              const targets = node ? node.outputs.filter(Boolean) : [];
+              return {
+                propagate: targets.length > 0,
+                data: { ...signal.data, logicResult: false, finalResult: false, stopped: true },
+                targetOutputs: targets,
+              };
+            }
+
             const gateType = normalizeGateType(settings.gateType);
             const inputStates = nodeInputStates.get(context.nodeId)!;
             const invertSignal = settings.invertSignal ?? false;

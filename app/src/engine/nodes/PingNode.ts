@@ -106,6 +106,16 @@ const PingNode: NodeDefinition = {
           async (signal: Signal): Promise<SignalPropagation> => {
             logger.debug(`[Ping Node ${context.nodeId}] Signal reçu:`, signal);
 
+            const signalState = signal.state || 'pulse';
+            const isStop = signalState === 'stop' && signal.continuous;
+            if (isStop) {
+              logger.debug(`[Ping Node ${context.nodeId}] Stop signal reçu — pas de ping`);
+              return {
+                propagate: propagateSignal,
+                data: { ...signal.data, pingStopped: true },
+              };
+            }
+
             // Incrémenter le compteur
             pingCount++;
 

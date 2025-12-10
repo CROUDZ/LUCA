@@ -97,6 +97,13 @@ const NotificationNode: NodeDefinition = {
           async (signal: Signal): Promise<SignalPropagation> => {
             logger.debug(`[Notification Node ${context.nodeId}] Affichage notification`);
 
+            if (signal.continuous && signal.state === 'stop') {
+              return {
+                propagate: settings.autoPropagate !== false,
+                data: { ...signal.data, notificationSkipped: 'stop' },
+              };
+            }
+
             try {
               // Déterminer le message
               let message: string;

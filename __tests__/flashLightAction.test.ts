@@ -42,7 +42,17 @@ describe('FlashLightActionNode', () => {
   it('should set flashlight state when mode=set and propagate signal', async () => {
     const graph = {
       nodes: new Map([
-        [1, { id: 1, name: 'Trigger', type: 'input.trigger', data: {}, inputs: [], outputs: [2] }],
+        [
+          1,
+          {
+            id: 1,
+            name: 'Trigger',
+            type: 'input.trigger',
+            data: { settings: { continuousMode: false } },
+            inputs: [],
+            outputs: [2],
+          },
+        ],
         [
           2,
           {
@@ -91,7 +101,17 @@ describe('FlashLightActionNode', () => {
   it('should toggle flashlight when mode=toggle and not propagate if propagate disabled', async () => {
     const graph = {
       nodes: new Map([
-        [1, { id: 1, name: 'Trigger', type: 'input.trigger', data: {}, inputs: [], outputs: [2] }],
+        [
+          1,
+          {
+            id: 1,
+            name: 'Trigger',
+            type: 'input.trigger',
+            data: { settings: { continuousMode: false } },
+            inputs: [],
+            outputs: [2],
+          },
+        ],
         [
           2,
           {
@@ -167,7 +187,17 @@ describe('FlashLightActionNode', () => {
 
     const graph = {
       nodes: new Map([
-        [1, { id: 1, name: 'Trigger', type: 'input.trigger', data: {}, inputs: [], outputs: [2] }],
+        [
+          1,
+          {
+            id: 1,
+            name: 'Trigger',
+            type: 'input.trigger',
+            data: { settings: { continuousMode: false } },
+            inputs: [],
+            outputs: [2],
+          },
+        ],
         [
           2,
           {

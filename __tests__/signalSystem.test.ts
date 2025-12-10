@@ -20,7 +20,17 @@ describe('Signal System', () => {
     // Trigger (1) -> FlashLight (2) -> Ping (3)
     graph = {
       nodes: new Map([
-        [1, { id: 1, name: 'Trigger', type: 'input.trigger', data: {}, inputs: [], outputs: [2] }],
+        [
+          1,
+          {
+            id: 1,
+            name: 'Trigger',
+            type: 'input.trigger',
+            data: { settings: { continuousMode: false } },
+            inputs: [],
+            outputs: [2],
+          },
+        ],
         [
           2,
           {

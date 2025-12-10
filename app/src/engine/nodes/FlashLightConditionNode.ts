@@ -61,17 +61,28 @@ async function emitAutoSignalsForFlashlight(enabled: boolean) {
     `[FlashLight] Auto-emission check (enabled=${enabled}) on registry with ${autoEmitRegistry.size} nodes`
   );
 
-  autoEmitRegistry.forEach(({ invert }, nodeId) => {
-    const shouldEmit = invert ? !enabled : enabled;
-    if (!shouldEmit) {
-      logger.debug(`[FlashLight] Skipping auto node ${nodeId} (invert=${invert})`);
-      return;
+  for (const [nodeId, { invert }] of autoEmitRegistry.entries()) {
+    const conditionMet = invert ? !enabled : enabled;
+    const isCurrentlyActive = ss.isContinuousSignalActive(nodeId);
+    
+    if (conditionMet && !isCurrentlyActive) {
+      // Condition vraie et pas de signal actif -> démarrer le signal continu
+      logger.info(`[FlashLight] Starting auto continuous signal from node ${nodeId} (condition met)`);
+      await ss.toggleContinuousSignal(nodeId, { 
+        fromEvent: 'flashlight.changed', 
+        enabled,
+        autoEmit: true,
+      }, undefined, {
+        forceState: 'start',
+        source: 'auto',
+        originNodeId: nodeId,
+      });
+    } else if (!conditionMet && isCurrentlyActive) {
+      // Condition fausse et signal actif -> arrêter le signal SI c'était une auto-émission
+      logger.info(`[FlashLight] Stopping auto continuous signal from node ${nodeId} (condition no longer met)`);
+      await ss.stopContinuousSignalIfSource(nodeId, 'auto', nodeId);
     }
-    logger.info(`[FlashLight] Emitting auto signal from node ${nodeId}`);
-    ss.emitSignal(nodeId, { fromEvent: 'flashlight.changed', enabled }).catch((err) => {
-      logger.warn(`[FlashLight] Failed to auto-emit for node ${nodeId}`, err);
-    });
-  });
+  }
 }
 
 function emitPermissionFailure(
@@ -295,6 +306,10 @@ const FlashLightConditionNode: NodeDefinition = {
       }
 
       ss.registerHandler(context.nodeId, async (signal: Signal): Promise<SignalPropagation> => {
+        if (signal.continuous && signal.state === 'stop') {
+          return { propagate: true, data: { ...signal.data, flashlightState: getFlashlightState() } };
+        }
+
         const current = getFlashlightState();
         const invert = context.settings?.invertSignal ?? false;
         const condition = invert ? !current : current;

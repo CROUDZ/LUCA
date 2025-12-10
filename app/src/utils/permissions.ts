@@ -195,6 +195,64 @@ export async function hasVibrationPermission(): Promise<boolean> {
   }
 }
 
+export async function ensureMicrophonePermission(): Promise<boolean> {
+  try {
+    if (Platform?.OS !== 'android') return true;
+
+    const micPerm =
+      (PermissionsAndroid.PERMISSIONS as Record<string, string> | undefined)?.RECORD_AUDIO ??
+      'android.permission.RECORD_AUDIO';
+
+    const alreadyGranted = await checkAndroidPermission(micPerm);
+    if (alreadyGranted) return true;
+
+    const result = await requestAndroidPermission(micPerm, {
+      title: 'Permission Micro',
+      message: 'LUCA a besoin du micro pour écouter le mot-clé vocal.',
+    });
+
+    if (result.granted) return true;
+
+    if (result.neverAskAgain) {
+      try {
+        Alert.alert(
+          'Permission micro requise',
+          'Le micro est désactivé et ne sera plus demandé. Voulez-vous ouvrir les paramètres pour le réactiver ?',
+          [
+            { text: 'Annuler', style: 'cancel' },
+            { text: 'Ouvrir', onPress: () => Linking?.openSettings?.() },
+          ]
+        );
+        try {
+          Linking?.openSettings?.();
+        } catch (e) {
+          logger.warn('[Permissions] Linking.openSettings failed (micro)', e);
+        }
+      } catch (e) {
+        logger.warn('[Permissions] Could not show NEVER_ASK alert (micro)', e);
+      }
+    }
+
+    return false;
+  } catch (err) {
+    logger.warn('[Permissions] ensureMicrophonePermission unexpected error', err);
+    return false;
+  }
+}
+
+export async function hasMicrophonePermission(): Promise<boolean> {
+  try {
+    if (Platform?.OS !== 'android') return true;
+    const micPerm =
+      (PermissionsAndroid.PERMISSIONS as Record<string, string> | undefined)?.RECORD_AUDIO ??
+      'android.permission.RECORD_AUDIO';
+    return await checkAndroidPermission(micPerm);
+  } catch (err) {
+    logger.warn('[Permissions] hasMicrophonePermission failed', err);
+    return false;
+  }
+}
+
 export default {
   requestAndroidPermission,
   checkAndroidPermission,
@@ -202,4 +260,6 @@ export default {
   hasCameraPermission,
   ensureVibrationPermission,
   hasVibrationPermission,
+  ensureMicrophonePermission,
+  hasMicrophonePermission,
 };

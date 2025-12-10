@@ -97,6 +97,13 @@ const VibrationNode: NodeDefinition = {
           async (signal: Signal): Promise<SignalPropagation> => {
             logger.debug(`[Vibration Node ${context.nodeId}] Déclenchement vibration`);
 
+            if (signal.continuous && signal.state === 'stop') {
+              return {
+                propagate: settings.autoPropagate !== false,
+                data: { ...(signal.data ?? {}), vibrationTriggered: false, vibrationStopped: true },
+              };
+            }
+
             try {
               const hasPermission = await ensureVibrationPermission();
               if (!hasPermission) {

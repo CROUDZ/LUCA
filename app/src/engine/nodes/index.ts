@@ -14,6 +14,7 @@ import './FlashLightConditionNode';
 import './PingNode';
 import './TriggerNode';
 import './ConfirmNode';
+import './VoiceKeywordConditionNode';
 
 // ============================================================================
 // NODES CONDITIONNELLES
@@ -45,6 +46,7 @@ logger.debug('✅ All nodes loaded');
 export { default as FlashLightConditionNode } from './FlashLightConditionNode';
 export { default as PingNode } from './PingNode';
 export { default as TriggerNode } from './TriggerNode';
+export { default as VoiceKeywordConditionNode } from './VoiceKeywordConditionNode';
 export { default as IfElseNode } from './IfElseNode';
 export { default as LogicGateNode } from './LogicGateNode';
 export { VolumeUpConditionNode, VolumeDownConditionNode } from './VolumeConditionNodes';
@@ -71,3 +73,6 @@ export { getPingCount, resetPingCount } from './PingNode';
 
 // Logic Gate
 export { resetLogicGateState, resetAllLogicGateStates } from './LogicGateNode';
+
+// Voice Keyword
+export { clearVoiceKeywordRegistry, getActiveListenersCount } from './VoiceKeywordConditionNode';

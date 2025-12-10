@@ -84,6 +84,10 @@ function createExecute(direction: VolumeDirection): NodeDefinition['execute'] {
     }
 
     ss.registerHandler(context.nodeId, async (signal: Signal) => {
+      if (signal.continuous && signal.state === 'stop') {
+        return { propagate: true, data: { ...signal.data, volumePressed: false } };
+      }
+
       const pressed = isVolumeButtonPressed(direction);
       const condition = invert ? !pressed : pressed;
       if (condition) {

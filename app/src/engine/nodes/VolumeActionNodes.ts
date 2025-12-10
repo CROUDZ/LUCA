@@ -62,6 +62,13 @@ function createVolumeActionNode(options: {
       const propagateSignal = context.settings?.propagateSignal !== false;
 
       ss.registerHandler(context.nodeId, async (signal: Signal) => {
+        if (signal.continuous && signal.state === 'stop') {
+          return {
+            propagate: propagateSignal,
+            data: { ...signal.data, volumeAction: options.direction, volumeStopped: true },
+          };
+        }
+
         try {
           const volumeInfo = await adjustSystemVolume(options.direction, steps, showUI);
           logger.info(

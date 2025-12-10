@@ -28,7 +28,7 @@ function buildLogicGateGraph(gateType: string): Graph {
     id: 1,
     name: 'Trigger A',
     type: 'input.trigger',
-    data: {},
+    data: { settings: { continuousMode: false } },
     inputs: [],
     outputs: [3],
   });
@@ -37,7 +37,7 @@ function buildLogicGateGraph(gateType: string): Graph {
     id: 2,
     name: 'Trigger B',
     type: 'input.trigger',
-    data: {},
+    data: { settings: { continuousMode: false } },
     inputs: [],
     outputs: [3],
   });
@@ -88,7 +88,7 @@ function buildSingleInputGraph(gateType: string): Graph {
     id: 1,
     name: 'Trigger',
     type: 'input.trigger',
-    data: {},
+    data: { settings: { continuousMode: false } },
     inputs: [],
     outputs: [3],
   });
