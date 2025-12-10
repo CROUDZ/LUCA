@@ -11,6 +11,7 @@ import type { RootStackParamList } from '../types/navigation.types';
 import NodeEditorScreen from '../screens/NodeEditorScreen';
 import NodePickerScreen from '../screens/NodePickerScreen';
 import ModLibraryScreen from '../screens/ModLibraryScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 import { useAppTheme } from '../styles/theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -66,6 +67,14 @@ const AppNavigator: React.FC = () => {
           options={{
             title: 'Mod Library',
             animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{
+            title: 'Settings',
+            animation: 'slide_from_right',
           }}
         />
       </Stack.Navigator>

@@ -21,7 +21,15 @@ export type WebViewMessageType =
   | 'NODE_ADDED'
   | 'NODE_REMOVED'
   | 'NODES_LIST'
-  | 'NODE_SETTING_CHANGED';
+  | 'NODE_SETTING_CHANGED'
+  // Signal visualization messages
+  | 'SIGNAL_START'
+  | 'SIGNAL_STOP'
+  | 'SIGNAL_PROPAGATE'
+  | 'SIGNAL_BLOCKED'
+  | 'SIGNAL_PATH'
+  | 'NODE_ACTIVE'
+  | 'NODE_INACTIVE';
 
 export interface WebViewMessage<T = any> {
   type: WebViewMessageType;

@@ -802,4 +802,173 @@ body {
     }
 }
 
+/* ==========================================================================
+   SIGNAL VISUALIZATION - Animation des signaux en temps réel
+   ========================================================================== */
+
+/* Node actif (signal continu en cours) */
+.drawflow .drawflow-node.signal-active {
+    animation: node-pulse 1.5s ease-in-out infinite;
+}
+
+.drawflow .drawflow-node.signal-active .node-card {
+    border-color: #4CAF50 !important;
+    box-shadow: 
+        0 0 20px rgba(76, 175, 80, 0.4),
+        0 0 40px rgba(76, 175, 80, 0.2),
+        inset 0 0 20px rgba(76, 175, 80, 0.05) !important;
+}
+
+/* Node recevant un signal (flash) */
+.drawflow .drawflow-node.signal-receiving {
+    animation: signal-flash 0.5s ease-out;
+}
+
+.drawflow .drawflow-node.signal-receiving .node-card {
+    border-color: #FFD700 !important;
+    box-shadow: 
+        0 0 30px rgba(255, 215, 0, 0.6),
+        0 0 60px rgba(255, 215, 0, 0.3) !important;
+}
+
+/* Node qui propage (a transmis le signal) */
+.drawflow .drawflow-node.signal-propagating {
+    animation: signal-propagate 0.6s ease-out;
+}
+
+.drawflow .drawflow-node.signal-propagating .node-card {
+    border-color: #2196F3 !important;
+    box-shadow: 
+        0 0 25px rgba(33, 150, 243, 0.5),
+        0 0 50px rgba(33, 150, 243, 0.25) !important;
+}
+
+/* Node bloqué (condition non remplie) */
+.drawflow .drawflow-node.signal-blocked {
+    animation: signal-blocked 0.4s ease-out;
+}
+
+.drawflow .drawflow-node.signal-blocked .node-card {
+    border-color: #F44336 !important;
+    box-shadow: 0 0 15px rgba(244, 67, 54, 0.4) !important;
+}
+
+/* Indicateur de signal sur le nœud */
+.node-signal-indicator {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #4CAF50;
+    border: 3px solid var(--editor-bg, #0a0a0a);
+    z-index: 10;
+    opacity: 0;
+    transform: scale(0);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.drawflow .drawflow-node.signal-active .node-signal-indicator {
+    opacity: 1;
+    transform: scale(1);
+    animation: indicator-pulse 1s ease-in-out infinite;
+}
+
+/* Animations keyframes */
+@keyframes node-pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+}
+
+@keyframes signal-flash {
+    0% {
+        transform: scale(1);
+    }
+    30% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes signal-propagate {
+    0% {
+        transform: scale(1);
+    }
+    40% {
+        transform: scale(1.03);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes signal-blocked {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    20%, 60% {
+        transform: translateX(-3px);
+    }
+    40%, 80% {
+        transform: translateX(3px);
+    }
+}
+
+@keyframes indicator-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.6);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(76, 175, 80, 0);
+    }
+}
+
+/* Animation de la connexion quand un signal passe */
+.drawflow .connection.signal-flowing path {
+    stroke: #4CAF50 !important;
+    stroke-width: 4px !important;
+    filter: drop-shadow(0 0 6px rgba(76, 175, 80, 0.8));
+    animation: connection-flow 0.8s ease-out;
+}
+
+@keyframes connection-flow {
+    0% {
+        stroke-dasharray: 10 100;
+        stroke-dashoffset: 100;
+    }
+    100% {
+        stroke-dasharray: 100 10;
+        stroke-dashoffset: 0;
+    }
+}
+
+/* Overlay de flux sur les connexions */
+.connection-signal-particle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #4CAF50 0%, rgba(76, 175, 80, 0) 70%);
+    pointer-events: none;
+    z-index: 100;
+    animation: particle-glow 0.5s ease-out infinite;
+}
+
+@keyframes particle-glow {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.5);
+        opacity: 0.7;
+    }
+}
 

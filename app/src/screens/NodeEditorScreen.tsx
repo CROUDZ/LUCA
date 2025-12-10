@@ -21,11 +21,12 @@ import type { RootStackParamList } from '../types/navigation.types';
 import createStyles from './NodeEditorScreenStyles';
 import { useAppTheme } from '../styles/theme';
 import SaveMenu from '../components/SaveMenu';
-import RunProgramButton from '../components/RunProgramButton';
+import ProgramControlBar from '../components/ProgramControlBar';
 import TopControlsBar from '../components/TopControlsBar';
 import { nodeInstanceTracker } from '../engine/NodeInstanceTracker';
 import { subscribeNodeAdded } from '../utils/NodePickerEvents';
 import { logger } from '../utils/logger';
+import { signalVisualizationBridge } from '../utils/signalVisualizationBridge';
 
 // Import du système de signaux
 import { parseDrawflowGraph } from '../engine/engine';
@@ -37,7 +38,8 @@ import {
 } from '../engine/nodes/FlashLightConditionNode';
 import { initializeSignalSystem, resetSignalSystem, getSignalSystem } from '../engine/SignalSystem';
 import { nodeRegistry } from '../engine/NodeRegistry';
-import { triggerNode, triggerAll } from '../engine/nodes/TriggerNode';
+import { triggerNode } from '../engine/nodes/TriggerNode';
+import { programState } from '../engine/ProgramState';
 
 type NodeEditorScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'NodeEditor'>;
 
@@ -66,7 +68,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
   const [showNewSaveInput, setShowNewSaveInput] = useState(false);
   const [newSaveName, setNewSaveName] = useState('');
   const [currentGraph, setCurrentGraph] = useState<DrawflowExport | null>(null);
-  const [triggerNodeIds, setTriggerNodeIds] = useState<number[]>([]);
+  const [triggerNodeId, setTriggerNodeId] = useState<number | null>(null);
   const [hasFlashActionInGraph, setHasFlashActionInGraph] = useState(false);
   const [cameraPermissionGranted, setCameraPermissionGranted] = useState<boolean | null>(null);
   const pendingSaveNameRef = useRef<string | null>(null);
@@ -166,16 +168,17 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
 
       const graphNodes = Array.from(graph.nodes.values());
       const triggers = graphNodes.filter((n) => n.type === 'input.trigger').map((n) => n.id);
-      setTriggerNodeIds(triggers);
+      // Limiter à un seul trigger
+      setTriggerNodeId(triggers.length > 0 ? triggers[0] : null);
 
       const hasFlashAction = graphNodes.some((n) => n.type === 'action.flashlight');
       setHasFlashActionInGraph(hasFlashAction);
 
-      logger.info(`🎯 Found ${triggers.length} trigger node(s):`, triggers);
+      logger.info(`🎯 Found trigger node: ${triggers.length > 0 ? triggers[0] : 'none'}`);
 
       return { graph, triggerIds: triggers };
     },
-    [setCameraPermissionGranted, setHasFlashActionInGraph, setTriggerNodeIds]
+    [setCameraPermissionGranted, setHasFlashActionInGraph, setTriggerNodeId]
   );
 
   // Hook de stockage des graphes
@@ -235,6 +238,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
     webRef,
     isReady,
     handleMessage,
+    sendMessage,
     loadGraph,
     addNode,
     requestExport,
@@ -328,11 +332,21 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
   }, [isReady, requestExport]);
 
   const handleRunProgram = useCallback(async () => {
-    if (!isReady || triggerNodeIds.length === 0) {
+    if (!isReady || triggerNodeId === null) {
       return;
     }
 
-    logger.info('🚀 Launching program from', triggerNodeIds.length, 'trigger(s)');
+    // Utiliser programState pour savoir si le programme est actif
+    // (persiste même quand le graphe est modifié)
+    if (programState.isRunning) {
+      // Arrêter le programme
+      logger.info('🛑 Stopping program from trigger', triggerNodeId);
+      programState.stop();
+      triggerNode(triggerNodeId, { timestamp: Date.now(), source: 'run-button' }, { state: 'stop' });
+      return;
+    }
+
+    logger.info('🚀 Launching program from trigger', triggerNodeId);
 
     if (hasFlashActionInGraph) {
       try {
@@ -353,36 +367,43 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
       }
     }
 
-    let activeTriggerIds = triggerNodeIds;
-    try {
-      const result = await waitForGraphSync();
-      if (result?.triggerIds?.length) {
-        activeTriggerIds = result.triggerIds;
+    // Si le SignalSystem n'existe pas encore, synchroniser le graphe
+    const ss = getSignalSystem();
+    if (!ss) {
+      try {
+        await waitForGraphSync();
+      } catch (error) {
+        logger.warn('[NodeEditorScreen] Graph sync before run failed', error);
       }
-    } catch (error) {
-      logger.warn('[NodeEditorScreen] Graph sync before run failed', error);
     }
+
+    // Marquer le programme comme démarré
+    programState.start();
 
     const payload = {
       timestamp: Date.now(),
       source: 'run-button',
     };
 
-    let triggeredCount = 0;
-    activeTriggerIds.forEach((nodeId) => {
-      triggerNode(nodeId, payload);
-      triggeredCount += 1;
-    });
-
-    if (triggeredCount === 0) {
-      logger.warn('[NodeEditorScreen] Aucun trigger ID actif - fallback triggerAll');
-      triggerAll(payload);
-    } else {
-      logger.debug(`[NodeEditorScreen] Emitted ${triggeredCount} trigger(s)`);
-    }
-  }, [hasFlashActionInGraph, isReady, triggerNodeIds, waitForGraphSync]);
+    triggerNode(triggerNodeId, payload, { state: 'start' });
+    logger.debug(`[NodeEditorScreen] Emitted trigger ${triggerNodeId}`);
+  }, [hasFlashActionInGraph, isReady, triggerNodeId, waitForGraphSync]);
 
   // Show a small banner if FlashLight nodes present and permission denied
+
+  // Connecter le bridge de visualisation des signaux au WebView
+  useEffect(() => {
+    if (isReady && sendMessage) {
+      signalVisualizationBridge.connect(sendMessage);
+      signalVisualizationBridge.setTriggerNodeId(triggerNodeId);
+      logger.debug('[NodeEditorScreen] Signal visualization bridge connected');
+      
+      return () => {
+        signalVisualizationBridge.disconnect();
+      };
+    }
+    return undefined;
+  }, [isReady, sendMessage, triggerNodeId]);
 
   useEffect(() => {
     (async () => {
@@ -546,7 +567,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
           setCurrentSaveId(null);
           nodeInstanceTracker.reset(); // Reset tous les compteurs
           setCurrentGraph(null);
-          setTriggerNodeIds([]);
+          setTriggerNodeId(null);
           setHasFlashActionInGraph(false);
           flashlightEventUnsubscribeRef.current?.();
           flashlightEventUnsubscribeRef.current = null;
@@ -626,14 +647,12 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
 
       {/* Signal controls removed - manual flashlight toggling is handled elsewhere */}
 
-      {/* Bouton Run Program en bas de l'écran - uniquement si un Trigger node est présent */}
-      {triggerNodeIds.length > 0 && (
-        <RunProgramButton
-          triggerNodeIds={triggerNodeIds}
-          isReady={isReady}
-          onRunProgram={handleRunProgram}
-        />
-      )}
+      {/* Barre de contrôle du programme - unique point d'entrée */}
+      <ProgramControlBar
+        triggerNodeId={triggerNodeId}
+        isReady={isReady}
+        onRunProgram={handleRunProgram}
+      />
 
       {/* Barre de contrôles supérieure */}
       <TopControlsBar
@@ -643,6 +662,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
         onOpenSaveMenu={() => setShowSaveMenu(true)}
         onManualSave={handleManualSave}
         onClearGraph={handleClearGraph}
+        onOpenSettings={() => navigation.navigate('Settings')}
       />
 
       {/* Modal Save Menu */}

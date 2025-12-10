@@ -55,12 +55,9 @@ export function triggerNode(
   const payload = data ?? entry?.defaultData;
 
   if (mode === 'continuous') {
-    // Signal manuel : source = 'manual', s'arrête uniquement par toggle manuel
     signalSystem
       .toggleContinuousSignal(nodeId, payload, undefined, { 
         forceState: options?.state,
-        source: 'manual',
-        originNodeId: nodeId,
       })
       .catch((err) => logger.error('[Trigger] Continuous toggle failed', err));
     return;
@@ -192,17 +189,14 @@ const TriggerNode: NodeDefinition = {
   // HTML (pour l'affichage dans le graphe)
   // ============================================================================
   generateHTML: (_settings: Record<string, any>, nodeMeta?: NodeMeta): string => {
-    const continuous = _settings?.continuousMode !== false;
     return buildNodeCardHTML({
       title: 'Trigger',
-      subtitle: continuous ? 'Mode interrupteur' : 'Impulsion',
+      subtitle: 'Point de départ',
       iconName: 'play_circle',
-      category: nodeMeta?.category || 'Input',
+      category: nodeMeta?.category || 'Control',
       accentColor: TRIGGER_NODE_ACCENT,
-      description: continuous
-        ? 'Appui 1: ON (écoute), Appui 2: OFF'
-        : 'Émet une impulsion unique.',
-      chips: [{ label: continuous ? 'Toggle' : 'Pulse', tone: continuous ? 'info' : 'default' }],
+      description: 'Démarrez le programme avec le bouton PLAY en bas',
+      chips: [{ label: '▶ Start', tone: 'info' }],
     });
   },
 };

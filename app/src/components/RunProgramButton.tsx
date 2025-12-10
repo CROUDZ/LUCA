@@ -2,11 +2,12 @@
  * RunProgramButton - Bouton de lancement du programme
  *
  * Bouton placé en bas de l'interface qui permet de lancer le programme
- * en déclenchant tous les nodes Trigger du graphe.
+ * en déclenchant le trigger unique du graphe.
  *
  * - Grisé et désactivé si aucun Trigger n'est placé
- * - Actif et cliquable si au moins un Trigger est présent
- * - Change d'apparence quand le programme est en cours (signaux continus actifs)
+ * - Actif et cliquable si un Trigger est présent
+ * - Change d'apparence quand le programme est en cours (signal continu actif)
+ * - Connecté au bouton play/stop de la notification
  */
 
 import React, { useMemo, useState, useEffect, useRef } from 'react';
@@ -15,29 +16,29 @@ import { useAppTheme } from '../styles/theme';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { hexToRgba } from '../styles/colorUtils';
 import { getSignalSystem } from '../engine/SignalSystem';
+import { backgroundService } from '../utils/backgroundService';
 
 interface RunProgramButtonProps {
-  triggerNodeIds: number[];
+  triggerNodeId: number | null;
   isReady: boolean;
   onRunProgram?: () => void | Promise<void>;
 }
 
 const RunProgramButton: React.FC<RunProgramButtonProps> = ({
-  triggerNodeIds,
+  triggerNodeId,
   isReady,
   onRunProgram,
 }) => {
-  const hasTriggers = triggerNodeIds.length > 0;
-  const isEnabled = isReady && hasTriggers;
+  const hasTrigger = triggerNodeId !== null;
+  const isEnabled = isReady && hasTrigger;
 
   // État pour savoir si un signal continu est actif
   const [isRunning, setIsRunning] = useState(false);
-  const [runningSource, setRunningSource] = useState<'manual' | 'auto' | null>(null);
 
   // Animation pour le pulse quand le programme est en cours
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // Écouter les événements du SignalSystem
+  // Écouter les événements du SignalSystem et du BackgroundService
   useEffect(() => {
     const ss = getSignalSystem();
     if (!ss) return;
@@ -45,24 +46,17 @@ const RunProgramButton: React.FC<RunProgramButtonProps> = ({
     // Vérifier l'état initial
     const checkActiveSignals = () => {
       const stats = ss.getStats();
-      if (stats.activeContinuousSignals > 0) {
-        setIsRunning(true);
-        // Récupérer la source du premier signal actif
-        const activeSignals = ss.getActiveContinuousSignals();
-        const firstSignal = activeSignals.values().next().value;
-        setRunningSource(firstSignal?.source ?? 'manual');
-      } else {
-        setIsRunning(false);
-        setRunningSource(null);
-      }
+      const running = stats.activeContinuousSignals > 0;
+      setIsRunning(running);
+      backgroundService.updateTriggerState(running);
     };
 
     checkActiveSignals();
 
-    // S'abonner aux événements
-    const unsubStart = ss.subscribeToEvent('signal.continuous.started', 0, (data) => {
+    // S'abonner aux événements du SignalSystem
+    const unsubStart = ss.subscribeToEvent('signal.continuous.started', 0, () => {
       setIsRunning(true);
-      setRunningSource(data?.source ?? 'manual');
+      backgroundService.updateTriggerState(true);
     });
 
     const unsubStop = ss.subscribeToEvent('signal.continuous.stopped', 0, () => {
@@ -70,15 +64,25 @@ const RunProgramButton: React.FC<RunProgramButtonProps> = ({
       const stats = ss.getStats();
       if (stats.activeContinuousSignals === 0) {
         setIsRunning(false);
-        setRunningSource(null);
+        backgroundService.updateTriggerState(false);
+      }
+    });
+
+    // Écouter les événements du bouton notification
+    const unsubNotif = backgroundService.onTriggerToggle((shouldRun) => {
+      if (shouldRun && !isRunning) {
+        onRunProgram?.();
+      } else if (!shouldRun && isRunning) {
+        onRunProgram?.();
       }
     });
 
     return () => {
       unsubStart();
       unsubStop();
+      unsubNotif();
     };
-  }, [isReady]);
+  }, [isReady, isRunning, onRunProgram]);
 
   // Animation pulse quand le programme est en cours
   useEffect(() => {
@@ -115,7 +119,6 @@ const RunProgramButton: React.FC<RunProgramButtonProps> = ({
       borderTop: hexToRgba(resolvedTheme.colors.border, 0.7),
       buttonBg: resolvedTheme.colors.primary,
       buttonBgRunning: '#4CAF50', // Vert quand en cours
-      buttonBgAuto: '#FF9800', // Orange pour auto-émission
       buttonShadow: resolvedTheme.colors.primarySoft,
       textColor: resolvedTheme.colors.text,
       hintColor: resolvedTheme.colors.textMuted,
@@ -148,10 +151,6 @@ const RunProgramButton: React.FC<RunProgramButtonProps> = ({
           backgroundColor: stylesFromTheme.buttonBgRunning,
           shadowColor: stylesFromTheme.buttonBgRunning,
         },
-        buttonAuto: {
-          backgroundColor: stylesFromTheme.buttonBgAuto,
-          shadowColor: stylesFromTheme.buttonBgAuto,
-        },
         pulseRing: {
           position: 'absolute',
           width: 70,
@@ -173,7 +172,7 @@ const RunProgramButton: React.FC<RunProgramButtonProps> = ({
   if (isEnabled) {
     const buttonStyle = [
       styles.button,
-      isRunning && (runningSource === 'auto' ? styles.buttonAuto : styles.buttonRunning),
+      isRunning && styles.buttonRunning,
     ];
 
     const iconName = isRunning ? 'stop' : 'play-arrow';
@@ -186,7 +185,7 @@ const RunProgramButton: React.FC<RunProgramButtonProps> = ({
               styles.pulseRing,
               {
                 transform: [{ scale: pulseAnim }],
-                borderColor: runningSource === 'auto' ? stylesFromTheme.buttonBgAuto : stylesFromTheme.buttonBgRunning,
+                borderColor: stylesFromTheme.buttonBgRunning,
               },
             ]}
           />

@@ -29,7 +29,6 @@ try {
 }
 
 let flashlightEnabled = false;
-const autoEmitRegistry = new Map<number, { invert: boolean }>();
 let deviceTorchSubscription: EmitterSubscription | null = null;
 let nativeTorchSubscription: EmitterSubscription | null = null;
 
@@ -42,47 +41,17 @@ function normalizeTorchPayload(payload: unknown): boolean {
 }
 
 export function clearFlashlightAutoEmitRegistry() {
-  autoEmitRegistry.clear();
+  // No-op - auto-emission removed
 }
 
 // Testing helper
 export function getAutoEmitRegistrySize() {
-  return autoEmitRegistry.size;
+  return 0; // Auto-emission removed
 }
 
-async function emitAutoSignalsForFlashlight(enabled: boolean) {
-  const ss = getSignalSystem();
-  if (!ss) {
-    logger.debug('[FlashLight] No SignalSystem available for auto emission');
-    return;
-  }
-
-  logger.info(
-    `[FlashLight] Auto-emission check (enabled=${enabled}) on registry with ${autoEmitRegistry.size} nodes`
-  );
-
-  for (const [nodeId, { invert }] of autoEmitRegistry.entries()) {
-    const conditionMet = invert ? !enabled : enabled;
-    const isCurrentlyActive = ss.isContinuousSignalActive(nodeId);
-    
-    if (conditionMet && !isCurrentlyActive) {
-      // Condition vraie et pas de signal actif -> démarrer le signal continu
-      logger.info(`[FlashLight] Starting auto continuous signal from node ${nodeId} (condition met)`);
-      await ss.toggleContinuousSignal(nodeId, { 
-        fromEvent: 'flashlight.changed', 
-        enabled,
-        autoEmit: true,
-      }, undefined, {
-        forceState: 'start',
-        source: 'auto',
-        originNodeId: nodeId,
-      });
-    } else if (!conditionMet && isCurrentlyActive) {
-      // Condition fausse et signal actif -> arrêter le signal SI c'était une auto-émission
-      logger.info(`[FlashLight] Stopping auto continuous signal from node ${nodeId} (condition no longer met)`);
-      await ss.stopContinuousSignalIfSource(nodeId, 'auto', nodeId);
-    }
-  }
+async function emitAutoSignalsForFlashlight(_enabled: boolean) {
+  // Auto-emission removed - this is now a no-op
+  // Signals only propagate when triggered by the user via the Trigger node
 }
 
 function emitPermissionFailure(
@@ -279,31 +248,11 @@ const FlashLightConditionNode: NodeDefinition = {
       description: 'Signal propagé si la condition lampe torche est vraie',
     },
   ],
-  defaultSettings: { autoEmitOnChange: true, invertSignal: false },
+  defaultSettings: { invertSignal: false },
   execute: async (context: NodeExecutionContext): Promise<NodeExecutionResult> => {
     try {
       const ss = getSignalSystem();
       if (!ss) return { success: false, error: 'Signal system not initialized', outputs: {} };
-
-      const autoEmit = context.settings?.autoEmitOnChange ?? false;
-      const hasInputs = Boolean(context.inputsCount && context.inputsCount > 0);
-
-      if (autoEmit && !hasInputs) {
-        const initial = getFlashlightState();
-        const invert = context.settings?.invertSignal ?? false;
-        autoEmitRegistry.set(context.nodeId, { invert });
-        logger.info(
-          `[FlashLight Node ${context.nodeId}] Auto-emit enabled (invert=${invert}) initialState=${initial}`
-        );
-        if ((invert && !initial) || (!invert && initial)) {
-          await ss.emitSignal(context.nodeId, {
-            fromEvent: 'flashlight.initial',
-            enabled: initial,
-          });
-        }
-      } else {
-        autoEmitRegistry.delete(context.nodeId);
-      }
 
       ss.registerHandler(context.nodeId, async (signal: Signal): Promise<SignalPropagation> => {
         if (signal.continuous && signal.state === 'stop') {
@@ -330,14 +279,10 @@ const FlashLightConditionNode: NodeDefinition = {
   },
   generateHTML: (settings: Record<string, any>, nodeMeta?: NodeMeta): string => {
     const invertSignal = settings?.invertSignal ?? false;
-    const autoEmit = settings?.autoEmitOnChange ?? true;
-    const statusText = autoEmit ? 'Auto-émission active' : 'Écoute uniquement';
-    const statusClass = autoEmit ? 'auto-emit-status active' : 'auto-emit-status disabled';
     const body = `
 			<div class="flashlight-node${invertSignal ? ' inverted' : ''}">
-				<div class="${statusClass}">
-					<span class="status-dot"></span>
-					<span class="status-text">${statusText}</span>
+				<div class="condition-status">
+					<span class="status-text">Propage si lampe ${invertSignal ? 'éteinte' : 'allumée'}</span>
 				</div>
 			</div>
 		`;
@@ -345,7 +290,7 @@ const FlashLightConditionNode: NodeDefinition = {
     return buildNodeCardHTML({
       title: 'FlashLight Condition',
       subtitle: invertSignal ? 'Signal inversé' : 'Signal direct',
-      description: statusText,
+      description: `Propage si lampe ${invertSignal ? 'éteinte' : 'allumée'}`,
       iconName: 'flashlight_on',
       category: nodeMeta?.category || 'Condition',
       accentColor: FLASHLIGHT_CONDITION_COLOR,

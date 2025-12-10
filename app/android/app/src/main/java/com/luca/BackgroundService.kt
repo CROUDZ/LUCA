@@ -5,37 +5,51 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.content.pm.ServiceInfo
 import androidx.core.app.NotificationCompat
-import androidx.core.app.ServiceCompat
-import androidx.core.app.ServiceInfoCompat
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.modules.core.DeviceEventManagerModule
+import com.facebook.react.bridge.ReactContext
 
 class BackgroundService : Service() {
 
   private var wakeLock: PowerManager.WakeLock? = null
+  private var showControls: Boolean = true
+  private var triggerRunning: Boolean = false
+  private var actionReceiver: BroadcastReceiver? = null
 
   override fun onCreate() {
     super.onCreate()
     createNotificationChannel()
     acquireWakeLock()
+    registerActionReceiver()
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    intent?.let {
+      showControls = it.getBooleanExtra(EXTRA_SHOW_CONTROLS, true)
+      if (it.hasExtra(EXTRA_TRIGGER_STATE)) {
+        triggerRunning = it.getBooleanExtra(EXTRA_TRIGGER_STATE, false)
+      }
+    }
     val notification = buildNotification()
-    ServiceCompat.startForeground(
-      this,
-      NOTIFICATION_ID,
-      notification,
-      ServiceInfoCompat.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-    )
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+    } else {
+      startForeground(NOTIFICATION_ID, notification)
+    }
     return START_STICKY
   }
 
   override fun onDestroy() {
+    unregisterActionReceiver()
     wakeLock?.let {
       if (it.isHeld) it.release()
     }
@@ -52,24 +66,136 @@ class BackgroundService : Service() {
     wakeLock = lock
   }
 
+  private fun registerActionReceiver() {
+    actionReceiver = object : BroadcastReceiver() {
+      override fun onReceive(context: Context?, intent: Intent?) {
+        when (intent?.action) {
+          ACTION_PLAY -> {
+            triggerRunning = true
+            updateNotification()
+            emitTriggerEvent("play")
+          }
+          ACTION_STOP -> {
+            triggerRunning = false
+            updateNotification()
+            emitTriggerEvent("stop")
+          }
+        }
+      }
+    }
+    val filter = IntentFilter().apply {
+      addAction(ACTION_PLAY)
+      addAction(ACTION_STOP)
+    }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      registerReceiver(actionReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+    } else {
+      registerReceiver(actionReceiver, filter)
+    }
+  }
+
+  private fun unregisterActionReceiver() {
+    actionReceiver?.let {
+      try {
+        unregisterReceiver(it)
+      } catch (e: Exception) {
+        // Ignore
+      }
+    }
+    actionReceiver = null
+  }
+
+  private fun emitTriggerEvent(action: String) {
+    try {
+      val reactContext = (application as? MainApplication)?.reactHost?.currentReactContext
+      if (reactContext is ReactContext && reactContext.hasActiveReactInstance()) {
+        val params = Arguments.createMap()
+        params.putString("action", action)
+        reactContext
+          .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+          .emit("luca.trigger.toggle", params)
+      }
+    } catch (e: Exception) {
+      // Ignore emission failures
+    }
+  }
+
+  fun updateShowControls(show: Boolean) {
+    showControls = show
+    updateNotification()
+  }
+
+  fun updateTriggerState(running: Boolean) {
+    triggerRunning = running
+    updateNotification()
+  }
+
+  private fun updateNotification() {
+    val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    manager.notify(NOTIFICATION_ID, buildNotification())
+  }
+
   private fun buildNotification(): Notification {
-    val intent = Intent(this, MainActivity::class.java)
-    val pendingIntent = PendingIntent.getActivity(
+    val openIntent = Intent(this, MainActivity::class.java)
+    val openPendingIntent = PendingIntent.getActivity(
       this,
       0,
-      intent,
+      openIntent,
       PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
     )
 
-    return NotificationCompat.Builder(this, CHANNEL_ID)
-      .setContentTitle("LUCA actif en arrière-plan")
-      .setContentText("Les automatisations continuent même écran éteint.")
+    val builder = NotificationCompat.Builder(this, CHANNEL_ID)
       .setSmallIcon(R.mipmap.ic_launcher)
-      .setContentIntent(pendingIntent)
+      .setContentIntent(openPendingIntent)
       .setOngoing(true)
       .setCategory(NotificationCompat.CATEGORY_SERVICE)
-      .setPriority(NotificationCompat.PRIORITY_MIN)
-      .build()
+      .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+
+    if (showControls) {
+      if (triggerRunning) {
+        builder.setContentTitle("🟢 LUCA - Programme actif")
+        builder.setContentText("Appuyez pour arrêter")
+        builder.setPriority(NotificationCompat.PRIORITY_HIGH)
+        builder.setColorized(true)
+        builder.setColor(0xFF4CAF50.toInt()) // Vert
+        val stopIntent = Intent(ACTION_STOP).setPackage(packageName)
+        val stopPendingIntent = PendingIntent.getBroadcast(
+          this,
+          1,
+          stopIntent,
+          PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        builder.addAction(
+          android.R.drawable.ic_media_pause,
+          "⏹ STOP",
+          stopPendingIntent
+        )
+      } else {
+        builder.setContentTitle("⏸ LUCA - En attente")
+        builder.setContentText("Appuyez sur Play pour démarrer")
+        builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
+        builder.setColor(0xFF2196F3.toInt()) // Bleu
+        val playIntent = Intent(ACTION_PLAY).setPackage(packageName)
+        val playPendingIntent = PendingIntent.getBroadcast(
+          this,
+          2,
+          playIntent,
+          PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        builder.addAction(
+          android.R.drawable.ic_media_play,
+          "▶ PLAY",
+          playPendingIntent
+        )
+      }
+    } else {
+      builder.setContentTitle("LUCA actif")
+      builder.setContentText("Automatisations en arrière-plan")
+      builder.setPriority(NotificationCompat.PRIORITY_LOW)
+      builder.setSilent(true)
+    }
+
+    return builder.build()
   }
 
   private fun createNotificationChannel() {
@@ -77,10 +203,13 @@ class BackgroundService : Service() {
 
     val channel = NotificationChannel(
       CHANNEL_ID,
-      "LUCA service arrière-plan",
-      NotificationManager.IMPORTANCE_LOW
+      "LUCA - Contrôle du programme",
+      NotificationManager.IMPORTANCE_DEFAULT
     )
-    channel.description = "Garantit l'exécution en arrière-plan"
+    channel.description = "Affiche l'état du programme et permet de le contrôler"
+    channel.setShowBadge(true)
+    channel.enableLights(true)
+    channel.lightColor = 0xFF4CAF50.toInt()
 
     val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     manager.createNotificationChannel(channel)
@@ -89,5 +218,9 @@ class BackgroundService : Service() {
   companion object {
     private const val CHANNEL_ID = "luca_background_channel"
     private const val NOTIFICATION_ID = 31337
+    const val EXTRA_SHOW_CONTROLS = "show_controls"
+    const val EXTRA_TRIGGER_STATE = "trigger_state"
+    const val ACTION_PLAY = "com.luca.ACTION_PLAY"
+    const val ACTION_STOP = "com.luca.ACTION_STOP"
   }
 }

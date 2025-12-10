@@ -29,8 +29,6 @@ export interface Signal {
   // Pour les signaux continus (mode interrupteur)
   continuous?: boolean;
   state?: 'start' | 'stop';
-  // Source du signal : manual (trigger bouton) ou auto (auto-émission condition)
-  source?: 'manual' | 'auto';
 }
 
 export interface SignalHandler {
@@ -95,13 +93,10 @@ export class SignalSystem {
   private eventHandlers: Map<string, EventSubscription[]> = new Map();
 
   // Signaux continus actifs (mode interrupteur)
-  // Stocke les données du signal + la source (manual/auto) pour gérer l'arrêt
   private continuousSignals: Map<number, { 
     data?: any; 
     context?: ExecutionContext;
-    source: 'manual' | 'auto';
     startedAt: number;
-    originNodeId: number; // Node qui a démarré le signal (pour auto-émission)
   }> = new Map();
 
   // Statistiques et métriques
@@ -288,9 +283,7 @@ export class SignalSystem {
   getContinuousSignalData(nodeId: number): { 
     data?: any; 
     context?: ExecutionContext;
-    source: 'manual' | 'auto';
     startedAt: number;
-    originNodeId: number;
   } | undefined {
     return this.continuousSignals.get(nodeId);
   }
@@ -300,9 +293,7 @@ export class SignalSystem {
    */
   getActiveContinuousSignals(): Map<number, { 
     data?: any; 
-    source: 'manual' | 'auto';
     startedAt: number;
-    originNodeId: number;
   }> {
     return new Map(this.continuousSignals);
   }
@@ -316,8 +307,6 @@ export class SignalSystem {
    * @param context - Contexte d'exécution
    * @param options - Options de contrôle :
    *   - forceState: forcer start ou stop
-   *   - source: 'manual' (trigger bouton) ou 'auto' (auto-émission)
-   *   - originNodeId: node à l'origine du signal (pour auto-émission)
    */
   async toggleContinuousSignal(
     sourceNodeId: number,
@@ -325,23 +314,17 @@ export class SignalSystem {
     context?: ExecutionContext,
     options?: { 
       forceState?: 'start' | 'stop';
-      source?: 'manual' | 'auto';
-      originNodeId?: number;
     }
   ): Promise<'started' | 'stopped'> {
     const currentlyActive = this.continuousSignals.has(sourceNodeId);
     const targetState = options?.forceState ?? (currentlyActive ? 'stop' : 'start');
-    const signalSource = options?.source ?? 'manual';
-    const originNodeId = options?.originNodeId ?? sourceNodeId;
 
     if (targetState === 'start' && !currentlyActive) {
       // Démarrer le signal continu
       this.continuousSignals.set(sourceNodeId, { 
         data, 
         context,
-        source: signalSource,
         startedAt: Date.now(),
-        originNodeId,
       });
       
       const signal: Signal = {
@@ -352,17 +335,14 @@ export class SignalSystem {
         context: context || this.globalContext,
         continuous: true,
         state: 'start',
-        source: signalSource,
       };
 
-      logger.info(`[SignalSystem] Signal continu DÉMARRÉ pour node ${sourceNodeId} (source: ${signalSource})`);
+      logger.info(`[SignalSystem] Signal continu DÉMARRÉ pour node ${sourceNodeId}`);
       this.stats.totalSignals++;
 
       // Émettre un événement pour le feedback visuel
       this.emitEvent('signal.continuous.started', {
         nodeId: sourceNodeId,
-        source: signalSource,
-        originNodeId,
         timestamp: Date.now(),
       });
 
@@ -385,17 +365,14 @@ export class SignalSystem {
         context: storedData?.context || context || this.globalContext,
         continuous: true,
         state: 'stop',
-        source: storedData?.source ?? signalSource,
       };
 
-      logger.info(`[SignalSystem] Signal continu ARRÊTÉ pour node ${sourceNodeId} (était source: ${storedData?.source})`);
+      logger.info(`[SignalSystem] Signal continu ARRÊTÉ pour node ${sourceNodeId}`);
       this.stats.totalSignals++;
 
       // Émettre un événement pour le feedback visuel
       this.emitEvent('signal.continuous.stopped', {
         nodeId: sourceNodeId,
-        source: storedData?.source ?? signalSource,
-        originNodeId: storedData?.originNodeId ?? originNodeId,
         timestamp: Date.now(),
         duration: storedData ? Date.now() - storedData.startedAt : 0,
       });
@@ -410,37 +387,6 @@ export class SignalSystem {
 
     // Pas de changement d'état
     return currentlyActive ? 'started' : 'stopped';
-  }
-
-  /**
-   * Arrêter un signal continu uniquement si la source correspond
-   * Utile pour les auto-émissions qui doivent s'arrêter quand leur condition est fausse
-   */
-  async stopContinuousSignalIfSource(
-    sourceNodeId: number,
-    expectedSource: 'manual' | 'auto',
-    originNodeId?: number
-  ): Promise<boolean> {
-    const signalData = this.continuousSignals.get(sourceNodeId);
-    
-    if (!signalData) {
-      return false; // Pas de signal actif
-    }
-
-    // Si la source ne correspond pas, ne pas arrêter
-    if (signalData.source !== expectedSource) {
-      logger.debug(`[SignalSystem] Signal ${sourceNodeId} non arrêté car source différente (attendu: ${expectedSource}, actuel: ${signalData.source})`);
-      return false;
-    }
-
-    // Pour les auto-émissions, vérifier aussi l'origine si spécifiée
-    if (originNodeId !== undefined && signalData.originNodeId !== originNodeId) {
-      logger.debug(`[SignalSystem] Signal ${sourceNodeId} non arrêté car origine différente`);
-      return false;
-    }
-
-    await this.toggleContinuousSignal(sourceNodeId, undefined, undefined, { forceState: 'stop' });
-    return true;
   }
 
   /**
@@ -549,6 +495,13 @@ export class SignalSystem {
         try {
           logger.debug(`[SignalSystem] Propagation du signal vers node ${outputNodeId}`);
 
+          // Émettre un événement pour la visualisation
+          this.emitEvent('signal.propagated', {
+            fromNodeId: currentNodeId,
+            toNodeId: outputNodeId,
+            signalId: signal.id,
+          });
+
           const startTime = Date.now();
 
           // Exécuter le handler
@@ -582,6 +535,12 @@ export class SignalSystem {
               // Propager récursivement vers toutes les sorties
               await this.propagateSignal(newSignal, outputNodeId);
             }
+          } else {
+            // Signal bloqué - émettre l'événement
+            this.emitEvent('signal.blocked', {
+              nodeId: outputNodeId,
+              reason: 'condition_not_met',
+            });
           }
         } catch (error) {
           logger.error(
@@ -589,12 +548,27 @@ export class SignalSystem {
             error
           );
           this.stats.failedSignals++;
+          
+          // Émettre événement de blocage pour erreur
+          this.emitEvent('signal.blocked', {
+            nodeId: outputNodeId,
+            reason: 'error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
         }
       } else {
         // Si pas de handler, propager directement
         logger.debug(
           `[SignalSystem] Pas de handler pour node ${outputNodeId}, propagation directe`
         );
+        
+        // Émettre l'événement de propagation même sans handler
+        this.emitEvent('signal.propagated', {
+          fromNodeId: currentNodeId,
+          toNodeId: outputNodeId,
+          signalId: signal.id,
+        });
+        
         await this.propagateSignal(signal, outputNodeId);
       }
     }

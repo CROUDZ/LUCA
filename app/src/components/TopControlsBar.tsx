@@ -27,6 +27,8 @@ interface TopControlsBarProps {
   onManualSave: () => void;
   /** Callback pour effacer le graphe */
   onClearGraph: () => void;
+  /** Callback pour ouvrir les paramètres */
+  onOpenSettings: () => void;
 }
 
 const TopControlsBar: React.FC<TopControlsBarProps> = ({
@@ -36,6 +38,7 @@ const TopControlsBar: React.FC<TopControlsBarProps> = ({
   onOpenSaveMenu,
   onManualSave,
   onClearGraph,
+  onOpenSettings,
 }) => {
   const { theme: appTheme } = useAppTheme();
   const { width: screenWidth } = useWindowDimensions();
@@ -120,6 +123,19 @@ const TopControlsBar: React.FC<TopControlsBarProps> = ({
             style={styles.buttonIcon}
           />
           {!isCompact && <Text style={styles.buttonText}>Clear</Text>}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, styles.buttonSecondary]}
+          onPress={onOpenSettings}
+          activeOpacity={0.7}
+        >
+          <Icon
+            name="settings"
+            size={isCompact ? 14 : 16}
+            color={appTheme.colors.textSecondary}
+            style={styles.buttonIcon}
+          />
         </TouchableOpacity>
       </View>
     </View>
@@ -218,6 +234,10 @@ const createStyles = (theme: AppTheme, isCompact: boolean, isMedium: boolean) =>
     buttonDanger: {
       borderColor: hexToRgba(theme.colors.error, 0.45),
       backgroundColor: hexToRgba(theme.colors.error, 0.15),
+    },
+    buttonSecondary: {
+      borderColor: subtleBorder,
+      backgroundColor: hexToRgba(theme.colors.backgroundSecondary, 0.5),
     },
     buttonDisabled: {
       opacity: 0.5,

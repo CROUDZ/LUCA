@@ -179,7 +179,6 @@ const VoiceKeywordConditionNode: NodeDefinition = {
 
   defaultSettings: {
     keyword: 'LUCA',
-    autoEmitOnChange: false, // Désactivé car sinon il faudrait écouter tout le temps
     invertSignal: false,
     caseSensitive: false,
     exactMatch: false,
@@ -273,12 +272,8 @@ const VoiceKeywordConditionNode: NodeDefinition = {
   generateHTML: (settings: Record<string, any>, nodeMeta?: NodeMeta): string => {
     const keyword = settings?.keyword || 'LUCA';
     const invertSignal = settings?.invertSignal ?? false;
-    const autoEmit = settings?.autoEmitOnChange ?? false;
     const caseSensitive = settings?.caseSensitive ?? false;
     const exactMatch = settings?.exactMatch ?? false;
-
-    const statusText = autoEmit ? 'Écoute continue' : 'Écoute sur signal';
-    const statusClass = autoEmit ? 'auto-emit-status active' : 'auto-emit-status disabled';
 
     const chips: Array<{ label: string; tone?: 'default' | 'success' | 'warning' | 'danger' | 'info' }> = [
       { label: `"${keyword}"`, tone: 'info' },
@@ -296,10 +291,6 @@ const VoiceKeywordConditionNode: NodeDefinition = {
 
     const body = `
       <div class="voice-keyword-node${invertSignal ? ' inverted' : ''}">
-        <div class="${statusClass}">
-          <span class="status-dot"></span>
-          <span class="status-text">${statusText}</span>
-        </div>
         <div class="keyword-display">
           <span class="keyword-label">Mot-clé:</span>
           <span class="keyword-value">"${keyword}"</span>

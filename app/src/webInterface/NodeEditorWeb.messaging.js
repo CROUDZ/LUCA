@@ -4,6 +4,15 @@ function setupMessageListener() {
     const handler = (event) => {
         try {
             const msg = JSON.parse(event.data);
+            
+            // Handle signal visualization messages
+            if (msg.type && msg.type.startsWith('SIGNAL_') || msg.type === 'NODE_ACTIVE' || msg.type === 'NODE_INACTIVE') {
+                if (window.DrawflowEditor.signalViz) {
+                    window.DrawflowEditor.signalViz.handleSignalMessage(msg);
+                }
+                return;
+            }
+            
             switch(msg.type) {
                 case 'LOAD_GRAPH':
                     if (msg.payload?.drawflow) {
@@ -12,6 +21,10 @@ function setupMessageListener() {
                             window.DrawflowEditor.analyzeGraph();
                             window.DrawflowEditor.updateConnectedInputs();
                             window.DrawflowEditor.refreshFlashlightStatus?.();
+                            // Reset signal visuals when loading a new graph
+                            if (window.DrawflowEditor.signalViz) {
+                                window.DrawflowEditor.signalViz.resetAllVisuals();
+                            }
                         }, 200);
                         if (window.ReactNativeWebView) {
                             window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -26,6 +39,10 @@ function setupMessageListener() {
                     break;
                 case 'CLEAR':
                     window.DrawflowEditor.clearGraph();
+                    // Reset signal visuals when clearing
+                    if (window.DrawflowEditor.signalViz) {
+                        window.DrawflowEditor.signalViz.resetAllVisuals();
+                    }
                     break;
                 case 'REQUEST_EXPORT':
                     window.DrawflowEditor.exportGraph();
