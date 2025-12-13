@@ -1,15 +1,5 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
-// @prisma-version: 5.22.0
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
-// Generator pour Prisma Accelerate (commenté pour l'instant)
-// generator client {
-//   provider = "prisma-client"
-//   output   = "../generated/prisma"
-// }
 
 generator client {
   provider = "prisma-client-js"

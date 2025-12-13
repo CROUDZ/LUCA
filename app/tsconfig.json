@@ -18,12 +18,13 @@
     "baseUrl": ".",
     "types": ["node"],
     "paths": {
-      "@types/*": ["app/src/types/*"],
-      "@utils/*": ["app/src/utils/*"],
-      "@hooks/*": ["app/src/hooks/*"],
-      "@config/*": ["app/src/config/*"],
-      "@screens/*": ["app/src/screens/*"],
-      "@engine/*": ["app/src/engine/*"]
+      "@types/*": ["src/types/*"],
+      "@utils/*": ["src/utils/*"],
+      "@hooks/*": ["src/hooks/*"],
+      "@config/*": ["src/config/*"],
+      "@screens/*": ["src/screens/*"],
+      "@engine/*": ["src/engine/*"],
+      "@components/*": ["src/components/*"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"],

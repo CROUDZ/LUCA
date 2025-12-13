@@ -29,7 +29,7 @@ interface SaveMenuProps {
   onDeleteSave: (saveId: string) => void;
 }
 
-const SaveMenu: React.FC<SaveMenuProps> = ({
+const SaveMenu: React.FC<SaveMenuProps> = React.memo(({
   visible,
   onClose,
   saves,
@@ -152,6 +152,8 @@ const SaveMenu: React.FC<SaveMenuProps> = ({
       </Modal>
     </>
   );
-};
+});
+
+SaveMenu.displayName = 'SaveMenu';
 
 export default SaveMenu;

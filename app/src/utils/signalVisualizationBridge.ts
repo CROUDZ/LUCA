@@ -56,7 +56,8 @@ class SignalVisualizationBridge {
   private setupListeners(): void {
     const ss = getSignalSystem();
     if (!ss) {
-      logger.warn('[SignalVizBridge] SignalSystem not available yet');
+      // Normal au démarrage - le SignalSystem sera initialisé plus tard
+      logger.debug('[SignalVizBridge] SignalSystem not available yet, will retry on graph load');
       return;
     }
 

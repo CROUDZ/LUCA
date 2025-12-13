@@ -82,3 +82,12 @@ package-lock.json
 
 # Discord bot token
 /discord/.env
+
+# Generated files
+/generated/
+/build/
+
+# Environment files
+.env
+.env.local
+.env.*.local

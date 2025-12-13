@@ -31,7 +31,7 @@ interface TopControlsBarProps {
   onOpenSettings: () => void;
 }
 
-const TopControlsBar: React.FC<TopControlsBarProps> = ({
+const TopControlsBar: React.FC<TopControlsBarProps> = React.memo(({
   isReady,
   currentSaveId,
   currentSaveName,
@@ -140,7 +140,9 @@ const TopControlsBar: React.FC<TopControlsBarProps> = ({
       </View>
     </View>
   );
-};
+});
+
+TopControlsBar.displayName = 'TopControlsBar';
 
 const createStyles = (theme: AppTheme, isCompact: boolean, isMedium: boolean) => {
   const translucentSurface = hexToRgba(theme.colors.surface, theme.mode === 'dark' ? 0.94 : 0.9);

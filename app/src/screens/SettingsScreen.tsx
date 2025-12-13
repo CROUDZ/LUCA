@@ -20,7 +20,7 @@ interface SettingsScreenProps {
   navigation: SettingsScreenNavigationProp;
 }
 
-const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
+const SettingsScreen: React.FC<SettingsScreenProps> = React.memo(({ navigation }) => {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createSettingsStyles(theme), [theme]);
 
@@ -123,6 +123,8 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
       </ScrollView>
     </View>
   );
-};
+});
+
+SettingsScreen.displayName = 'SettingsScreen';
 
 export default SettingsScreen;

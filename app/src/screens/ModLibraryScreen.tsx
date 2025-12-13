@@ -20,6 +20,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types/navigation.types';
 import { useAppTheme } from '../styles/theme';
 import { modStorage } from '../utils/modStorage';
+import { logger } from '../utils/logger';
 
 // Configuration de l'API
 // Pour appareil physique : utiliser l'IP locale du réseau (ex: 192.168.1.83)
@@ -136,7 +137,7 @@ const ModLibraryScreen: React.FC<ModLibraryScreenProps> = ({ navigation }) => {
       setPage(pageNum);
 
     } catch (err) {
-      console.error('Error fetching mods:', err);
+      logger.error('Error fetching mods:', err);
       setError(err instanceof Error ? err.message : 'Erreur de connexion');
     } finally {
       setLoading(false);

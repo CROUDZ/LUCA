@@ -65,7 +65,7 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
   /**
    * Ajouter un nœud avec vérification des limites
    */
-  const handleAddNode = (nodeType: string) => {
+  const handleAddNode = useCallback((nodeType: string) => {
     logger.debug('🔍 handleAddNode called for:', nodeType);
 
     const checkResult = nodeRegistry.canAddNode(nodeType);
@@ -88,7 +88,7 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
 
     // Retourner à l'écran précédent
     navigation.goBack();
-  };
+  }, [navigation]);
 
   return (
     <SafeAreaView style={styles.container}>

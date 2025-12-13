@@ -42,7 +42,6 @@ const ProgramControlBar: React.FC<ProgramControlBarProps> = ({
   useEffect(() => {
     // S'abonner aux changements d'état du programme
     const unsubscribe = programState.subscribe((running) => {
-      console.log(`[ProgramControlBar] programState changed: ${running}`);
       setIsRunning(running);
       backgroundService.updateTriggerState(running);
     });
@@ -224,7 +223,7 @@ const ProgramControlBar: React.FC<ProgramControlBarProps> = ({
           >
             <Icon
               name={isRunning ? 'stop' : 'play-arrow'}
-              size={40}
+              size={32}
               color="#FFFFFF"
             />
           </Animated.View>
@@ -247,34 +246,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#4CAF50',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    gap: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    gap: 6,
     marginHorizontal: 12,
-    marginBottom: 8,
-    borderRadius: 12,
+    marginBottom: 6,
+    borderRadius: 10,
   },
   runningBannerText: {
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     marginHorizontal: 12,
-    marginBottom: 12,
-    borderRadius: 20,
-    borderWidth: 3,
+    marginBottom: 10,
+    borderRadius: 16,
+    borderWidth: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 8,
   },
   statusSection: {
     flexDirection: 'row',
@@ -282,23 +281,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   indicatorWrapper: {
-    width: 30,
-    height: 30,
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   indicatorGlow: {
     position: 'absolute',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: 'rgba(76, 175, 80, 0.5)',
   },
   indicator: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
   },
   indicatorRunning: {
     backgroundColor: '#4CAF50',
@@ -318,9 +317,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statusText: {
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   statusTextRunning: {
     color: '#4CAF50',
@@ -340,15 +339,15 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   playButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 6,
   },
   playButtonRunning: {
     backgroundColor: '#F44336',

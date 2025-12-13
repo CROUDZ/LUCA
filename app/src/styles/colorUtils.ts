@@ -64,4 +64,14 @@ export const mixColors = (hexA: string, hexB: string, ratio = 0.5): string => {
   return rgbToHex(mix(colorA.r, colorB.r), mix(colorA.g, colorB.g), mix(colorA.b, colorB.b));
 };
 
+/**
+ * Retourne les couleurs de thème pré-calculées pour les styles
+ * Évite la duplication du calcul dans chaque fichier de styles
+ */
+export const getThemeColors = (theme: { colors: { surface: string; border: string }; mode: string }) => ({
+  translucentSurface: hexToRgba(theme.colors.surface, theme.mode === 'dark' ? 0.94 : 0.9),
+  subtleBorder: hexToRgba(theme.colors.border, 0.7),
+  lightBorder: hexToRgba(theme.colors.border, 0.5),
+});
+
 export type RgbColor = ReturnType<typeof hexToRgb>;

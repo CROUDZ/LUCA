@@ -5,6 +5,8 @@
  * quand le graphe est modifié et le SignalSystem reconstruit.
  */
 
+import { logger } from '../utils/logger';
+
 type StateListener = (isRunning: boolean) => void;
 
 class ProgramStateManager {
@@ -17,7 +19,7 @@ class ProgramStateManager {
 
   start(): void {
     if (!this._isRunning) {
-      console.log('[ProgramState] ▶️ Programme DÉMARRÉ');
+      logger.info('[ProgramState] ▶️ Programme DÉMARRÉ');
       this._isRunning = true;
       this.notifyListeners();
     }
@@ -25,7 +27,7 @@ class ProgramStateManager {
 
   stop(): void {
     if (this._isRunning) {
-      console.log('[ProgramState] ⏹️ Programme ARRÊTÉ');
+      logger.info('[ProgramState] ⏹️ Programme ARRÊTÉ');
       this._isRunning = false;
       this.notifyListeners();
     }
@@ -55,7 +57,7 @@ class ProgramStateManager {
       try {
         listener(this._isRunning);
       } catch (error) {
-        console.error('[ProgramState] Error in listener:', error);
+        logger.error('[ProgramState] Error in listener:', error);
       }
     });
   }
