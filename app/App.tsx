@@ -27,8 +27,15 @@ function App() {
       const installedCount = modStorage.getInstalledCount();
       logger.debug(`📦 App: ${installedCount} mods loaded`);
     };
+    let cancelled = false;
     initMods()
-      .catch((err) => logger.error('Failed to init mods:', err));
+      .catch((err) => logger.error('Failed to init mods:', err))
+      .finally(() => {
+        const MIN_SPLASH = 800;
+        setTimeout(() => {
+          if (!cancelled) setIsAppReady(true);
+        }, MIN_SPLASH);
+      });
 
     // Log des nodes chargées au démarrage
     const stats = nodeRegistry.getStats();
@@ -45,6 +52,7 @@ function App() {
     startMonitoringNativeTorch();
 
     return () => {
+      cancelled = true;
       backgroundService.stop();
       stopMonitoringNativeTorch();
     };
@@ -53,28 +61,7 @@ function App() {
   // Splash: masquer le navigator jusqu'à ce que l'app soit prête
   const [isAppReady, setIsAppReady] = useState(false);
 
-  useEffect(() => {
-    // On considère l'app prête après quelques initialisations
-    let cancelled = false;
-    (async () => {
-      try {
-        // Attendre modStorage au cas où il n'a pas terminé
-        await modStorage.initialize();
-      } catch (err) {
-        logger.error('Error during app init:', err);
-      }
-
-      // minimum wait to ensure splash is visible briefly
-      const MIN_SPLASH = 800;
-      setTimeout(() => {
-        if (!cancelled) setIsAppReady(true);
-      }, MIN_SPLASH);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Note: splash readiness is handled in the init effect above
 
   return (
     <SafeAreaProvider>
