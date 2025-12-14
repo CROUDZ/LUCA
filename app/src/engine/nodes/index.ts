@@ -1,6 +1,6 @@
 /**
  * Nodes Index - Point d'entrée pour toutes les nodes
- * 
+ *
  * Pour ajouter une nouvelle node :
  * 1. Créer le fichier dans ce dossier
  * 2. L'importer ici

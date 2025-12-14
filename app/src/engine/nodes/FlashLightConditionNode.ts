@@ -256,7 +256,10 @@ const FlashLightConditionNode: NodeDefinition = {
 
       ss.registerHandler(context.nodeId, async (signal: Signal): Promise<SignalPropagation> => {
         if (signal.continuous && signal.state === 'stop') {
-          return { propagate: true, data: { ...signal.data, flashlightState: getFlashlightState() } };
+          return {
+            propagate: true,
+            data: { ...signal.data, flashlightState: getFlashlightState() },
+          };
         }
 
         const current = getFlashlightState();

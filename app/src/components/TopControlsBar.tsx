@@ -31,116 +31,118 @@ interface TopControlsBarProps {
   onOpenSettings: () => void;
 }
 
-const TopControlsBar: React.FC<TopControlsBarProps> = React.memo(({
-  isReady,
-  currentSaveId,
-  currentSaveName,
-  onOpenSaveMenu,
-  onManualSave,
-  onClearGraph,
-  onOpenSettings,
-}) => {
-  const { theme: appTheme } = useAppTheme();
-  const { width: screenWidth } = useWindowDimensions();
-  
-  // Déterminer le mode d'affichage selon la largeur d'écran
-  const isCompact = screenWidth < COMPACT_THRESHOLD;
-  const isMedium = screenWidth >= COMPACT_THRESHOLD && screenWidth < MEDIUM_THRESHOLD;
-  
-  const styles = useMemo(
-    () => createStyles(appTheme, isCompact, isMedium),
-    [appTheme, isCompact, isMedium]
-  );
+const TopControlsBar: React.FC<TopControlsBarProps> = React.memo(
+  ({
+    isReady,
+    currentSaveId,
+    currentSaveName,
+    onOpenSaveMenu,
+    onManualSave,
+    onClearGraph,
+    onOpenSettings,
+  }) => {
+    const { theme: appTheme } = useAppTheme();
+    const { width: screenWidth } = useWindowDimensions();
 
-  return (
-    <View style={styles.container}>
-      {/* Section gauche: Statut */}
-      <View style={styles.statusContainer}>
-        <View style={styles.statusRow}>
-          <Icon
-            name={isReady ? 'check-circle' : 'sync'}
-            size={isCompact ? 12 : 14}
-            color={isReady ? appTheme.colors.success : appTheme.colors.textSecondary}
-          />
-          <Text style={[styles.statusText, isReady && styles.statusReady]}>
-            {isReady ? 'Ready' : 'Loading...'}
-          </Text>
-        </View>
-        {currentSaveId && (
+    // Déterminer le mode d'affichage selon la largeur d'écran
+    const isCompact = screenWidth < COMPACT_THRESHOLD;
+    const isMedium = screenWidth >= COMPACT_THRESHOLD && screenWidth < MEDIUM_THRESHOLD;
+
+    const styles = useMemo(
+      () => createStyles(appTheme, isCompact, isMedium),
+      [appTheme, isCompact, isMedium]
+    );
+
+    return (
+      <View style={styles.container}>
+        {/* Section gauche: Statut */}
+        <View style={styles.statusContainer}>
           <View style={styles.statusRow}>
-            <Icon name="folder" size={isCompact ? 10 : 12} color={appTheme.colors.text} />
-            <Text style={styles.currentSaveText} numberOfLines={1} ellipsizeMode="tail">
-              {currentSaveName}
+            <Icon
+              name={isReady ? 'check-circle' : 'sync'}
+              size={isCompact ? 12 : 14}
+              color={isReady ? appTheme.colors.success : appTheme.colors.textSecondary}
+            />
+            <Text style={[styles.statusText, isReady && styles.statusReady]}>
+              {isReady ? 'Ready' : 'Loading...'}
             </Text>
           </View>
-        )}
-      </View>
+          {currentSaveId && (
+            <View style={styles.statusRow}>
+              <Icon name="folder" size={isCompact ? 10 : 12} color={appTheme.colors.text} />
+              <Text style={styles.currentSaveText} numberOfLines={1} ellipsizeMode="tail">
+                {currentSaveName}
+              </Text>
+            </View>
+          )}
+        </View>
 
-      {/* Section droite: Boutons de contrôle */}
-      <View style={styles.controlsContainer}>
-        <TouchableOpacity
-          style={[styles.button, styles.buttonPrimary, !isReady && styles.buttonDisabled]}
-          onPress={onOpenSaveMenu}
-          disabled={!isReady}
-          activeOpacity={0.7}
-        >
-          <Icon
-            name="save"
-            size={isCompact ? 14 : 16}
-            color={appTheme.colors.primary}
-            style={styles.buttonIcon}
-          />
-          {!isCompact && <Text style={styles.buttonText}>Saves</Text>}
-        </TouchableOpacity>
-
-        {currentSaveId && (
+        {/* Section droite: Boutons de contrôle */}
+        <View style={styles.controlsContainer}>
           <TouchableOpacity
-            style={[styles.button, styles.buttonSuccess, !isReady && styles.buttonDisabled]}
-            onPress={onManualSave}
+            style={[styles.button, styles.buttonPrimary, !isReady && styles.buttonDisabled]}
+            onPress={onOpenSaveMenu}
             disabled={!isReady}
             activeOpacity={0.7}
           >
             <Icon
-              name="check"
+              name="save"
               size={isCompact ? 14 : 16}
-              color={appTheme.colors.success}
+              color={appTheme.colors.primary}
               style={styles.buttonIcon}
             />
-            {!isCompact && <Text style={styles.buttonText}>Save</Text>}
+            {!isCompact && <Text style={styles.buttonText}>Saves</Text>}
           </TouchableOpacity>
-        )}
 
-        <TouchableOpacity
-          style={[styles.button, styles.buttonDanger, !isReady && styles.buttonDisabled]}
-          onPress={onClearGraph}
-          disabled={!isReady}
-          activeOpacity={0.7}
-        >
-          <Icon
-            name="delete-outline"
-            size={isCompact ? 14 : 16}
-            color={appTheme.colors.error}
-            style={styles.buttonIcon}
-          />
-          {!isCompact && <Text style={styles.buttonText}>Clear</Text>}
-        </TouchableOpacity>
+          {currentSaveId && (
+            <TouchableOpacity
+              style={[styles.button, styles.buttonSuccess, !isReady && styles.buttonDisabled]}
+              onPress={onManualSave}
+              disabled={!isReady}
+              activeOpacity={0.7}
+            >
+              <Icon
+                name="check"
+                size={isCompact ? 14 : 16}
+                color={appTheme.colors.success}
+                style={styles.buttonIcon}
+              />
+              {!isCompact && <Text style={styles.buttonText}>Save</Text>}
+            </TouchableOpacity>
+          )}
 
-        <TouchableOpacity
-          style={[styles.button, styles.buttonSecondary]}
-          onPress={onOpenSettings}
-          activeOpacity={0.7}
-        >
-          <Icon
-            name="settings"
-            size={isCompact ? 14 : 16}
-            color={appTheme.colors.textSecondary}
-            style={styles.buttonIcon}
-          />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, styles.buttonDanger, !isReady && styles.buttonDisabled]}
+            onPress={onClearGraph}
+            disabled={!isReady}
+            activeOpacity={0.7}
+          >
+            <Icon
+              name="delete-outline"
+              size={isCompact ? 14 : 16}
+              color={appTheme.colors.error}
+              style={styles.buttonIcon}
+            />
+            {!isCompact && <Text style={styles.buttonText}>Clear</Text>}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, styles.buttonSecondary]}
+            onPress={onOpenSettings}
+            activeOpacity={0.7}
+          >
+            <Icon
+              name="settings"
+              size={isCompact ? 14 : 16}
+              color={appTheme.colors.textSecondary}
+              style={styles.buttonIcon}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
-});
+    );
+  }
+);
 
 TopControlsBar.displayName = 'TopControlsBar';
 

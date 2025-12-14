@@ -1,63 +1,250 @@
-import React, { useEffect, useRef } from 'react';
-import { Text, Image, Animated, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Text, Animated, StyleSheet, Easing, Dimensions } from 'react-native';
 import { useAppTheme } from '../styles/theme';
+
+// Couleur bleue pour le dernier point (logo transformé)
+const BLUE_DOT_COLOR = '#4A90E2';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface SplashScreenProps {
   onFinish?: () => void;
-  minDuration?: number; // ms
 }
 
-const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish, minDuration = 1100 }) => {
+type Phase =
+  | 'logo-appear'
+  | 'logo-visible'
+  | 'shrinking'
+  | 'morphing'
+  | 'moving'
+  | 'text-arrive'
+  | 'final'
+  | 'fadeout';
+
+const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   const { theme } = useAppTheme();
-  const opacity = useRef(new Animated.Value(0)).current;
-  const scale = useRef(new Animated.Value(0.95)).current;
+  const [phase, setPhase] = useState<Phase>('logo-appear');
 
+  // Container
+  const containerOpacity = useRef(new Animated.Value(1)).current;
+
+  // Logo animations
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const logoScale = useRef(new Animated.Value(0.7)).current;
+  const logoRotation = useRef(new Animated.Value(0)).current;
+  const logoTranslateY = useRef(new Animated.Value(0)).current;
+
+  // Le point bleu (transformation du logo)
+  // Il commence invisible, apparaît PETIT (même taille que le logo rétréci)
+  const blueDotOpacity = useRef(new Animated.Value(0)).current;
+  const blueDotPositionX = useRef(new Animated.Value(0)).current; // Centre au début
+
+  // Texte "L.U.C.A" (sans le dernier point)
+  const textOpacity = useRef(new Animated.Value(0)).current;
+  const textPositionX = useRef(new Animated.Value(-SCREEN_WIDTH)).current; // Hors écran à gauche
+
+  // Phase 1: Logo apparaît au centre
   useEffect(() => {
-    const start = Date.now();
+    if (phase !== 'logo-appear') return;
 
-    const inAnim = Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scale, {
+    Animated.parallel([
+      Animated.timing(logoOpacity, {
         toValue: 1,
         duration: 600,
         useNativeDriver: true,
+        easing: Easing.out(Easing.cubic),
       }),
-    ]);
-
-    inAnim.start(() => {
-      const elapsed = Date.now() - start;
-      const remaining = Math.max(0, minDuration - elapsed);
-      setTimeout(() => {
-        // fade out
-        Animated.timing(opacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }).start(() => {
-          onFinish?.();
-        });
-      }, remaining);
+      Animated.spring(logoScale, {
+        toValue: 1,
+        friction: 7,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setPhase('logo-visible');
     });
+  }, [phase, logoOpacity, logoScale]);
 
-    // safety: ensure onFinish called eventually in case of unmount
-    return () => {
-      // noop
-    };
-  }, [minDuration, onFinish, opacity, scale]);
+  // Phase 2: Logo reste visible
+  useEffect(() => {
+    if (phase !== 'logo-visible') return;
+
+    const timer = setTimeout(() => {
+      setPhase('shrinking');
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [phase]);
+
+  // Phase 3: Logo rétrécit en tournant (reste au centre)
+  useEffect(() => {
+    if (phase !== 'shrinking') return;
+
+    Animated.parallel([
+      Animated.timing(logoScale, {
+        toValue: 0.055, // Très petit, taille d'un point
+        duration: 1000,
+        useNativeDriver: true,
+        easing: Easing.inOut(Easing.cubic),
+      }),
+      Animated.timing(logoRotation, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+        easing: Easing.inOut(Easing.cubic),
+      }),
+      Animated.timing(logoTranslateY, {
+        toValue: 13, // déplacement vers le bas (ajuste la valeur si nécessaire)
+        duration: 1000,
+        useNativeDriver: true,
+        easing: Easing.inOut(Easing.cubic),
+      }),
+    ]).start(() => {
+      setPhase('morphing');
+    });
+  }, [phase, logoScale, logoRotation, logoTranslateY]);
+
+  // Phase 4: Morphing - Logo disparaît, point bleu apparaît (même position, même taille)
+  useEffect(() => {
+    if (phase !== 'morphing') return;
+
+    // Crossfade instantané logo -> point
+    Animated.parallel([
+      Animated.timing(logoOpacity, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(blueDotOpacity, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setPhase('moving');
+    });
+  }, [phase, logoOpacity, blueDotOpacity]);
+
+  // Phase 5: Le point se déplace vers la droite (position finale)
+  useEffect(() => {
+    if (phase !== 'moving') return;
+
+    // Petite pause puis le point va à droite
+    Animated.sequence([
+      Animated.delay(100),
+      Animated.timing(blueDotPositionX, {
+        toValue: 85, // Position finale (un peu plus proche du texte)
+        duration: 400,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.cubic),
+      }),
+    ]).start(() => {
+      setPhase('text-arrive');
+    });
+  }, [phase, blueDotPositionX]);
+
+  // Phase 6: Le texte arrive de la gauche et "pousse" le point
+  useEffect(() => {
+    if (phase !== 'text-arrive') return;
+
+    Animated.parallel([
+      // Le texte apparaît
+      Animated.timing(textOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      // Le texte arrive de la gauche vers le centre
+      Animated.timing(textPositionX, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.cubic),
+      }),
+    ]).start(() => {
+      setPhase('final');
+    });
+  }, [phase, textOpacity, textPositionX]);
+
+  // Phase 7: Pause puis fade out
+  useEffect(() => {
+    if (phase !== 'final') return;
+
+    const timer = setTimeout(() => {
+      setPhase('fadeout');
+      Animated.timing(containerOpacity, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+        easing: Easing.in(Easing.cubic),
+      }).start(() => {
+        onFinish?.();
+      });
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [phase, containerOpacity, onFinish]);
+
+  // Interpolation pour la rotation (2 tours = 720deg)
+  const spin = logoRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '720deg'],
+  });
 
   return (
     <Animated.View
-      style={[styles.container, { backgroundColor: theme.colors.surface }, { opacity }]}
+      style={[
+        styles.container,
+        { backgroundColor: theme.colors.surface },
+        { opacity: containerOpacity },
+      ]}
       pointerEvents="none"
     >
-      <Animated.View style={[styles.inner, { transform: [{ scale }] }]}>
-        <Image source={require('../../assets/logo_luca.png')} style={styles.logo} resizeMode="contain" />
-        <Text style={[styles.title, { color: theme.colors.text }]}>LUCA</Text>
-        <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Chargement…</Text>
+      {/* Logo au centre qui rétrécit */}
+      <Animated.View
+        style={[
+          styles.logoContainer,
+          {
+            opacity: logoOpacity,
+            transform: [{ translateY: logoTranslateY }, { scale: logoScale }, { rotate: spin }],
+          },
+        ]}
+      >
+        <Animated.Image
+          source={require('../../assets/logo_luca.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </Animated.View>
+
+      {/* Point bleu (logo transformé) - se déplace vers la droite */}
+      <Animated.View
+        style={[
+          styles.blueDot,
+          {
+            opacity: blueDotOpacity,
+            transform: [{ translateX: blueDotPositionX }],
+          },
+        ]}
+      />
+
+      {/* Texte "L.U.C.A" avec les 3 premiers points normaux (couleur texte) */}
+      <Animated.View
+        style={[
+          styles.textContainer,
+          {
+            opacity: textOpacity,
+            transform: [{ translateX: textPositionX }],
+          },
+        ]}
+      >
+        <Text style={[styles.letter, { color: theme.colors.text }]}>L</Text>
+        <Text style={[styles.dotText, { color: theme.colors.text }]}>.</Text>
+        <Text style={[styles.letter, { color: theme.colors.text }]}>U</Text>
+        <Text style={[styles.dotText, { color: theme.colors.text }]}>.</Text>
+        <Text style={[styles.letter, { color: theme.colors.text }]}>C</Text>
+        <Text style={[styles.dotText, { color: theme.colors.text }]}>.</Text>
+        <Text style={[styles.letter, { color: theme.colors.text }]}>A</Text>
       </Animated.View>
     </Animated.View>
   );
@@ -70,24 +257,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 2000,
   },
-  inner: {
+  logoContainer: {
+    position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
   },
   logo: {
-    width: 120,
-    height: 120,
-    marginBottom: 12,
+    width: 140,
+    height: 140,
   },
-  title: {
-    fontSize: 22,
+  blueDot: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 5,
+    backgroundColor: BLUE_DOT_COLOR,
+    marginTop: 26,
+  },
+  textContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  letter: {
+    fontSize: 42,
     fontWeight: '800',
-    letterSpacing: 1,
   },
-  subtitle: {
-    marginTop: 6,
-    fontSize: 13,
-    fontWeight: '600',
+  dotText: {
+    fontSize: 42,
+    fontWeight: '800',
+    marginHorizontal: 1,
   },
 });
 

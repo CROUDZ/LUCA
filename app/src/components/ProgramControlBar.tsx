@@ -1,18 +1,12 @@
 /**
  * ProgramControlBar - Barre de contrôle du programme
- * 
+ *
  * Affichage TRÈS VISIBLE de l'état du programme
  * Utilise programState qui persiste même quand le graphe est modifié
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Animated, 
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { programState } from '../engine/ProgramState';
 import { backgroundService } from '../utils/backgroundService';
@@ -30,9 +24,9 @@ const ProgramControlBar: React.FC<ProgramControlBarProps> = ({
 }) => {
   const hasTrigger = triggerNodeId !== null;
   const isEnabled = isReady && hasTrigger;
-  
+
   const [isRunning, setIsRunning] = useState(programState.isRunning);
-  
+
   // Animations
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const bgColorAnim = useRef(new Animated.Value(0)).current;
@@ -135,30 +129,30 @@ const ProgramControlBar: React.FC<ProgramControlBarProps> = ({
     <View style={styles.container}>
       {/* Bandeau TRÈS VISIBLE quand le programme tourne */}
       {isRunning && (
-        <Animated.View 
+        <Animated.View
           style={[
             styles.runningBanner,
-            { opacity: borderPulse.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0.8, 1],
-            })}
+            {
+              opacity: borderPulse.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.8, 1],
+              }),
+            },
           ]}
         >
           <Icon name="fiber-manual-record" size={16} color="#FFFFFF" />
-          <Text style={styles.runningBannerText}>
-            PROGRAMME ACTIF - EN ÉCOUTE
-          </Text>
+          <Text style={styles.runningBannerText}>PROGRAMME ACTIF - EN ÉCOUTE</Text>
           <Icon name="fiber-manual-record" size={16} color="#FFFFFF" />
         </Animated.View>
       )}
 
       {/* Barre principale */}
-      <Animated.View 
+      <Animated.View
         style={[
           styles.bar,
-          { 
+          {
             backgroundColor,
-            borderColor: isRunning ? borderColor : (hasTrigger ? '#2196F3' : '#666'),
+            borderColor: isRunning ? borderColor : hasTrigger ? '#2196F3' : '#666',
           },
         ]}
       >
@@ -167,41 +161,46 @@ const ProgramControlBar: React.FC<ProgramControlBarProps> = ({
           {/* Point lumineux animé */}
           <View style={styles.indicatorWrapper}>
             {isRunning && (
-              <Animated.View 
-                style={[
-                  styles.indicatorGlow,
-                  { transform: [{ scale: pulseAnim }] }
-                ]} 
+              <Animated.View
+                style={[styles.indicatorGlow, { transform: [{ scale: pulseAnim }] }]}
               />
             )}
-            <View 
+            <View
               style={[
                 styles.indicator,
-                isRunning ? styles.indicatorRunning : 
-                hasTrigger ? styles.indicatorReady : styles.indicatorDisabled
-              ]} 
+                isRunning
+                  ? styles.indicatorRunning
+                  : hasTrigger
+                  ? styles.indicatorReady
+                  : styles.indicatorDisabled,
+              ]}
             />
           </View>
 
           {/* Texte de statut */}
           <View style={styles.textSection}>
-            <Text style={[
-              styles.statusText,
-              isRunning ? styles.statusTextRunning : 
-              hasTrigger ? styles.statusTextReady : styles.statusTextDisabled
-            ]}>
-              {!hasTrigger 
+            <Text
+              style={[
+                styles.statusText,
+                isRunning
+                  ? styles.statusTextRunning
+                  : hasTrigger
+                  ? styles.statusTextReady
+                  : styles.statusTextDisabled,
+              ]}
+            >
+              {!hasTrigger
                 ? '⚠️ AUCUN TRIGGER'
-                : isRunning 
-                  ? '● PROGRAMME EN COURS' 
-                  : '○ Programme arrêté'}
+                : isRunning
+                ? '● PROGRAMME EN COURS'
+                : '○ Programme arrêté'}
             </Text>
             <Text style={styles.helpText}>
-              {!hasTrigger 
+              {!hasTrigger
                 ? 'Ajoutez un nœud Trigger'
-                : isRunning 
-                  ? 'Appuyez pour ARRÊTER'
-                  : 'Appuyez pour DÉMARRER'}
+                : isRunning
+                ? 'Appuyez pour ARRÊTER'
+                : 'Appuyez pour DÉMARRER'}
             </Text>
           </View>
         </View>
@@ -213,19 +212,18 @@ const ProgramControlBar: React.FC<ProgramControlBarProps> = ({
           activeOpacity={0.7}
           style={styles.buttonTouchable}
         >
-          <Animated.View 
+          <Animated.View
             style={[
               styles.playButton,
-              isRunning ? styles.playButtonRunning : 
-              hasTrigger ? styles.playButtonReady : styles.playButtonDisabled,
-              { transform: [{ scale: isRunning ? pulseAnim : 1 }] }
+              isRunning
+                ? styles.playButtonRunning
+                : hasTrigger
+                ? styles.playButtonReady
+                : styles.playButtonDisabled,
+              { transform: [{ scale: isRunning ? pulseAnim : 1 }] },
             ]}
           >
-            <Icon
-              name={isRunning ? 'stop' : 'play-arrow'}
-              size={32}
-              color="#FFFFFF"
-            />
+            <Icon name={isRunning ? 'stop' : 'play-arrow'} size={32} color="#FFFFFF" />
           </Animated.View>
         </TouchableOpacity>
       </Animated.View>

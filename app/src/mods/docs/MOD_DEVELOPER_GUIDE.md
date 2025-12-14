@@ -86,12 +86,8 @@ cd mon-premier-mod
       "label": "Doubler",
       "category": "Math",
       "description": "Double la valeur d'entrée",
-      "inputs": [
-        { "id": "value", "label": "Valeur", "type": "number" }
-      ],
-      "outputs": [
-        { "id": "result", "label": "Résultat", "type": "number" }
-      ],
+      "inputs": [{ "id": "value", "label": "Valeur", "type": "number" }],
+      "outputs": [{ "id": "result", "label": "Résultat", "type": "number" }],
       "color": "#4CAF50"
     }
   ],
@@ -114,11 +110,11 @@ export async function nodeInit(api) {
 export async function run({ nodeId, nodeType, inputs }, api) {
   const value = inputs.value || 0;
   const result = value * 2;
-  
+
   api.log.debug(`Doublé ${value} -> ${result}`);
-  
+
   return {
-    outputs: { result }
+    outputs: { result },
   };
 }
 
@@ -156,18 +152,18 @@ mon-mod/
 
 ### Fichiers obligatoires
 
-| Fichier | Description |
-|---------|-------------|
+| Fichier         | Description                                    |
+| --------------- | ---------------------------------------------- |
 | `manifest.json` | Métadonnées, permissions, définition des nodes |
-| `main.mjs` | Code JavaScript ESM principal |
+| `main.mjs`      | Code JavaScript ESM principal                  |
 
 ### Fichiers recommandés
 
-| Fichier | Description |
-|---------|-------------|
-| `README.md` | Documentation pour les utilisateurs |
-| `LICENSE` | Licence open-source |
-| `CHANGELOG.md` | Historique des versions |
+| Fichier        | Description                         |
+| -------------- | ----------------------------------- |
+| `README.md`    | Documentation pour les utilisateurs |
+| `LICENSE`      | Licence open-source                 |
+| `CHANGELOG.md` | Historique des versions             |
 
 ---
 
@@ -236,15 +232,15 @@ Le manifest est le cœur de votre mod. Il définit toutes les métadonnées.
 
 ### Types de ports
 
-| Type | Description |
-|------|-------------|
-| `any` | Accepte n'importe quel type |
-| `number` | Nombre (entier ou décimal) |
-| `string` | Chaîne de caractères |
-| `boolean` | Vrai/Faux |
-| `object` | Objet JSON |
-| `array` | Tableau |
-| `signal` | Signal de déclenchement |
+| Type      | Description                 |
+| --------- | --------------------------- |
+| `any`     | Accepte n'importe quel type |
+| `number`  | Nombre (entier ou décimal)  |
+| `string`  | Chaîne de caractères        |
+| `boolean` | Vrai/Faux                   |
+| `object`  | Objet JSON                  |
+| `array`   | Tableau                     |
+| `signal`  | Signal de déclenchement     |
 
 ---
 
@@ -275,19 +271,19 @@ export async function onUnload(api) {
 ```javascript
 export async function run(params, api) {
   const {
-    nodeId,    // ID unique du node (ex: "node-abc123")
-    nodeType,  // Type défini dans manifest (ex: "doubler")
-    inputs,    // Valeurs des ports d'entrée { input1: value1, ... }
-    config     // Configuration du node { option1: true, ... }
+    nodeId, // ID unique du node (ex: "node-abc123")
+    nodeType, // Type défini dans manifest (ex: "doubler")
+    inputs, // Valeurs des ports d'entrée { input1: value1, ... }
+    config, // Configuration du node { option1: true, ... }
   } = params;
-  
+
   // Votre logique ici...
-  
+
   return {
     outputs: {
       output1: result1,
-      output2: result2
-    }
+      output2: result2,
+    },
   };
 }
 ```
@@ -299,10 +295,10 @@ export async function run({ nodeType, inputs, config }, api) {
   switch (nodeType) {
     case 'addition':
       return { outputs: { result: inputs.a + inputs.b } };
-    
+
     case 'multiplication':
       return { outputs: { result: inputs.a * inputs.b } };
-    
+
     default:
       throw new Error(`Unknown node type: ${nodeType}`);
   }
@@ -353,7 +349,7 @@ const data = response.json();
 const response = await api.http.request('https://api.example.com/data', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: { key: 'value' }
+  body: { key: 'value' },
 });
 ```
 
@@ -369,7 +365,7 @@ api.emit('onComplete', { success: true });
 ### api.mod - Informations du mod
 
 ```javascript
-console.log(api.mod.name);    // "mon-mod"
+console.log(api.mod.name); // "mon-mod"
 console.log(api.mod.version); // "1.0.0"
 ```
 
@@ -385,27 +381,23 @@ const { threshold, mode } = api.config;
 
 Déclarez uniquement les permissions nécessaires dans `manifest.json`.
 
-| Permission | Description | Niveau de risque |
-|------------|-------------|------------------|
-| `storage.read` | Lire le stockage du mod | 🟢 Faible |
-| `storage.write` | Écrire dans le stockage | 🟢 Faible |
-| `network.http` | Requêtes HTTP | 🟡 Moyen |
-| `network.ws` | WebSocket | 🟡 Moyen |
-| `device.flashlight` | Lampe torche | 🟢 Faible |
-| `device.vibration` | Vibration | 🟢 Faible |
-| `device.sensors` | Capteurs | 🟡 Moyen |
-| `system.notifications` | Notifications | 🟢 Faible |
-| `system.clipboard` | Presse-papiers | 🟡 Moyen |
+| Permission             | Description             | Niveau de risque |
+| ---------------------- | ----------------------- | ---------------- |
+| `storage.read`         | Lire le stockage du mod | 🟢 Faible        |
+| `storage.write`        | Écrire dans le stockage | 🟢 Faible        |
+| `network.http`         | Requêtes HTTP           | 🟡 Moyen         |
+| `network.ws`           | WebSocket               | 🟡 Moyen         |
+| `device.flashlight`    | Lampe torche            | 🟢 Faible        |
+| `device.vibration`     | Vibration               | 🟢 Faible        |
+| `device.sensors`       | Capteurs                | 🟡 Moyen         |
+| `system.notifications` | Notifications           | 🟢 Faible        |
+| `system.clipboard`     | Presse-papiers          | 🟡 Moyen         |
 
 ### Exemple
 
 ```json
 {
-  "permissions": [
-    "storage.read",
-    "storage.write",
-    "network.http"
-  ]
+  "permissions": ["storage.read", "storage.write", "network.http"]
 }
 ```
 
@@ -446,28 +438,31 @@ const mockApi = {
     get: async (key) => null,
     set: async (key, value) => console.log('SET', key, value),
     delete: async (key) => {},
-    list: async () => []
+    list: async () => [],
   },
   log: {
     debug: console.log,
     info: console.log,
     warn: console.warn,
-    error: console.error
+    error: console.error,
   },
   emit: (output, value) => console.log('EMIT', output, value),
-  config: {}
+  config: {},
 };
 
 // Test init
 await mod.nodeInit(mockApi);
 
 // Test run
-const result = await mod.run({
-  nodeId: 'test-node',
-  nodeType: 'doubler',
-  inputs: { value: 21 },
-  config: {}
-}, mockApi);
+const result = await mod.run(
+  {
+    nodeId: 'test-node',
+    nodeType: 'doubler',
+    inputs: { value: 21 },
+    config: {},
+  },
+  mockApi
+);
 
 console.log('Result:', result);
 // Expected: { outputs: { result: 42 } }
@@ -580,10 +575,9 @@ export async function run({ inputs }, api) {
     if (typeof inputs.value !== 'number') {
       throw new Error('Input must be a number');
     }
-    
+
     const result = await someAsyncOperation(inputs.value);
     return { outputs: { result } };
-    
   } catch (error) {
     api.log.error('Execution failed', { error: error.message });
     throw error; // Re-throw pour signaler l'échec
@@ -627,23 +621,23 @@ export async function run({ inputs }, api) {
 
 ```javascript
 export async function nodeInit(api) {
-  const count = await api.storage.get('count') || 0;
+  const count = (await api.storage.get('count')) || 0;
   api.log.info(`Counter initialized at ${count}`);
 }
 
 export async function run({ inputs }, api) {
-  let count = await api.storage.get('count') || 0;
-  
+  let count = (await api.storage.get('count')) || 0;
+
   if (inputs.increment) {
     count++;
     await api.storage.set('count', count);
   }
-  
+
   if (inputs.reset) {
     count = 0;
     await api.storage.set('count', count);
   }
-  
+
   return { outputs: { count } };
 }
 ```
@@ -653,27 +647,27 @@ export async function run({ inputs }, api) {
 ```javascript
 export async function run({ inputs }, api) {
   const { city } = inputs;
-  
+
   try {
     const response = await api.http.request(
       `https://api.weather.example/v1/current?city=${encodeURIComponent(city)}`
     );
-    
+
     const data = response.json();
-    
+
     return {
       outputs: {
         temperature: data.temp,
-        description: data.weather
-      }
+        description: data.weather,
+      },
     };
   } catch (error) {
     api.log.error('Weather API failed', { error: error.message });
     return {
       outputs: {
         temperature: null,
-        description: 'Error fetching weather'
-      }
+        description: 'Error fetching weather',
+      },
     };
   }
 }
@@ -685,9 +679,9 @@ export async function run({ inputs }, api) {
 export async function run({ inputs, config }, api) {
   const { value } = inputs;
   const { multiplier = 2, addOffset = 0 } = config;
-  
-  const result = (value * multiplier) + addOffset;
-  
+
+  const result = value * multiplier + addOffset;
+
   return { outputs: { result } };
 }
 ```
@@ -709,5 +703,5 @@ Les mods publiés sur le registry officiel doivent être sous licence open-sourc
 
 ---
 
-*Dernière mise à jour: Décembre 2024*
-*Version de l'API: 1.0.0*
+_Dernière mise à jour: Décembre 2024_
+_Version de l'API: 1.0.0_

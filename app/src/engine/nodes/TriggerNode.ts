@@ -56,7 +56,7 @@ export function triggerNode(
 
   if (mode === 'continuous') {
     signalSystem
-      .toggleContinuousSignal(nodeId, payload, undefined, { 
+      .toggleContinuousSignal(nodeId, payload, undefined, {
         forceState: options?.state,
       })
       .catch((err) => logger.error('[Trigger] Continuous toggle failed', err));
@@ -81,9 +81,9 @@ export function triggerAll(data?: any): void {
   for (const [nodeId, entry] of triggerNodes.entries()) {
     const payload = data ?? entry.defaultData;
     if (entry.mode === 'continuous') {
-      signalSystem.toggleContinuousSignal(nodeId, payload).catch((err) =>
-        logger.error('[Trigger] Continuous toggle failed', err)
-      );
+      signalSystem
+        .toggleContinuousSignal(nodeId, payload)
+        .catch((err) => logger.error('[Trigger] Continuous toggle failed', err));
       continue;
     }
     signalSystem.emitSignal(nodeId, payload);
@@ -140,8 +140,8 @@ const TriggerNode: NodeDefinition = {
       const settings = context.settings || {};
       const autoTrigger = settings.autoTrigger === true;
       const autoTriggerDelay = settings.autoTriggerDelay || 0;
-        const triggerData = settings.triggerData || {};
-        const continuousMode = settings.continuousMode !== false;
+      const triggerData = settings.triggerData || {};
+      const continuousMode = settings.continuousMode !== false;
 
       // Enregistrer cette node comme trigger
       triggerNodes.set(context.nodeId, {

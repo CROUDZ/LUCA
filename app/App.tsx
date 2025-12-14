@@ -18,8 +18,12 @@ import {
 // Chargement de toutes les nodes
 import './src/engine/nodes';
 import SplashScreen from './src/components/SplashScreen';
+import { SHOW_SPLASH_DEV } from './src/config/splashDev';
 
 function App() {
+  const [isAppReady, setIsAppReady] = useState(SHOW_SPLASH_DEV ? true : false);
+  const [isSplashFinished, setIsSplashFinished] = useState(false);
+
   useEffect(() => {
     // Initialiser le stockage des mods et charger les mods installés
     const initMods = async () => {
@@ -27,14 +31,12 @@ function App() {
       const installedCount = modStorage.getInstalledCount();
       logger.debug(`📦 App: ${installedCount} mods loaded`);
     };
-    let cancelled = false;
+
     initMods()
       .catch((err) => logger.error('Failed to init mods:', err))
       .finally(() => {
-        const MIN_SPLASH = 800;
-        setTimeout(() => {
-          if (!cancelled) setIsAppReady(true);
-        }, MIN_SPLASH);
+        // L'app est prête, mais on attend que le splash soit fini
+        setIsAppReady(true);
       });
 
     // Log des nodes chargées au démarrage
@@ -47,30 +49,35 @@ function App() {
     } catch (err) {
       logger.error('Failed to start background service:', err);
     }
-    
+
     // Démarrer le monitoring de la torche (pour détecter les changements via l'OS)
     startMonitoringNativeTorch();
 
     return () => {
-      cancelled = true;
       backgroundService.stop();
       stopMonitoringNativeTorch();
     };
   }, []);
 
-  // Splash: masquer le navigator jusqu'à ce que l'app soit prête
-  const [isAppReady, setIsAppReady] = useState(false);
+  // En mode dev splash, on affiche le SplashScreen seul pour itération rapide.
+  if (SHOW_SPLASH_DEV && !isSplashFinished) {
+    return (
+      <SafeAreaProvider>
+        <AppThemeProvider>
+          <SplashScreen onFinish={() => setIsSplashFinished(true)} />
+        </AppThemeProvider>
+      </SafeAreaProvider>
+    );
+  }
 
-  // Note: splash readiness is handled in the init effect above
+  // On affiche l'app seulement quand TOUT est prêt : app + splash terminé
+  const showApp = isAppReady && isSplashFinished;
 
   return (
     <SafeAreaProvider>
       <AppThemeProvider>
-        {!isAppReady ? (
-          <SplashScreen onFinish={() => setIsAppReady(true)} />
-        ) : (
-          <AppNavigator />
-        )}
+        {!showApp && <SplashScreen onFinish={() => setIsSplashFinished(true)} />}
+        {showApp && <AppNavigator />}
       </AppThemeProvider>
     </SafeAreaProvider>
   );

@@ -11,10 +11,7 @@
   },
   "main": "main.mjs",
   "api_version": "1.0.0",
-  "permissions": [
-    "storage.read",
-    "storage.write"
-  ],
+  "permissions": ["storage.read", "storage.write"],
   "node_types": [
     {
       "type": "counter",

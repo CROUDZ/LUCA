@@ -10,48 +10,48 @@
 export interface ModManifest {
   /** Manifest schema version */
   manifest_version: 1;
-  
+
   /** Unique mod identifier (lowercase, alphanumeric, hyphens) */
   name: string;
-  
+
   /** Semver version */
   version: string;
-  
+
   /** Display name for UI */
   display_name: string;
-  
+
   /** Short description */
   description: string;
-  
+
   /** Author information */
   author: {
     name: string;
     email?: string;
     url?: string;
   };
-  
+
   /** Main entry point (relative path) */
   main: string;
-  
+
   /** LUCA API version compatibility */
   api_version: string;
-  
+
   /** Required permissions */
   permissions: ModPermission[];
-  
+
   /** Node types exposed by this mod */
   node_types: ModNodeType[];
-  
+
   /** Dependencies (must be bundled or whitelisted) */
   dependencies?: Record<string, string>;
-  
+
   /** Minimum LUCA version */
   compatibility: {
     luca_min: string;
     luca_max?: string;
     platforms?: ('android' | 'ios' | 'web')[];
   };
-  
+
   /** Package integrity */
   integrity: {
     /** SHA-256 hash of main file */
@@ -61,7 +61,7 @@ export interface ModManifest {
     /** Public key ID for verification */
     key_id: string;
   };
-  
+
   /** Optional metadata */
   metadata?: {
     repository?: string;
@@ -86,28 +86,28 @@ export type ModPermission =
 export interface ModNodeType {
   /** Unique type identifier within the mod */
   type: string;
-  
+
   /** Display name */
   label: string;
-  
+
   /** Category for UI grouping */
   category: string;
-  
+
   /** Description */
   description?: string;
-  
+
   /** Input port definitions */
   inputs: ModNodePort[];
-  
+
   /** Output port definitions */
   outputs: ModNodePort[];
-  
+
   /** Default configuration */
   config?: Record<string, unknown>;
-  
+
   /** UI color hint */
   color?: string;
-  
+
   /** Icon name or path */
   icon?: string;
 }
@@ -115,16 +115,16 @@ export interface ModNodeType {
 export interface ModNodePort {
   /** Port identifier */
   id: string;
-  
+
   /** Display label */
   label: string;
-  
+
   /** Data type hint */
   type: 'any' | 'number' | 'string' | 'boolean' | 'object' | 'array' | 'signal';
-  
+
   /** Is this port required? */
   required?: boolean;
-  
+
   /** Default value */
   default?: unknown;
 }
@@ -139,7 +139,7 @@ export interface ModRuntimeAPI {
     name: string;
     version: string;
   };
-  
+
   /** Storage API (if permission granted) */
   storage: {
     get: (key: string) => Promise<unknown>;
@@ -147,7 +147,7 @@ export interface ModRuntimeAPI {
     delete: (key: string) => Promise<void>;
     list: () => Promise<string[]>;
   };
-  
+
   /** Logging API */
   log: {
     debug: (message: string, data?: unknown) => void;
@@ -155,15 +155,15 @@ export interface ModRuntimeAPI {
     warn: (message: string, data?: unknown) => void;
     error: (message: string, data?: unknown) => void;
   };
-  
+
   /** HTTP API (if permission granted) */
   http?: {
     request: (url: string, options?: HttpRequestOptions) => Promise<HttpResponse>;
   };
-  
+
   /** Event emitter for signals */
   emit: (output: string, value: unknown) => void;
-  
+
   /** Configuration access */
   config: Record<string, unknown>;
 }
@@ -214,16 +214,16 @@ export interface IPCNotification {
 
 // IPC Methods
 export type IPCMethod =
-  | 'init'           // Initialize mod
-  | 'run'            // Execute node
-  | 'unload'         // Cleanup before shutdown
-  | 'ping'           // Health check
-  | 'getNodeTypes'   // Get registered node types
-  | 'storage.get'    // Storage operations (from runner to core)
+  | 'init' // Initialize mod
+  | 'run' // Execute node
+  | 'unload' // Cleanup before shutdown
+  | 'ping' // Health check
+  | 'getNodeTypes' // Get registered node types
+  | 'storage.get' // Storage operations (from runner to core)
   | 'storage.set'
   | 'storage.delete'
-  | 'log'            // Log message
-  | 'emit';          // Emit signal
+  | 'log' // Log message
+  | 'emit'; // Emit signal
 
 export interface RunParams {
   nodeId: string;
@@ -265,13 +265,13 @@ export interface LoadedMod {
   lastError?: string;
 }
 
-export type ModStatus = 
-  | 'installed'      // Installed but not loaded
-  | 'loading'        // Currently loading
-  | 'active'         // Running normally
-  | 'error'          // Failed to load/run
-  | 'disabled'       // Manually disabled
-  | 'updating';      // Being updated
+export type ModStatus =
+  | 'installed' // Installed but not loaded
+  | 'loading' // Currently loading
+  | 'active' // Running normally
+  | 'error' // Failed to load/run
+  | 'disabled' // Manually disabled
+  | 'updating'; // Being updated
 
 export interface RunnerHandle {
   pid: number;

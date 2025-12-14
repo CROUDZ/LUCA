@@ -7,16 +7,16 @@ Ce document détaille les mesures de sécurité implémentées et les limitation
 
 ## Matrice des risques
 
-| Risque | Impact | Probabilité | Mitigation | Statut |
-|--------|--------|-------------|------------|--------|
-| Code malveillant | Critique | Moyen | Sandbox process, validation AST | ✅ Implémenté |
-| Déni de service (CPU) | Haut | Moyen | Timeout, monitoring | ✅ Implémenté |
-| Déni de service (mémoire) | Haut | Moyen | --max-old-space-size | ✅ Implémenté |
-| Exfiltration de données | Critique | Faible | Permissions, pas de fs | ✅ Implémenté |
-| Escalade de privilèges | Critique | Faible | Process isolé, no network default | ✅ Implémenté |
-| Supply chain attack | Haut | Moyen | Signature, hash, review | ⚠️ Partiel |
-| Race conditions IPC | Moyen | Faible | Message IDs, timeouts | ✅ Implémenté |
-| Injection de commandes | Critique | Faible | Pas de shell, AST scan | ✅ Implémenté |
+| Risque                    | Impact   | Probabilité | Mitigation                        | Statut        |
+| ------------------------- | -------- | ----------- | --------------------------------- | ------------- |
+| Code malveillant          | Critique | Moyen       | Sandbox process, validation AST   | ✅ Implémenté |
+| Déni de service (CPU)     | Haut     | Moyen       | Timeout, monitoring               | ✅ Implémenté |
+| Déni de service (mémoire) | Haut     | Moyen       | --max-old-space-size              | ✅ Implémenté |
+| Exfiltration de données   | Critique | Faible      | Permissions, pas de fs            | ✅ Implémenté |
+| Escalade de privilèges    | Critique | Faible      | Process isolé, no network default | ✅ Implémenté |
+| Supply chain attack       | Haut     | Moyen       | Signature, hash, review           | ⚠️ Partiel    |
+| Race conditions IPC       | Moyen    | Faible      | Message IDs, timeouts             | ✅ Implémenté |
+| Injection de commandes    | Critique | Faible      | Pas de shell, AST scan            | ✅ Implémenté |
 
 ## Mesures de sécurité
 
@@ -25,32 +25,31 @@ Ce document détaille les mesures de sécurité implémentées et les limitation
 Chaque mod s'exécute dans un processus Node.js séparé via `child_process.fork()`.
 
 **Avantages:**
+
 - Crash d'un mod n'affecte pas le core
 - Mémoire isolée
 - Possibilité de kill forcé
 
 **Limitations:**
+
 - Overhead de création de processus
 - Pas d'isolation au niveau OS (pas de conteneur)
 
 ```javascript
 const childProcess = fork(runnerPath, [], {
-  execArgv: [
-    '--max-old-space-size=128',
-    '--unhandled-rejections=strict'
-  ],
-  stdio: ['pipe', 'pipe', 'pipe', 'ipc']
+  execArgv: ['--max-old-space-size=128', '--unhandled-rejections=strict'],
+  stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
 });
 ```
 
 ### 2. Limites de ressources
 
-| Ressource | Limite | Configurée par |
-|-----------|--------|----------------|
-| Mémoire | 128 MB | `--max-old-space-size` |
-| Temps d'exécution | 3000 ms | Timeout dans loader |
-| Stockage | 10 MB | Vérifié dans runner |
-| Requêtes réseau | 10/min | Rate limiter (à implémenter) |
+| Ressource         | Limite  | Configurée par               |
+| ----------------- | ------- | ---------------------------- |
+| Mémoire           | 128 MB  | `--max-old-space-size`       |
+| Temps d'exécution | 3000 ms | Timeout dans loader          |
+| Stockage          | 10 MB   | Vérifié dans runner          |
+| Requêtes réseau   | 10/min  | Rate limiter (à implémenter) |
 
 ### 3. Système de permissions
 
@@ -58,33 +57,30 @@ Les permissions doivent être déclarées dans `manifest.json` et sont vérifié
 
 ```json
 {
-  "permissions": [
-    "storage.read",
-    "storage.write",
-    "network.http"
-  ]
+  "permissions": ["storage.read", "storage.write", "network.http"]
 }
 ```
 
 **Permissions disponibles:**
 
-| Permission | Description | Risque | Nécessite review |
-|------------|-------------|--------|------------------|
-| `storage.read` | Lire le storage local du mod | Faible | Non |
-| `storage.write` | Écrire dans le storage local | Faible | Non |
-| `network.http` | Requêtes HTTP sortantes | Moyen | Oui |
-| `network.ws` | WebSocket | Moyen | Oui |
-| `device.flashlight` | Contrôle lampe torche | Faible | Non |
-| `device.vibration` | Contrôle vibration | Faible | Non |
-| `device.sensors` | Accès capteurs | Moyen | Oui |
-| `system.notifications` | Notifications | Faible | Non |
-| `system.clipboard` | Presse-papiers | Moyen | Oui |
+| Permission             | Description                  | Risque | Nécessite review |
+| ---------------------- | ---------------------------- | ------ | ---------------- |
+| `storage.read`         | Lire le storage local du mod | Faible | Non              |
+| `storage.write`        | Écrire dans le storage local | Faible | Non              |
+| `network.http`         | Requêtes HTTP sortantes      | Moyen  | Oui              |
+| `network.ws`           | WebSocket                    | Moyen  | Oui              |
+| `device.flashlight`    | Contrôle lampe torche        | Faible | Non              |
+| `device.vibration`     | Contrôle vibration           | Faible | Non              |
+| `device.sensors`       | Accès capteurs               | Moyen  | Oui              |
+| `system.notifications` | Notifications                | Faible | Non              |
+| `system.clipboard`     | Presse-papiers               | Moyen  | Oui              |
 
 ### 4. Validation statique (AST)
 
 Le validateur analyse le code source pour détecter les patterns dangereux:
 
 **Patterns bloqués (critique):**
+
 - `eval()`, `new Function()`
 - `require('child_process')`, `import 'child_process'`
 - `require('fs')`, `import 'fs'`
@@ -93,6 +89,7 @@ Le validateur analyse le code source pour détecter les patterns dangereux:
 - `worker_threads`
 
 **Patterns avertis (warning):**
+
 - `process.env` access
 - `global` manipulation
 - `__proto__` usage
@@ -104,11 +101,24 @@ Seuls certains modules Node.js sont autorisés:
 
 ```javascript
 const WHITELISTED_MODULES = [
-  'path', 'url', 'util', 'events', 'stream',
-  'string_decoder', 'buffer', 'querystring',
-  'crypto', 'assert', 'timers', 'timers/promises',
+  'path',
+  'url',
+  'util',
+  'events',
+  'stream',
+  'string_decoder',
+  'buffer',
+  'querystring',
+  'crypto',
+  'assert',
+  'timers',
+  'timers/promises',
   // NPM
-  'lodash', 'moment', 'dayjs', 'uuid', 'validator'
+  'lodash',
+  'moment',
+  'dayjs',
+  'uuid',
+  'validator',
 ];
 ```
 
@@ -127,6 +137,7 @@ Chaque mod doit inclure dans son manifest:
 ```
 
 **Processus de vérification:**
+
 1. Calculer SHA-256 du fichier main
 2. Comparer avec le hash déclaré
 3. Vérifier la signature ed25519
@@ -148,6 +159,7 @@ const api = {
 ```
 
 Pas d'accès à:
+
 - `process`
 - `require` / `import` dynamique
 - `fs`, `net`, `child_process`
@@ -156,6 +168,7 @@ Pas d'accès à:
 ### 8. Crash recovery
 
 En cas de crash d'un runner:
+
 1. Toutes les requêtes en attente sont rejetées
 2. Le mod est marqué en erreur
 3. Après cooldown, tentative de restart
@@ -173,16 +186,20 @@ if (mod.restartCount < CONFIG.maxRestarts) {
 ### Ce que le système NE protège PAS contre:
 
 1. **Bugs dans Node.js lui-même**
+
    - Si une vulnérabilité existe dans V8 ou Node.js, un mod peut potentiellement l'exploiter
 
 2. **Attaques side-channel**
+
    - Timing attacks
    - Mesure de consommation mémoire
 
 3. **Code natif**
+
    - Si un mod bundle un addon natif (bien que interdit par validation)
 
 4. **Social engineering**
+
    - Un mod peut afficher des UI trompeuses
    - Doit être vérifié par review manuelle
 
@@ -213,11 +230,11 @@ if (mod.restartCount < CONFIG.maxRestarts) {
 
 ### Niveaux de vérification
 
-| Niveau | Badge | Critères |
-|--------|-------|----------|
-| Non vérifié | ⚪ | Upload accepté, validation automatique passée |
-| Vérifié | 🟢 | Review manuelle passée |
-| Certifié | ⭐ | Review approfondie + tests + auteur vérifié |
+| Niveau      | Badge | Critères                                      |
+| ----------- | ----- | --------------------------------------------- |
+| Non vérifié | ⚪    | Upload accepté, validation automatique passée |
+| Vérifié     | 🟢    | Review manuelle passée                        |
+| Certifié    | ⭐    | Review approfondie + tests + auteur vérifié   |
 
 ## Réponse aux incidents
 
@@ -240,6 +257,7 @@ if (mod.restartCount < CONFIG.maxRestarts) {
 Ce système devrait subir un audit de sécurité par un tiers avant mise en production avec des mods communautaires non vérifiés.
 
 **Points à auditer:**
+
 1. Isolation du runner
 2. Validation AST et regex
 3. Communication IPC

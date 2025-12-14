@@ -39,10 +39,7 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
     // Keep minimal debug logs — emit only in development
     logger.debug('📦 NodePickerScreen: Loaded categories:', cats);
     logger.debug('📊 NodeRegistry stats:', stats);
-    logger.debug(
-      '📝 All registered nodes:',
-      allNodes.map((n) => `${n.id} (${n.name})`).join(', ')
-    );
+    logger.debug('📝 All registered nodes:', allNodes.map((n) => `${n.id} (${n.name})`).join(', '));
     logger.debug('🔍 Total nodes registered:', allNodes.length);
 
     setCategories(cats);
@@ -65,30 +62,35 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
   /**
    * Ajouter un nœud avec vérification des limites
    */
-  const handleAddNode = useCallback((nodeType: string) => {
-    logger.debug('🔍 handleAddNode called for:', nodeType);
+  const handleAddNode = useCallback(
+    (nodeType: string) => {
+      logger.debug('🔍 handleAddNode called for:', nodeType);
 
-    const checkResult = nodeRegistry.canAddNode(nodeType);
-    logger.debug('✅ canAddNode result:', checkResult);
+      const checkResult = nodeRegistry.canAddNode(nodeType);
+      logger.debug('✅ canAddNode result:', checkResult);
 
-    if (!checkResult.canAdd) {
-      // Afficher une alerte si la limite est atteinte
-      const nodeDefinition = nodeRegistry.getNode(nodeType);
-      Alert.alert('Limit Reached', `Cannot add "${nodeDefinition?.name}": ${checkResult.reason}`, [
-        { text: 'OK' },
-      ]);
-      return;
-    }
+      if (!checkResult.canAdd) {
+        // Afficher une alerte si la limite est atteinte
+        const nodeDefinition = nodeRegistry.getNode(nodeType);
+        Alert.alert(
+          'Limit Reached',
+          `Cannot add "${nodeDefinition?.name}": ${checkResult.reason}`,
+          [{ text: 'OK' }]
+        );
+        return;
+      }
 
-    // Incrémenter le compteur
-    nodeInstanceTracker.addInstance(nodeType);
+      // Incrémenter le compteur
+      nodeInstanceTracker.addInstance(nodeType);
 
-    // Emit the event so the editor can handle it
-    emitNodeAdded(nodeType);
+      // Emit the event so the editor can handle it
+      emitNodeAdded(nodeType);
 
-    // Retourner à l'écran précédent
-    navigation.goBack();
-  }, [navigation]);
+      // Retourner à l'écran précédent
+      navigation.goBack();
+    },
+    [navigation]
+  );
 
   return (
     <SafeAreaView style={styles.container}>

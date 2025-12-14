@@ -1,6 +1,6 @@
 /**
  * ProgramState - État global du programme
- * 
+ *
  * Cet état est INDÉPENDANT du SignalSystem et persiste même
  * quand le graphe est modifié et le SignalSystem reconstruit.
  */
@@ -46,14 +46,14 @@ class ProgramStateManager {
     this.listeners.add(listener);
     // Appeler immédiatement avec l'état actuel
     listener(this._isRunning);
-    
+
     return () => {
       this.listeners.delete(listener);
     };
   }
 
   private notifyListeners(): void {
-    this.listeners.forEach(listener => {
+    this.listeners.forEach((listener) => {
       try {
         listener(this._isRunning);
       } catch (error) {

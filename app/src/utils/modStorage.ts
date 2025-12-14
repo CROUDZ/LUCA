@@ -37,7 +37,7 @@ class ModStorageService {
       const stored = await AsyncStorage.getItem(INSTALLED_MODS_KEY);
       if (stored) {
         const mods: InstalledMod[] = JSON.parse(stored);
-        mods.forEach(mod => {
+        mods.forEach((mod) => {
           this.installedMods.set(mod.name, mod);
           this.registerModNodes(mod);
         });
@@ -101,12 +101,12 @@ class ModStorageService {
   private createModExecutor(mod: InstalledMod, nodeId: string, nodeConfig: any) {
     // Stocker une référence au service pour l'utiliser dans le handler
     const self = this;
-    
+
     return async (context: any) => {
       logger.info(`🔧 [Mod ${mod.name}/${nodeId}] Execute called for nodeId: ${context.nodeId}`);
-      
+
       const signalSystem = getSignalSystem();
-      
+
       if (!signalSystem) {
         logger.warn(`[Mod ${mod.name}] SignalSystem not initialized`);
         return { outputs: {}, success: false, error: 'SignalSystem not initialized' };
@@ -126,9 +126,9 @@ class ModStorageService {
             if (mod.mainCode) {
               logger.info(`🚀 [Mod ${mod.name}/${nodeId}] Executing mod code...`);
               const result = await self.executeModCode(mod, nodeId, nodeConfig, signal, context);
-              
+
               logger.info(`✅ [Mod ${mod.name}/${nodeId}] Execution result:`, result);
-              
+
               // Propager le signal avec les outputs du mod
               return {
                 propagate: true,
@@ -136,7 +136,9 @@ class ModStorageService {
               };
             } else {
               // Pas de code, juste propager
-              logger.warn(`⚠️ [Mod ${mod.name}/${nodeId}] No mainCode available, just propagating signal`);
+              logger.warn(
+                `⚠️ [Mod ${mod.name}/${nodeId}] No mainCode available, just propagating signal`
+              );
               return { propagate: true };
             }
           } catch (error) {
@@ -147,10 +149,10 @@ class ModStorageService {
       );
 
       logger.info(`✅ [Mod ${mod.name}/${nodeId}] Handler registered for node ${context.nodeId}`);
-      
-      return { 
-        outputs: { signal_out: 'Mod node registered' }, 
-        success: true 
+
+      return {
+        outputs: { signal_out: 'Mod node registered' },
+        success: true,
       };
     };
   }
@@ -160,7 +162,7 @@ class ModStorageService {
    */
   private async executeModCode(
     mod: InstalledMod,
-    nodeTypeId: string,  // L'ID du type de node (ex: 'ping-node')
+    nodeTypeId: string, // L'ID du type de node (ex: 'ping-node')
     nodeConfig: any,
     signal: Signal,
     context: any
@@ -204,27 +206,26 @@ class ModStorageService {
       // Transformer le code ES modules en code exécutable
       // Remplacer les exports par des assignations à un objet exports
       let transformedCode = mod.mainCode;
-      
+
       // Transformer "export const X = ..." en "exports.X = ..."
-      transformedCode = transformedCode.replace(
-        /export\s+const\s+(\w+)\s*=/g, 
-        'exports.$1 ='
-      );
-      
+      transformedCode = transformedCode.replace(/export\s+const\s+(\w+)\s*=/g, 'exports.$1 =');
+
       // Transformer "export async function X" en "exports.X = async function"
       transformedCode = transformedCode.replace(
-        /export\s+async\s+function\s+(\w+)/g, 
+        /export\s+async\s+function\s+(\w+)/g,
         'exports.$1 = async function'
       );
-      
+
       // Transformer "export function X" en "exports.X = function"
       transformedCode = transformedCode.replace(
-        /export\s+function\s+(\w+)/g, 
+        /export\s+function\s+(\w+)/g,
         'exports.$1 = function'
       );
 
-      logger.debug(`[executeModCode] Transformed code (first 500 chars):`, 
-        transformedCode.substring(0, 500));
+      logger.debug(
+        `[executeModCode] Transformed code (first 500 chars):`,
+        transformedCode.substring(0, 500)
+      );
 
       // Créer un module wrapper pour exécuter le code du mod
       // Note: Function est plus sûr que eval et fonctionne mieux dans React Native
@@ -238,7 +239,7 @@ class ModStorageService {
       logger.info(`[executeModCode] Creating module factory...`);
       // eslint-disable-next-line no-new-func
       const moduleFactory = new Function(wrappedCode);
-      
+
       logger.info(`[executeModCode] Executing module factory...`);
       const moduleExports = moduleFactory();
 
@@ -249,31 +250,38 @@ class ModStorageService {
 
       if (typeof runFn === 'function') {
         logger.info(`[executeModCode] Calling run function with nodeType: ${nodeType}`);
-        
+
         // Déterminer le nodeType à passer
         // Si le mod a des nodeTypes définis, essayer de trouver le bon
         let effectiveNodeType = nodeType;
-        
+
         // Si le nodeTypes du mod contient les types attendus, les utiliser
         if (moduleExports.nodeTypes && typeof moduleExports.nodeTypes === 'object') {
           const availableTypes = Object.keys(moduleExports.nodeTypes);
-          logger.debug(`[executeModCode] Available nodeTypes in mod code: ${availableTypes.join(', ')}`);
-          
+          logger.debug(
+            `[executeModCode] Available nodeTypes in mod code: ${availableTypes.join(', ')}`
+          );
+
           // Si le nodeType demandé n'est pas dans la liste, utiliser le premier disponible
           if (availableTypes.length > 0 && !availableTypes.includes(nodeType)) {
             effectiveNodeType = availableTypes[0];
-            logger.info(`[executeModCode] NodeType '${nodeType}' not found, using '${effectiveNodeType}' instead`);
+            logger.info(
+              `[executeModCode] NodeType '${nodeType}' not found, using '${effectiveNodeType}' instead`
+            );
           }
         }
-        
+
         try {
           // Appeler la fonction run du mod
-          const result = await runFn({
-            nodeId: context.nodeId,
-            nodeType: effectiveNodeType,
-            inputs: inputs,
-            config: config,
-          }, api);
+          const result = await runFn(
+            {
+              nodeId: context.nodeId,
+              nodeType: effectiveNodeType,
+              inputs: inputs,
+              config: config,
+            },
+            api
+          );
 
           logger.info(`[executeModCode] Run function result:`, result);
           return result;
@@ -282,13 +290,18 @@ class ModStorageService {
           if (runError.message?.includes('Type de node inconnu') && moduleExports.nodeTypes) {
             const availableTypes = Object.keys(moduleExports.nodeTypes);
             if (availableTypes.length > 0 && availableTypes[0] !== effectiveNodeType) {
-              logger.warn(`[executeModCode] Retrying with first available nodeType: ${availableTypes[0]}`);
-              const retryResult = await runFn({
-                nodeId: context.nodeId,
-                nodeType: availableTypes[0],
-                inputs: inputs,
-                config: config,
-              }, api);
+              logger.warn(
+                `[executeModCode] Retrying with first available nodeType: ${availableTypes[0]}`
+              );
+              const retryResult = await runFn(
+                {
+                  nodeId: context.nodeId,
+                  nodeType: availableTypes[0],
+                  inputs: inputs,
+                  config: config,
+                },
+                api
+              );
               return retryResult;
             }
           }
@@ -297,15 +310,15 @@ class ModStorageService {
       } else {
         // Pas de fonction run, créer un résultat par défaut
         logger.warn(`[Mod ${mod.name}] No 'run' function exported, using default behavior`);
-        
+
         // Loguer que le mod a été déclenché
         api.log.info(`Mod ${mod.name} triggered for node ${nodeType}`);
-        
-        return { 
+
+        return {
           outputs: {
             result: `Mod ${mod.name} executed successfully`,
-            timestamp: Date.now()
-          } 
+            timestamp: Date.now(),
+          },
         };
       }
     } catch (error) {
@@ -339,14 +352,10 @@ class ModStorageService {
             displayName: mod.displayName,
             description: mod.description,
             category: mod.category,
-            inputs: [
-              { name: 'signal', type: 'any', label: 'Signal' }
-            ],
-            outputs: [
-              { name: 'result', type: 'any', label: 'Résultat' }
-            ],
-            defaultConfig: {}
-          }
+            inputs: [{ name: 'signal', type: 'any', label: 'Signal' }],
+            outputs: [{ name: 'result', type: 'any', label: 'Résultat' }],
+            defaultConfig: {},
+          },
         };
         logger.debug(`📦 ModStorage: Created default node for mod "${mod.displayName}"`);
       }

@@ -82,7 +82,9 @@ const SettingsScreen: React.FC<SettingsScreenProps> = React.memo(({ navigation }
                 value={settings.backgroundServiceEnabled}
                 onValueChange={handleBackgroundToggle}
                 trackColor={{ false: theme.colors.border, true: theme.colors.primarySoft }}
-                thumbColor={settings.backgroundServiceEnabled ? theme.colors.primary : theme.colors.textMuted}
+                thumbColor={
+                  settings.backgroundServiceEnabled ? theme.colors.primary : theme.colors.textMuted
+                }
               />
             </View>
           </View>
@@ -92,7 +94,8 @@ const SettingsScreen: React.FC<SettingsScreenProps> = React.memo(({ navigation }
               <View style={styles.settingInfo}>
                 <Text style={styles.settingLabel}>Contrôles dans la notification</Text>
                 <Text style={styles.settingDescription}>
-                  Affiche un bouton Play/Stop dans la notification permanente pour contrôler le programme
+                  Affiche un bouton Play/Stop dans la notification permanente pour contrôler le
+                  programme
                 </Text>
               </View>
               <Switch
@@ -100,7 +103,11 @@ const SettingsScreen: React.FC<SettingsScreenProps> = React.memo(({ navigation }
                 value={settings.notificationControlsEnabled}
                 onValueChange={handleNotificationControlsToggle}
                 trackColor={{ false: theme.colors.border, true: theme.colors.primarySoft }}
-                thumbColor={settings.notificationControlsEnabled ? theme.colors.primary : theme.colors.textMuted}
+                thumbColor={
+                  settings.notificationControlsEnabled
+                    ? theme.colors.primary
+                    : theme.colors.textMuted
+                }
                 disabled={!settings.backgroundServiceEnabled}
               />
             </View>
@@ -108,14 +115,16 @@ const SettingsScreen: React.FC<SettingsScreenProps> = React.memo(({ navigation }
 
           <View style={styles.infoBox}>
             <Text style={styles.infoText}>
-              💡 Le bouton dans la notification permet de démarrer ou arrêter le trigger de votre programme sans ouvrir l'application.
+              💡 Le bouton dans la notification permet de démarrer ou arrêter le trigger de votre
+              programme sans ouvrir l'application.
             </Text>
           </View>
 
           {!settings.backgroundServiceEnabled && (
             <View style={styles.warningBox}>
               <Text style={styles.warningText}>
-                ⚠️ Sans le mode arrière-plan, l'application s'arrêtera lorsque vous fermerez l'écran.
+                ⚠️ Sans le mode arrière-plan, l'application s'arrêtera lorsque vous fermerez
+                l'écran.
               </Text>
             </View>
           )}

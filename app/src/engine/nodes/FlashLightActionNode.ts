@@ -98,7 +98,11 @@ const FlashLightActionNode: NodeDefinition = {
           if (signal?.continuous && signal.state === 'stop') {
             return {
               propagate: propagateSignal,
-              data: { ...(signal?.data ?? {}), flashlightState: getFlashlightState(), stopped: true },
+              data: {
+                ...(signal?.data ?? {}),
+                flashlightState: getFlashlightState(),
+                stopped: true,
+              },
             };
           }
 

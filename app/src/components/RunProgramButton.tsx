@@ -170,15 +170,20 @@ const RunProgramButton: React.FC<RunProgramButtonProps> = ({
   };
 
   if (isEnabled) {
-    const buttonStyle = [
-      styles.button,
-      isRunning && styles.buttonRunning,
-    ];
+    const buttonStyle = [styles.button, isRunning && styles.buttonRunning];
 
     const iconName = isRunning ? 'stop' : 'play-arrow';
 
     return (
-      <View style={{ position: 'absolute', bottom: 8, left: '50%', transform: [{ translateX: -28 }], zIndex: 10 }}>
+      <View
+        style={{
+          position: 'absolute',
+          bottom: 8,
+          left: '50%',
+          transform: [{ translateX: -28 }],
+          zIndex: 10,
+        }}
+      >
         {isRunning && (
           <Animated.View
             style={[

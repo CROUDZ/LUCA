@@ -93,11 +93,14 @@ export class SignalSystem {
   private eventHandlers: Map<string, EventSubscription[]> = new Map();
 
   // Signaux continus actifs (mode interrupteur)
-  private continuousSignals: Map<number, { 
-    data?: any; 
-    context?: ExecutionContext;
-    startedAt: number;
-  }> = new Map();
+  private continuousSignals: Map<
+    number,
+    {
+      data?: any;
+      context?: ExecutionContext;
+      startedAt: number;
+    }
+  > = new Map();
 
   // Statistiques et métriques
   private stats: {
@@ -280,28 +283,33 @@ export class SignalSystem {
   /**
    * Obtenir les données du signal continu actif
    */
-  getContinuousSignalData(nodeId: number): { 
-    data?: any; 
-    context?: ExecutionContext;
-    startedAt: number;
-  } | undefined {
+  getContinuousSignalData(nodeId: number):
+    | {
+        data?: any;
+        context?: ExecutionContext;
+        startedAt: number;
+      }
+    | undefined {
     return this.continuousSignals.get(nodeId);
   }
 
   /**
    * Obtenir tous les signaux continus actifs (pour le feedback visuel)
    */
-  getActiveContinuousSignals(): Map<number, { 
-    data?: any; 
-    startedAt: number;
-  }> {
+  getActiveContinuousSignals(): Map<
+    number,
+    {
+      data?: any;
+      startedAt: number;
+    }
+  > {
     return new Map(this.continuousSignals);
   }
 
   /**
    * Basculer un signal continu (mode interrupteur)
    * Si le signal est actif, il s'arrête. Sinon, il démarre.
-   * 
+   *
    * @param sourceNodeId - Node qui émet le signal
    * @param data - Données à associer au signal
    * @param context - Contexte d'exécution
@@ -312,7 +320,7 @@ export class SignalSystem {
     sourceNodeId: number,
     data?: any,
     context?: ExecutionContext,
-    options?: { 
+    options?: {
       forceState?: 'start' | 'stop';
     }
   ): Promise<'started' | 'stopped'> {
@@ -321,12 +329,12 @@ export class SignalSystem {
 
     if (targetState === 'start' && !currentlyActive) {
       // Démarrer le signal continu
-      this.continuousSignals.set(sourceNodeId, { 
-        data, 
+      this.continuousSignals.set(sourceNodeId, {
+        data,
         context,
         startedAt: Date.now(),
       });
-      
+
       const signal: Signal = {
         id: `signal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         sourceNodeId,
@@ -548,7 +556,7 @@ export class SignalSystem {
             error
           );
           this.stats.failedSignals++;
-          
+
           // Émettre événement de blocage pour erreur
           this.emitEvent('signal.blocked', {
             nodeId: outputNodeId,
@@ -561,14 +569,14 @@ export class SignalSystem {
         logger.debug(
           `[SignalSystem] Pas de handler pour node ${outputNodeId}, propagation directe`
         );
-        
+
         // Émettre l'événement de propagation même sans handler
         this.emitEvent('signal.propagated', {
           fromNodeId: currentNodeId,
           toNodeId: outputNodeId,
           signalId: signal.id,
         });
-        
+
         await this.propagateSignal(signal, outputNodeId);
       }
     }

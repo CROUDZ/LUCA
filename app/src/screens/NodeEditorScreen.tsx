@@ -342,7 +342,11 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
       // Arrêter le programme
       logger.info('🛑 Stopping program from trigger', triggerNodeId);
       programState.stop();
-      triggerNode(triggerNodeId, { timestamp: Date.now(), source: 'run-button' }, { state: 'stop' });
+      triggerNode(
+        triggerNodeId,
+        { timestamp: Date.now(), source: 'run-button' },
+        { state: 'stop' }
+      );
       return;
     }
 
@@ -397,7 +401,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
       signalVisualizationBridge.connect(sendMessage);
       signalVisualizationBridge.setTriggerNodeId(triggerNodeId);
       logger.debug('[NodeEditorScreen] Signal visualization bridge connected');
-      
+
       return () => {
         signalVisualizationBridge.disconnect();
       };

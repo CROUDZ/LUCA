@@ -23,6 +23,8 @@ class MainActivity : ReactActivity() {
       DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    // Restore the app theme so the RN root view uses the normal AppTheme (removes the native splash)
+    setTheme(R.style.AppTheme)
     super.onCreate(null)
   }
 

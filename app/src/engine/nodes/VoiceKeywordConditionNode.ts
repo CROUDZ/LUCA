@@ -82,7 +82,9 @@ async function handleVoiceResult(
   const conditionMet = config.invert ? !matches : matches;
 
   if (conditionMet && result.isFinal) {
-    logger.info(`[VoiceKeyword Node ${nodeId}] Keyword "${config.keyword}" detected! Emitting signal.`);
+    logger.info(
+      `[VoiceKeyword Node ${nodeId}] Keyword "${config.keyword}" detected! Emitting signal.`
+    );
 
     // Émettre un signal quand le mot-clé est détecté
     await ss.emitSignal(nodeId, {
@@ -214,7 +216,10 @@ const VoiceKeywordConditionNode: NodeDefinition = {
         if (signal.continuous) {
           if (signal.state === 'start') {
             // Démarrer l'écoute
-            const started = await startListeningForNode(context.nodeId, { ...config, unsubscribe: null });
+            const started = await startListeningForNode(context.nodeId, {
+              ...config,
+              unsubscribe: null,
+            });
             if (!started) {
               logger.warn(`[VoiceKeyword Node ${context.nodeId}] Failed to start listening`);
             }
@@ -242,7 +247,10 @@ const VoiceKeywordConditionNode: NodeDefinition = {
 
         // Signal normal sans mode continu - démarrer l'écoute temporairement
         // (comportement legacy pour compatibilité)
-        const started = await startListeningForNode(context.nodeId, { ...config, unsubscribe: null });
+        const started = await startListeningForNode(context.nodeId, {
+          ...config,
+          unsubscribe: null,
+        });
         return { propagate: false, data: { ...signal.data, listeningStarted: started } };
       });
 
@@ -275,9 +283,10 @@ const VoiceKeywordConditionNode: NodeDefinition = {
     const caseSensitive = settings?.caseSensitive ?? false;
     const exactMatch = settings?.exactMatch ?? false;
 
-    const chips: Array<{ label: string; tone?: 'default' | 'success' | 'warning' | 'danger' | 'info' }> = [
-      { label: `"${keyword}"`, tone: 'info' },
-    ];
+    const chips: Array<{
+      label: string;
+      tone?: 'default' | 'success' | 'warning' | 'danger' | 'info';
+    }> = [{ label: `"${keyword}"`, tone: 'info' }];
 
     if (invertSignal) {
       chips.push({ label: 'Inversé', tone: 'warning' });

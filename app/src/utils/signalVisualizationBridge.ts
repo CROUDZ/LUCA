@@ -1,6 +1,6 @@
 /**
  * SignalVisualizationBridge - Pont entre SignalSystem et WebView
- * 
+ *
  * Ce service écoute les événements du SignalSystem et envoie les messages
  * appropriés au WebView pour la visualisation en temps réel
  */
@@ -35,7 +35,7 @@ class SignalVisualizationBridge {
    * Déconnecter le bridge
    */
   disconnect(): void {
-    this.unsubscribers.forEach(unsub => unsub());
+    this.unsubscribers.forEach((unsub) => unsub());
     this.unsubscribers = [];
     this.sendMessage = null;
     this.isConnected = false;
@@ -63,7 +63,7 @@ class SignalVisualizationBridge {
 
     // Écouter le démarrage d'un signal continu
     const unsubStart = ss.subscribeToEvent('signal.continuous.started', 0, (data: any) => {
-      this.send('SIGNAL_START', { 
+      this.send('SIGNAL_START', {
         triggerNodeId: data?.nodeId || this.triggerNodeId,
         timestamp: Date.now(),
       });
@@ -72,7 +72,7 @@ class SignalVisualizationBridge {
 
     // Écouter l'arrêt d'un signal continu
     const unsubStop = ss.subscribeToEvent('signal.continuous.stopped', 0, (data: any) => {
-      this.send('SIGNAL_STOP', { 
+      this.send('SIGNAL_STOP', {
         nodeId: data?.nodeId,
         timestamp: Date.now(),
       });
@@ -107,11 +107,11 @@ class SignalVisualizationBridge {
    */
   reconnectListeners(): void {
     if (!this.isConnected) return;
-    
+
     // Nettoyer les anciens listeners
-    this.unsubscribers.forEach(unsub => unsub());
+    this.unsubscribers.forEach((unsub) => unsub());
     this.unsubscribers = [];
-    
+
     // Reconnecter
     this.setupListeners();
   }

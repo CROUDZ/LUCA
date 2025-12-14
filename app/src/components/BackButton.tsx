@@ -15,31 +15,28 @@ interface BackButtonProps {
   iconName?: string;
 }
 
-const BackButton: React.FC<BackButtonProps> = React.memo(({
-  onPress,
-  style,
-  size = 24,
-  iconName = 'arrow-back',
-}) => {
-  const { theme } = useAppTheme();
-  
-  return (
-    <TouchableOpacity
-      style={[
-        styles.button,
-        {
-          backgroundColor: hexToRgba(theme.colors.surface, 0.9),
-          borderColor: hexToRgba(theme.colors.border, 0.5),
-        },
-        style,
-      ]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <Icon name={iconName} size={size} color={theme.colors.text} />
-    </TouchableOpacity>
-  );
-});
+const BackButton: React.FC<BackButtonProps> = React.memo(
+  ({ onPress, style, size = 24, iconName = 'arrow-back' }) => {
+    const { theme } = useAppTheme();
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.button,
+          {
+            backgroundColor: hexToRgba(theme.colors.surface, 0.9),
+            borderColor: hexToRgba(theme.colors.border, 0.5),
+          },
+          style,
+        ]}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        <Icon name={iconName} size={size} color={theme.colors.text} />
+      </TouchableOpacity>
+    );
+  }
+);
 
 BackButton.displayName = 'BackButton';
 
