@@ -5,7 +5,11 @@ import { loadEvents } from './handlers/eventHandler.js';
 import { loadCommands, registerCommands } from './handlers/commandHandler.js';
 import { loadInteractionHandlers } from './handlers/interactionHandler.js';
 import { Command } from './types/index.js';
-import { initModModerationService, getModModerationService, ModSubmissionData } from './lib/modModerationService.js';
+import {
+  initModModerationService,
+  getModModerationService,
+  ModSubmissionData,
+} from './lib/modModerationService.js';
 
 // Extend Discord.js Client
 declare module 'discord.js' {
@@ -16,9 +20,7 @@ declare module 'discord.js' {
 
 // Initialize Discord Client
 const client = new Client({
-  intents: [
-   53608447
-  ],
+  intents: [53608447],
 });
 
 // Initialize commands collection
@@ -43,7 +45,7 @@ app.get('/api/stats', (req, res) => {
   if (!client.isReady()) {
     return res.status(503).json({ error: 'Bot not ready' });
   }
-  
+
   res.json({
     guilds: client.guilds.cache.size,
     users: client.users.cache.size,
@@ -54,21 +56,21 @@ app.get('/api/stats', (req, res) => {
 // API endpoint pour envoyer une notification de mod
 app.post('/api/mod-notification', async (req, res) => {
   const { secret, mod } = req.body as { secret: string; mod: ModSubmissionData };
-  
+
   // Vérifier le secret
   if (secret !== process.env.MOD_MODERATION_SECRET) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
-  
+
   if (!client.isReady()) {
     return res.status(503).json({ error: 'Bot not ready' });
   }
-  
+
   const service = getModModerationService();
   if (!service) {
     return res.status(500).json({ error: 'Moderation service not initialized' });
   }
-  
+
   try {
     const success = await service.sendModSubmissionNotification(mod);
     if (success) {
@@ -89,17 +91,17 @@ async function main() {
     await loadCommands(client);
     await loadEvents(client);
     await loadInteractionHandlers();
-    
+
     // Register slash commands with Discord
     await registerCommands();
-    
+
     // Login to Discord
     await client.login(process.env.DISCORD_TOKEN);
-    
+
     // Initialize mod moderation service after login
     initModModerationService(client);
     console.log('✅ Mod moderation service initialized');
-    
+
     // Start Express server
     const PORT = process.env.PORT || 3001;
     app.listen(PORT, () => {

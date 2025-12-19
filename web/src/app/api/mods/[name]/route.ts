@@ -56,19 +56,13 @@ export async function GET(request: NextRequest, { params }: Params) {
     });
 
     if (!mod) {
-      return NextResponse.json(
-        { error: 'Mod not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Mod not found' }, { status: 404 });
     }
 
     return NextResponse.json(mod);
   } catch (error) {
     console.error('Error fetching mod:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch mod' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch mod' }, { status: 500 });
   }
 }
 
@@ -79,12 +73,9 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const body = await request.json();
 
     const mod = await prisma.mod.findUnique({ where: { name } });
-    
+
     if (!mod) {
-      return NextResponse.json(
-        { error: 'Mod not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Mod not found' }, { status: 404 });
     }
 
     // TODO: Vérifier que l'utilisateur est l'auteur
@@ -103,7 +94,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     } = body;
 
     const updateData: Prisma.ModUpdateInput = {};
-    
+
     if (displayName) updateData.displayName = displayName;
     if (description) updateData.description = description;
     if (longDescription !== undefined) updateData.longDescription = longDescription;
@@ -116,12 +107,12 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (mainCode && (version || mainCode !== mod.mainCode)) {
       const newVersion = version || incrementVersion(mod.version);
       const checksum = crypto.createHash('sha256').update(mainCode).digest('hex');
-      
+
       updateData.version = newVersion;
       updateData.mainCode = mainCode;
       updateData.checksum = checksum;
       updateData.status = 'PENDING'; // Re-review nécessaire
-      
+
       if (nodeTypes) {
         updateData.nodeTypes = nodeTypes;
       }
@@ -161,10 +152,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     });
   } catch (error) {
     console.error('Error updating mod:', error);
-    return NextResponse.json(
-      { error: 'Failed to update mod' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to update mod' }, { status: 500 });
   }
 }
 
@@ -174,12 +162,9 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     const { name } = await params;
 
     const mod = await prisma.mod.findUnique({ where: { name } });
-    
+
     if (!mod) {
-      return NextResponse.json(
-        { error: 'Mod not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Mod not found' }, { status: 404 });
     }
 
     // TODO: Vérifier que l'utilisateur est l'auteur ou admin
@@ -192,10 +177,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     });
   } catch (error) {
     console.error('Error deleting mod:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete mod' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to delete mod' }, { status: 500 });
   }
 }
 

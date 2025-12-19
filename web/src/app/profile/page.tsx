@@ -1,28 +1,28 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { ModStatus } from "@prisma/client";
-import { auth, signOut } from "@/auth";
-import prisma from "@/lib/prisma";
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { ModStatus } from '@prisma/client';
+import { auth, signOut } from '@/auth';
+import prisma from '@/lib/prisma';
 
 const statusChip: Record<ModStatus, string> = {
-  APPROVED: "border-emerald-700/50 bg-emerald-900/40 text-emerald-200",
-  ARCHIVED: "border-slate-700/50 bg-slate-900/50 text-slate-200",
-  DRAFT: "border-gray-700/50 bg-gray-800/60 text-gray-200",
-  PENDING: "border-amber-700/50 bg-amber-900/40 text-amber-100",
-  REJECTED: "border-red-700/50 bg-red-900/40 text-red-100",
-  SUSPENDED: "border-orange-700/50 bg-orange-900/40 text-orange-100",
+  APPROVED: 'border-emerald-700/50 bg-emerald-900/40 text-emerald-200',
+  ARCHIVED: 'border-slate-700/50 bg-slate-900/50 text-slate-200',
+  DRAFT: 'border-gray-700/50 bg-gray-800/60 text-gray-200',
+  PENDING: 'border-amber-700/50 bg-amber-900/40 text-amber-100',
+  REJECTED: 'border-red-700/50 bg-red-900/40 text-red-100',
+  SUSPENDED: 'border-orange-700/50 bg-orange-900/40 text-orange-100',
 };
 
 function formatDate(value: Date | null | undefined) {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(value);
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(value);
 }
 
 export default async function ProfilePage() {
   const session = await auth();
 
   if (!session) {
-    const callback = encodeURIComponent("/profile");
+    const callback = encodeURIComponent('/profile');
     redirect(`/login?callbackUrl=${callback}`);
   }
 
@@ -44,7 +44,7 @@ export default async function ProfilePage() {
     prisma.mod.aggregate({ where: { authorId: userId }, _sum: { downloads: true } }),
     prisma.mod.findMany({
       where: { authorId: userId },
-      orderBy: { updatedAt: "desc" },
+      orderBy: { updatedAt: 'desc' },
       take: 5,
       select: {
         id: true,
@@ -62,8 +62,8 @@ export default async function ProfilePage() {
   const verifiedAt = profileUser?.emailVerified ?? null;
 
   const handleSignOut = async () => {
-    "use server";
-    await signOut({ redirectTo: "/" });
+    'use server';
+    await signOut({ redirectTo: '/' });
   };
 
   return (
@@ -78,8 +78,8 @@ export default async function ProfilePage() {
               Bonjour, {session.user.name || session.user.email}
             </h1>
             <p className="text-slate-200/80 max-w-2xl">
-              Gérez vos informations, vos mods et vos accès. La session est synchronisée avec le header : toute
-              connexion ou déconnexion sera reflétée immédiatement.
+              Gérez vos informations, vos mods et vos accès. La session est synchronisée avec le
+              header : toute connexion ou déconnexion sera reflétée immédiatement.
             </p>
             <div className="flex flex-wrap gap-3 text-sm text-slate-200">
               <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1">
@@ -89,12 +89,12 @@ export default async function ProfilePage() {
               <span
                 className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 ${
                   session.user.verified
-                    ? "border-emerald-400/40 bg-emerald-900/40 text-emerald-100"
-                    : "border-amber-400/40 bg-amber-900/40 text-amber-100"
+                    ? 'border-emerald-400/40 bg-emerald-900/40 text-emerald-100'
+                    : 'border-amber-400/40 bg-amber-900/40 text-amber-100'
                 }`}
               >
                 <span className="h-2 w-2 rounded-full bg-current opacity-80" aria-hidden />
-                {session.user.verified ? "Email vérifié" : "Vérification requise"}
+                {session.user.verified ? 'Email vérifié' : 'Vérification requise'}
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1">
                 <span className="text-slate-300">Inscrit le</span>
@@ -156,19 +156,28 @@ export default async function ProfilePage() {
 
           <div className="mt-4 divide-y divide-white/5">
             {recentMods.length === 0 && (
-              <p className="py-6 text-sm text-slate-400">Aucun mod pour l&apos;instant. Publiez votre premier !</p>
+              <p className="py-6 text-sm text-slate-400">
+                Aucun mod pour l&apos;instant. Publiez votre premier !
+              </p>
             )}
             {recentMods.map((mod) => (
-              <div key={mod.id} className="flex flex-col gap-3 py-4 md:flex-row md:items-center md:justify-between">
+              <div
+                key={mod.id}
+                className="flex flex-col gap-3 py-4 md:flex-row md:items-center md:justify-between"
+              >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-white">{mod.displayName}</p>
-                    <span className={`rounded-full border px-2 py-1 text-[11px] font-medium ${statusChip[mod.status]}`}>
+                    <span
+                      className={`rounded-full border px-2 py-1 text-[11px] font-medium ${statusChip[mod.status]}`}
+                    >
                       {mod.status}
                     </span>
                   </div>
                   <p className="text-xs text-slate-400">Slug : {mod.name}</p>
-                  <p className="text-xs text-slate-400">Dernière mise à jour : {formatDate(mod.updatedAt)}</p>
+                  <p className="text-xs text-slate-400">
+                    Dernière mise à jour : {formatDate(mod.updatedAt)}
+                  </p>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
@@ -192,7 +201,7 @@ export default async function ProfilePage() {
           <div className="mt-4 space-y-4 text-sm text-slate-200">
             <div className="space-y-1">
               <p className="text-slate-400">Nom</p>
-              <p className="font-semibold">{session.user.name || "Non renseigné"}</p>
+              <p className="font-semibold">{session.user.name || 'Non renseigné'}</p>
             </div>
             <div className="space-y-1">
               <p className="text-slate-400">Email</p>
@@ -204,7 +213,7 @@ export default async function ProfilePage() {
             </div>
             <div className="space-y-1">
               <p className="text-slate-400">Email vérifié</p>
-              <p className="font-semibold">{session.user.verified ? "Oui" : "Non"}</p>
+              <p className="font-semibold">{session.user.verified ? 'Oui' : 'Non'}</p>
             </div>
             <div className="space-y-1">
               <p className="text-slate-400">Compte créé le</p>

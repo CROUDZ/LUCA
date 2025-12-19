@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-import { hashToken } from "@/lib/auth/emailVerification";
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
+import { hashToken } from '@/lib/auth/emailVerification';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     const { token, email } = body as { token?: string; email?: string };
 
     if (!token || !email) {
-      return NextResponse.json({ error: "Token ou email manquant" }, { status: 400 });
+      return NextResponse.json({ error: 'Token ou email manquant' }, { status: 400 });
     }
 
     const hashedToken = hashToken(token);
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!verificationEntry) {
-      return NextResponse.json({ error: "Token invalide ou expiré" }, { status: 400 });
+      return NextResponse.json({ error: 'Token invalide ou expiré' }, { status: 400 });
     }
 
     const user = await prisma.user.update({
@@ -32,11 +32,13 @@ export async function POST(request: NextRequest) {
       select: { id: true, email: true, name: true, verified: true },
     });
 
-    await prisma.verificationToken.deleteMany({ where: { identifier: verificationEntry.identifier } });
+    await prisma.verificationToken.deleteMany({
+      where: { identifier: verificationEntry.identifier },
+    });
 
     return NextResponse.json({ success: true, user });
   } catch (error) {
-    console.error("Erreur vérification email:", error);
+    console.error('Erreur vérification email:', error);
     return NextResponse.json({ error: "Impossible de vérifier l'email" }, { status: 500 });
   }
 }

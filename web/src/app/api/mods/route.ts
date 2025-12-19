@@ -103,10 +103,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching mods:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch mods' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch mods' }, { status: 500 });
   }
 }
 
@@ -115,21 +112,15 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     if (!session.user.verified) {
-      return NextResponse.json(
-        { error: 'Email verification required' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Email verification required' }, { status: 403 });
     }
 
     const body = await request.json();
-    
+
     const {
       name,
       displayName,
@@ -165,10 +156,7 @@ export async function POST(request: NextRequest) {
     // Vérifier si le nom existe déjà
     const existing = await prisma.mod.findUnique({ where: { name } });
     if (existing) {
-      return NextResponse.json(
-        { error: 'A mod with this name already exists' },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: 'A mod with this name already exists' }, { status: 409 });
     }
 
     const finalAuthorId = session.user.id;
@@ -258,22 +246,21 @@ export async function POST(request: NextRequest) {
       console.error('Discord notification failed:', discordError);
     }
 
-    return NextResponse.json({
-      success: true,
-      mod: {
-        id: mod.id,
-        name: mod.name,
-        version: mod.version,
-        status: mod.status,
+    return NextResponse.json(
+      {
+        success: true,
+        mod: {
+          id: mod.id,
+          name: mod.name,
+          version: mod.version,
+          status: mod.status,
+        },
+        message: 'Mod submitted for review. It will be available once approved.',
       },
-      message: 'Mod submitted for review. It will be available once approved.',
-    }, { status: 201 });
-
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Error creating mod:', error);
-    return NextResponse.json(
-      { error: 'Failed to create mod' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to create mod' }, { status: 500 });
   }
 }

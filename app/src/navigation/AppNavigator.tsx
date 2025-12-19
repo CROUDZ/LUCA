@@ -8,6 +8,7 @@ import {
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types/navigation.types';
 
+import HomeScreen from '../screens/HomeScreen';
 import NodeEditorScreen from '../screens/NodeEditorScreen';
 import NodePickerScreen from '../screens/NodePickerScreen';
 import ModLibraryScreen from '../screens/ModLibraryScreen';
@@ -39,13 +40,21 @@ const AppNavigator: React.FC = () => {
   return (
     <NavigationContainer theme={navigationTheme}>
       <Stack.Navigator
-        initialRouteName="NodeEditor"
+        initialRouteName="Home"
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',
           contentStyle: { backgroundColor: theme.colors.background },
         }}
       >
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{
+            title: 'Accueil',
+            animation: 'fade',
+          }}
+        />
         <Stack.Screen
           name="NodeEditor"
           component={NodeEditorScreen}

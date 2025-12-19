@@ -21,7 +21,7 @@ interface ModNotificationData {
 export async function sendModSubmissionNotification(mod: ModNotificationData): Promise<boolean> {
   const discordBotUrl = process.env.DISCORD_BOT_API_URL || 'http://localhost:3001';
   const moderationSecret = process.env.MOD_MODERATION_SECRET;
-  
+
   if (!moderationSecret) {
     console.warn('⚠️ MOD_MODERATION_SECRET not configured - skipping Discord notification');
     return false;
@@ -58,13 +58,20 @@ export async function sendModSubmissionNotification(mod: ModNotificationData): P
  * Ces fonctions ne sont plus nécessaires car le bot Discord
  * met à jour les messages directement via les boutons
  */
-export async function sendModApprovedNotification(_mod: { displayName: string; modName: string }): Promise<void> {
+export async function sendModApprovedNotification(_mod: {
+  displayName: string;
+  modName: string;
+}): Promise<void> {
   // keep the param referenced to avoid linting issues
   void _mod;
   // Le bot Discord gère la mise à jour du message
 }
 
-export async function sendModRejectedNotification(_mod: { displayName: string; modName: string; reason?: string }): Promise<void> {
+export async function sendModRejectedNotification(_mod: {
+  displayName: string;
+  modName: string;
+  reason?: string;
+}): Promise<void> {
   void _mod;
   // Le bot Discord gère la mise à jour du message
 }

@@ -41,7 +41,7 @@ export class ModModerationService {
 
     try {
       const channel = await this.client.channels.fetch(this.channelId);
-      
+
       if (!channel || !(channel instanceof TextChannel)) {
         console.error('❌ Invalid moderation channel');
         return false;
@@ -62,13 +62,17 @@ export class ModModerationService {
       const embed = new EmbedBuilder()
         .setTitle(`🆕 Nouveau Mod: ${mod.displayName}`)
         .setDescription(mod.description.substring(0, 2000))
-        .setColor(0xFFA500) // Orange
+        .setColor(0xffa500) // Orange
         .addFields(
           { name: '📦 Nom technique', value: `\`${mod.modName}\``, inline: true },
           { name: '📌 Version', value: mod.version || '1.0.0', inline: true },
           { name: '📁 Catégorie', value: mod.category || 'Other', inline: true },
           { name: '👤 Auteur', value: mod.authorName || 'Anonyme', inline: true },
-          { name: '🔗 Voir le code', value: `[Ouvrir dans le navigateur](${codeViewUrl})`, inline: false },
+          {
+            name: '🔗 Voir le code',
+            value: `[Ouvrir dans le navigateur](${codeViewUrl})`,
+            inline: false,
+          }
         )
         .setTimestamp()
         .setFooter({ text: `ID: ${mod.modId}` });
@@ -83,21 +87,20 @@ export class ModModerationService {
       }
 
       // Créer les boutons
-      const row = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId(`mod_approve_${mod.modId}`)
-            .setLabel('✅ Approuver')
-            .setStyle(ButtonStyle.Success),
-          new ButtonBuilder()
-            .setCustomId(`mod_reject_${mod.modId}`)
-            .setLabel('❌ Refuser')
-            .setStyle(ButtonStyle.Danger),
-          new ButtonBuilder()
-            .setLabel('👁️ Voir le code')
-            .setStyle(ButtonStyle.Link)
-            .setURL(codeViewUrl),
-        );
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`mod_approve_${mod.modId}`)
+          .setLabel('✅ Approuver')
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId(`mod_reject_${mod.modId}`)
+          .setLabel('❌ Refuser')
+          .setStyle(ButtonStyle.Danger),
+        new ButtonBuilder()
+          .setLabel('👁️ Voir le code')
+          .setStyle(ButtonStyle.Link)
+          .setURL(codeViewUrl)
+      );
 
       // Envoyer le message
       await channel.send({
@@ -108,7 +111,6 @@ export class ModModerationService {
 
       console.log(`✅ Discord notification sent for mod: ${mod.displayName}`);
       return true;
-
     } catch (error) {
       console.error('❌ Failed to send Discord notification:', error);
       return false;
@@ -124,17 +126,19 @@ export class ModModerationService {
       if (!channel || !(channel instanceof TextChannel)) return;
 
       const messages = await channel.messages.fetch({ limit: 50 });
-      const message = messages.find(msg =>
-        msg.embeds.some(embed => embed.footer?.text?.includes(modId))
+      const message = messages.find((msg) =>
+        msg.embeds.some((embed) => embed.footer?.text?.includes(modId))
       );
 
       if (message && message.embeds[0]) {
         const updatedEmbed = EmbedBuilder.from(message.embeds[0])
-          .setColor(0x00FF00)
-          .setTitle(`✅ APPROUVÉ: ${message.embeds[0].title?.replace('🆕 Nouveau Mod: ', '') || 'Mod'}`)
+          .setColor(0x00ff00)
+          .setTitle(
+            `✅ APPROUVÉ: ${message.embeds[0].title?.replace('🆕 Nouveau Mod: ', '') || 'Mod'}`
+          )
           .addFields(
             { name: '✅ Approuvé par', value: `<@${moderatorId}>`, inline: true },
-            { name: '📅 Date', value: new Date().toLocaleString('fr-FR'), inline: true },
+            { name: '📅 Date', value: new Date().toLocaleString('fr-FR'), inline: true }
           );
 
         await message.edit({
@@ -157,18 +161,20 @@ export class ModModerationService {
       if (!channel || !(channel instanceof TextChannel)) return;
 
       const messages = await channel.messages.fetch({ limit: 50 });
-      const message = messages.find(msg =>
-        msg.embeds.some(embed => embed.footer?.text?.includes(modId))
+      const message = messages.find((msg) =>
+        msg.embeds.some((embed) => embed.footer?.text?.includes(modId))
       );
 
       if (message && message.embeds[0]) {
         const updatedEmbed = EmbedBuilder.from(message.embeds[0])
-          .setColor(0xFF0000)
-          .setTitle(`❌ REFUSÉ: ${message.embeds[0].title?.replace('🆕 Nouveau Mod: ', '') || 'Mod'}`)
+          .setColor(0xff0000)
+          .setTitle(
+            `❌ REFUSÉ: ${message.embeds[0].title?.replace('🆕 Nouveau Mod: ', '') || 'Mod'}`
+          )
           .addFields(
             { name: '❌ Refusé par', value: `<@${moderatorId}>`, inline: true },
             { name: '📅 Date', value: new Date().toLocaleString('fr-FR'), inline: true },
-            { name: '📝 Raison', value: reason, inline: false },
+            { name: '📝 Raison', value: reason, inline: false }
           );
 
         await message.edit({

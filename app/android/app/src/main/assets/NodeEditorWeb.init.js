@@ -4,7 +4,7 @@
 // Debug logging conditionnel (désactivé en production)
 const DEBUG = false;
 function debugLog(...args) {
-    if (DEBUG) console.log(...args);
+  if (DEBUG) console.log(...args);
 }
 
 const container = document.getElementById('drawflow');

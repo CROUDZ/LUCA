@@ -39,7 +39,13 @@ type VolumeNativeModuleShape = {
   getVolumeInfo?: () => Promise<VolumeInfo>;
 };
 
-const VolumeNativeModule = NativeModules.VolumeModule as VolumeNativeModuleShape | undefined;
+// Access the native module lazily to avoid throwing during tests that partially mock 'react-native'
+function getVolumeNativeModule(): VolumeNativeModuleShape | undefined {
+  // NativeModules may be undefined if a test replaced the module with a minimal mock
+  // so guard before accessing properties on it.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (NativeModules as any)?.VolumeModule as VolumeNativeModuleShape | undefined;
+}
 
 const buttonState: Record<VolumeDirection, boolean> = {
   up: false,
@@ -130,7 +136,7 @@ function ensureNativeListeners() {
     return;
   }
 
-  if (!VolumeNativeModule) {
+  if (!getVolumeNativeModule()) {
     if (!warnedMissingModule) {
       logger.warn('[VolumeService] VolumeModule not registered; hardware events unavailable');
       warnedMissingModule = true;
@@ -170,7 +176,8 @@ export async function adjustSystemVolume(
   steps: number = 1,
   showUI: boolean = false
 ): Promise<VolumeInfo | null> {
-  if (!VolumeNativeModule?.adjustVolume) {
+  const vn = getVolumeNativeModule();
+  if (!vn?.adjustVolume) {
     if (!warnedMissingModule) {
       logger.warn('[VolumeService] adjustVolume unavailable: VolumeModule missing');
       warnedMissingModule = true;
@@ -180,7 +187,7 @@ export async function adjustSystemVolume(
 
   try {
     const normalizedSteps = steps <= 0 ? 1 : steps;
-    const info = await VolumeNativeModule.adjustVolume(direction, normalizedSteps, showUI);
+    const info = await vn.adjustVolume(direction, normalizedSteps, showUI);
     const normalized = normalizeVolumeInfo(info);
     if (normalized) lastVolumeInfo = normalized;
     return normalized;
@@ -194,7 +201,8 @@ export async function setSystemVolume(
   level: number,
   showUI: boolean = false
 ): Promise<VolumeInfo | null> {
-  if (!VolumeNativeModule?.setVolume) {
+  const vn = getVolumeNativeModule();
+  if (!vn?.setVolume) {
     if (!warnedMissingModule) {
       logger.warn('[VolumeService] setVolume unavailable: VolumeModule missing');
       warnedMissingModule = true;
@@ -204,7 +212,7 @@ export async function setSystemVolume(
 
   try {
     const clampedLevel = Number.isFinite(level) ? level : 0;
-    const info = await VolumeNativeModule.setVolume(clampedLevel, showUI);
+    const info = await vn.setVolume(clampedLevel, showUI);
     const normalized = normalizeVolumeInfo(info);
     if (normalized) lastVolumeInfo = normalized;
     return normalized;
@@ -215,9 +223,10 @@ export async function setSystemVolume(
 }
 
 export async function getVolumeInfo(): Promise<VolumeInfo | null> {
-  if (VolumeNativeModule?.getVolumeInfo) {
+  const vn = getVolumeNativeModule();
+  if (vn?.getVolumeInfo) {
     try {
-      const info = await VolumeNativeModule.getVolumeInfo();
+      const info = await vn.getVolumeInfo();
       const normalized = normalizeVolumeInfo(info);
       if (normalized) lastVolumeInfo = normalized;
       return normalized;

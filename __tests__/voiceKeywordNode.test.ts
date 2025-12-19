@@ -228,7 +228,9 @@ describe('VoiceKeywordConditionNode', () => {
       expect(ss.isContinuousSignalActive(1)).toBe(true);
 
       // Forcer le démarrage à nouveau (pas de changement)
-      const result = await ss.toggleContinuousSignal(1, undefined, undefined, { forceState: 'start' });
+      const result = await ss.toggleContinuousSignal(1, undefined, undefined, {
+        forceState: 'start',
+      });
       expect(result).toBe('started');
       expect(ss.isContinuousSignalActive(1)).toBe(true);
     });
@@ -266,8 +268,14 @@ describe('VoiceKeywordConditionNode', () => {
     it('should track active continuous signals count in stats', async () => {
       const graph: Graph = {
         nodes: new Map([
-          [1, { id: 1, name: 'Trigger1', type: 'input.trigger', data: {}, inputs: [], outputs: [] }],
-          [2, { id: 2, name: 'Trigger2', type: 'input.trigger', data: {}, inputs: [], outputs: [] }],
+          [
+            1,
+            { id: 1, name: 'Trigger1', type: 'input.trigger', data: {}, inputs: [], outputs: [] },
+          ],
+          [
+            2,
+            { id: 2, name: 'Trigger2', type: 'input.trigger', data: {}, inputs: [], outputs: [] },
+          ],
         ]),
         edges: [],
       };
@@ -312,7 +320,14 @@ describe('VoiceKeywordConditionNode', () => {
     it('should generate HTML with keyword', () => {
       const html = VoiceKeywordConditionNode.generateHTML!(
         { keyword: 'TEST' },
-        { id: 'condition.voice_keyword', name: 'Voice Keyword', category: 'Condition', description: '', icon: 'mic', iconFamily: 'material' }
+        {
+          id: 'condition.voice_keyword',
+          name: 'Voice Keyword',
+          category: 'Condition',
+          description: '',
+          icon: 'mic',
+          iconFamily: 'material',
+        }
       );
 
       expect(html).toContain('TEST');
@@ -322,7 +337,14 @@ describe('VoiceKeywordConditionNode', () => {
     it('should show inverted status when enabled', () => {
       const html = VoiceKeywordConditionNode.generateHTML!(
         { keyword: 'LUCA', invertSignal: true },
-        { id: 'condition.voice_keyword', name: 'Voice Keyword', category: 'Condition', description: '', icon: 'mic', iconFamily: 'material' }
+        {
+          id: 'condition.voice_keyword',
+          name: 'Voice Keyword',
+          category: 'Condition',
+          description: '',
+          icon: 'mic',
+          iconFamily: 'material',
+        }
       );
 
       expect(html).toContain('Inversé');

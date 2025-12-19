@@ -1,6 +1,6 @@
 /**
  * NodeEditorWeb.js - Shim de compatibilité
- * 
+ *
  * Ce fichier est conservé uniquement pour la compatibilité avec les anciennes références.
  * Le code actif est divisé en modules :
  * - NodeEditorWeb.init.js : Initialisation de Drawflow
@@ -14,10 +14,10 @@
  */
 
 (function () {
-    'use strict';
-    
-    // Initialiser le namespace global
-    if (typeof window !== 'undefined') {
-        window.DrawflowEditor = window.DrawflowEditor || {};
-    }
+  'use strict';
+
+  // Initialiser le namespace global
+  if (typeof window !== 'undefined') {
+    window.DrawflowEditor = window.DrawflowEditor || {};
+  }
 })();

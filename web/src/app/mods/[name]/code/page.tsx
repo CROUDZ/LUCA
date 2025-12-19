@@ -16,9 +16,9 @@ interface ModCodeDetail {
   permissions: string[];
   category: string;
   status: string;
-  author: { 
-    id: string; 
-    name: string; 
+  author: {
+    id: string;
+    name: string;
   };
   createdAt: string;
 }
@@ -41,7 +41,7 @@ export default function ModCodePage() {
           return;
         }
         if (!response.ok) throw new Error('Erreur lors du chargement');
-        
+
         const data = await response.json();
         setMod(data);
       } catch (err) {
@@ -104,7 +104,10 @@ export default function ModCodePage() {
       <header className="bg-gray-800 border-b border-gray-700">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link href={`/mods/${modName}`} className="text-blue-400 hover:underline flex items-center gap-2">
+            <Link
+              href={`/mods/${modName}`}
+              className="text-blue-400 hover:underline flex items-center gap-2"
+            >
               ← Retour au mod
             </Link>
             <h1 className="text-xl font-bold">Code Source - {mod.displayName}</h1>
@@ -162,11 +165,13 @@ export default function ModCodePage() {
         {/* Warning Banner pour mods en attente */}
         {mod.status === 'PENDING' && (
           <div className="bg-yellow-900/50 border border-yellow-600 rounded-lg p-4 mb-6">
-            <h3 className="text-yellow-400 font-bold mb-2">⚠️ Ce mod est en attente de vérification</h3>
+            <h3 className="text-yellow-400 font-bold mb-2">
+              ⚠️ Ce mod est en attente de vérification
+            </h3>
             <p className="text-yellow-200">
-              Veuillez examiner attentivement le code ci-dessous avant d&apos;approuver ou de refuser ce mod.
-              Vérifiez qu&apos;il ne contient pas de code malveillant, de tentatives d&apos;accès non autorisé,
-              ou de violations de la politique d&apos;utilisation.
+              Veuillez examiner attentivement le code ci-dessous avant d&apos;approuver ou de
+              refuser ce mod. Vérifiez qu&apos;il ne contient pas de code malveillant, de tentatives
+              d&apos;accès non autorisé, ou de violations de la politique d&apos;utilisation.
             </p>
           </div>
         )}
@@ -178,18 +183,14 @@ export default function ModCodePage() {
             <button
               onClick={handleCopyCode}
               className={`px-4 py-2 rounded transition-colors ${
-                copySuccess 
-                  ? 'bg-green-600 text-white' 
-                  : 'bg-gray-600 hover:bg-gray-500 text-white'
+                copySuccess ? 'bg-green-600 text-white' : 'bg-gray-600 hover:bg-gray-500 text-white'
               }`}
             >
               {copySuccess ? '✓ Copié !' : '📋 Copier'}
             </button>
           </div>
           <pre className="p-4 overflow-x-auto text-sm bg-gray-900">
-            <code className="language-javascript text-gray-300">
-              {mod.mainCode}
-            </code>
+            <code className="language-javascript text-gray-300">{mod.mainCode}</code>
           </pre>
         </div>
 
@@ -200,9 +201,7 @@ export default function ModCodePage() {
               <h2 className="font-bold">Node Types</h2>
             </div>
             <pre className="p-4 overflow-x-auto text-sm bg-gray-900">
-              <code className="text-gray-300">
-                {JSON.stringify(mod.nodeTypes, null, 2)}
-              </code>
+              <code className="text-gray-300">{JSON.stringify(mod.nodeTypes, null, 2)}</code>
             </pre>
           </div>
         )}
@@ -214,9 +213,7 @@ export default function ModCodePage() {
               <h2 className="font-bold">Manifest</h2>
             </div>
             <pre className="p-4 overflow-x-auto text-sm bg-gray-900">
-              <code className="text-gray-300">
-                {JSON.stringify(mod.manifest, null, 2)}
-              </code>
+              <code className="text-gray-300">{JSON.stringify(mod.manifest, null, 2)}</code>
             </pre>
           </div>
         )}

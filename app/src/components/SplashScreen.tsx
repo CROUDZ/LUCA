@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Text, Animated, StyleSheet, Easing, Dimensions } from 'react-native';
+import { Text, Animated, StyleSheet, Easing, Dimensions, Image } from 'react-native';
 import { useAppTheme } from '../styles/theme';
+import LinearGradient from 'react-native-linear-gradient';
 
-// Couleur bleue pour le dernier point (logo transformé)
-const BLUE_DOT_COLOR = '#4A90E2';
+// Create an animated version of LinearGradient instead of using "Animated.LinearGradient"
+const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -131,16 +132,14 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
 
     // Petite pause puis le point va à droite
     Animated.sequence([
-      Animated.delay(100),
       Animated.timing(blueDotPositionX, {
         toValue: 85, // Position finale (un peu plus proche du texte)
         duration: 400,
         useNativeDriver: true,
         easing: Easing.out(Easing.cubic),
       }),
-    ]).start(() => {
-      setPhase('text-arrive');
-    });
+    ]).start(() => {});
+    setPhase('text-arrive');
   }, [phase, blueDotPositionX]);
 
   // Phase 6: Le texte arrive de la gauche et "pousse" le point
@@ -195,7 +194,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
     <Animated.View
       style={[
         styles.container,
-        { backgroundColor: theme.colors.surface },
+        { backgroundColor: theme.colors.background },
         { opacity: containerOpacity },
       ]}
       pointerEvents="none"
@@ -210,11 +209,18 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
           },
         ]}
       >
-        <Animated.Image
-          source={require('../../assets/logo_luca.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <AnimatedLinearGradient
+          colors={[ theme.colors.secondarySoft, theme.colors.primarySoft]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.logoContainer}
+        >
+          <Image
+            source={require('../../assets/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </AnimatedLinearGradient>
       </Animated.View>
 
       {/* Point bleu (logo transformé) - se déplace vers la droite */}
@@ -261,17 +267,20 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 100,
+    width: 160,
+    height: 160,
   },
   logo: {
-    width: 140,
-    height: 140,
+    width: '90%',
+    height: '90%',
   },
   blueDot: {
     position: 'absolute',
     width: 8,
     height: 8,
     borderRadius: 5,
-    backgroundColor: BLUE_DOT_COLOR,
+    backgroundColor: '#1899d6',
     marginTop: 26,
   },
   textContainer: {

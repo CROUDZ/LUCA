@@ -6,11 +6,11 @@ import { darken, lighten, mixColors } from './colorUtils';
  */
 export const basePalette = {
   primary: '#5a2af5',
-  primarySoft: '#7e5bef',
+  primarySoft: '#9069cd',
   primaryMuted: mixColors('#5a2af5', '#7e5bef', 0.35),
   primaryContrast: darken('#5a2af5', 0.25),
   secondary: '#2ed0ff',
-  accentBlue: '#1899d6',
+  secondarySoft:'#1899d6',
   accentPurple: '#7e5bef',
   backgroundDark: '#05030f',
   backgroundDeep: '#0b0d1f',

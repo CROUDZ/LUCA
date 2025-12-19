@@ -8,25 +8,21 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export async function loadEvents(client: Client): Promise<void> {
   const eventsPath = join(__dirname, '..', 'events');
-  
+
   try {
-    const eventFiles = readdirSync(eventsPath).filter(file => 
-      file.endsWith('.ts') || file.endsWith('.js')
+    const eventFiles = readdirSync(eventsPath).filter(
+      (file) => file.endsWith('.ts') || file.endsWith('.js')
     );
-    
+
     for (const file of eventFiles) {
       const filePath = join(eventsPath, file);
-      const event = await import(filePath) as { default: Event<keyof ClientEvents> };
-      
+      const event = (await import(filePath)) as { default: Event<keyof ClientEvents> };
+
       if (event.default?.name && event.default?.execute) {
         if (event.default.once) {
-          client.once(event.default.name, (...args) => 
-            event.default.execute(client, ...args)
-          );
+          client.once(event.default.name, (...args) => event.default.execute(client, ...args));
         } else {
-          client.on(event.default.name, (...args) => 
-            event.default.execute(client, ...args)
-          );
+          client.on(event.default.name, (...args) => event.default.execute(client, ...args));
         }
         console.log(`✅ Loaded event: ${event.default.name}`);
       } else {

@@ -16,7 +16,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "baseUrl": ".",
-    "types": ["node"],
+    "types": ["node", "jest"],
     "paths": {
       "@types/*": ["src/types/*"],
       "@utils/*": ["src/utils/*"],

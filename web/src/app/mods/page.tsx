@@ -47,7 +47,7 @@ export default function ModsPage() {
     const fetchMods = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         const params = new URLSearchParams();
         if (search) params.set('q', search);
@@ -58,7 +58,7 @@ export default function ModsPage() {
 
         const response = await fetch(`/api/mods?${params}`);
         if (!response.ok) throw new Error('Erreur lors du chargement des mods');
-        
+
         const data: ModsResponse = await response.json();
         setMods(data.mods);
         setTotalPages(data.totalPages);
@@ -86,7 +86,12 @@ export default function ModsPage() {
           className="mt-4 md:mt-0 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+            />
           </svg>
           Publier un Mod
         </Link>
@@ -101,26 +106,34 @@ export default function ModsPage() {
             <input
               type="text"
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
               placeholder="Nom, description..."
               className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          
+
           {/* Category */}
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-2">Catégorie</label>
             <select
               value={category}
-              onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setPage(1);
+              }}
               className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
               ))}
             </select>
           </div>
-          
+
           {/* Sort */}
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-2">Trier par</label>
@@ -130,7 +143,9 @@ export default function ModsPage() {
               className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {SORT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
             </select>
           </div>
@@ -141,7 +156,10 @@ export default function ModsPage() {
       {loading ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-gray-800 rounded-xl p-6 border border-gray-700 animate-pulse">
+            <div
+              key={i}
+              className="bg-gray-800 rounded-xl p-6 border border-gray-700 animate-pulse"
+            >
               <div className="h-6 bg-gray-700 rounded mb-4 w-3/4"></div>
               <div className="h-4 bg-gray-700 rounded mb-2"></div>
               <div className="h-4 bg-gray-700 rounded mb-4 w-5/6"></div>
@@ -162,7 +180,9 @@ export default function ModsPage() {
       ) : mods.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-gray-400 mb-4">Aucun mod trouvé</div>
-          <p className="text-sm text-gray-500">Essayez de modifier vos filtres ou créez le premier mod !</p>
+          <p className="text-sm text-gray-500">
+            Essayez de modifier vos filtres ou créez le premier mod !
+          </p>
         </div>
       ) : (
         <>
@@ -182,11 +202,9 @@ export default function ModsPage() {
                     v{mod.version}
                   </span>
                 </div>
-                
-                <p className="text-gray-400 text-sm mb-4 line-clamp-2">
-                  {mod.description}
-                </p>
-                
+
+                <p className="text-gray-400 text-sm mb-4 line-clamp-2">{mod.description}</p>
+
                 <div className="flex flex-wrap gap-2 mb-4">
                   <span className="bg-blue-600/20 text-blue-400 text-xs px-2 py-1 rounded">
                     {mod.category}
@@ -197,18 +215,32 @@ export default function ModsPage() {
                     </span>
                   ))}
                 </div>
-                
+
                 <div className="flex items-center justify-between text-sm text-gray-500">
                   <span>Par {mod.author.name}</span>
                   <div className="flex items-center gap-3">
                     <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                        />
                       </svg>
                       {mod.downloads}
                     </span>
                     <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                      <svg
+                        className="w-4 h-4 text-yellow-500"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
                       {mod.rating.toFixed(1)}
@@ -223,7 +255,7 @@ export default function ModsPage() {
           {totalPages > 1 && (
             <div className="flex justify-center gap-2">
               <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
                 className="px-4 py-2 bg-gray-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition-colors"
               >
@@ -233,7 +265,7 @@ export default function ModsPage() {
                 Page {page} sur {totalPages}
               </span>
               <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
                 className="px-4 py-2 bg-gray-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition-colors"
               >

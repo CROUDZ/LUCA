@@ -9,7 +9,10 @@ import {
 
 // Command interface
 export interface Command {
-  data: SlashCommandBuilder | SlashCommandSubcommandsOnlyBuilder | Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">;
+  data:
+    | SlashCommandBuilder
+    | SlashCommandSubcommandsOnlyBuilder
+    | Omit<SlashCommandBuilder, 'addSubcommand' | 'addSubcommandGroup'>;
   cooldown?: number;
   execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
 }

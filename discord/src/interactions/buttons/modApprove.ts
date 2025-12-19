@@ -7,18 +7,19 @@ import { ButtonHandler } from '../../types/index.js';
 const handler: ButtonHandler = {
   // Match les custom_id qui commencent par "mod_approve_"
   customId: /^mod_approve_/,
-  
+
   execute: async (interaction: ButtonInteraction) => {
     // Extraire l'ID du mod du custom_id
     const modId = interaction.customId.replace('mod_approve_', '');
-    
+
     // Vérifier si l'utilisateur a le rôle de modérateur
-    const hasModeratorRole = interaction.memberPermissions?.has('ManageMessages') || 
-                              interaction.memberPermissions?.has('Administrator');
-    
+    const hasModeratorRole =
+      interaction.memberPermissions?.has('ManageMessages') ||
+      interaction.memberPermissions?.has('Administrator');
+
     if (!hasModeratorRole) {
       await interaction.reply({
-        content: '❌ Vous n\'avez pas la permission de modérer les mods.',
+        content: "❌ Vous n'avez pas la permission de modérer les mods.",
         ephemeral: true,
       });
       return;
@@ -49,11 +50,11 @@ const handler: ButtonHandler = {
         }),
       });
 
-      const result = await response.json() as { error?: string; message?: string };
+      const result = (await response.json()) as { error?: string; message?: string };
 
       if (!response.ok) {
         await interaction.editReply({
-          content: `❌ Erreur: ${result.error || 'Échec de l\'approbation'}`,
+          content: `❌ Erreur: ${result.error || "Échec de l'approbation"}`,
         });
         return;
       }
@@ -62,11 +63,11 @@ const handler: ButtonHandler = {
       const originalEmbed = interaction.message.embeds[0];
       if (originalEmbed) {
         const updatedEmbed = EmbedBuilder.from(originalEmbed)
-          .setColor(0x00FF00)
+          .setColor(0x00ff00)
           .setTitle(`✅ APPROUVÉ: ${originalEmbed.title?.replace('🆕 Nouveau Mod: ', '') || 'Mod'}`)
           .addFields(
             { name: '✅ Approuvé par', value: `<@${interaction.user.id}>`, inline: true },
-            { name: '📅 Date', value: new Date().toLocaleString('fr-FR'), inline: true },
+            { name: '📅 Date', value: new Date().toLocaleString('fr-FR'), inline: true }
           );
 
         await interaction.message.edit({
@@ -79,11 +80,10 @@ const handler: ButtonHandler = {
       await interaction.editReply({
         content: `✅ Le mod a été approuvé avec succès !`,
       });
-
     } catch (error) {
       console.error('Error approving mod:', error);
       await interaction.editReply({
-        content: '❌ Une erreur est survenue lors de l\'approbation du mod.',
+        content: "❌ Une erreur est survenue lors de l'approbation du mod.",
       });
     }
   },

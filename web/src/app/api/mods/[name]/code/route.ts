@@ -38,10 +38,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     });
 
     if (!mod) {
-      return NextResponse.json(
-        { error: 'Mod not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Mod not found' }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -51,9 +48,6 @@ export async function GET(request: NextRequest, { params }: Params) {
     });
   } catch (error) {
     console.error('Error fetching mod code:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch mod code' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch mod code' }, { status: 500 });
   }
 }

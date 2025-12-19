@@ -1,24 +1,24 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import Link from "next/link";
-import { auth } from "@/auth";
-import { SessionProvider } from "@/components/SessionProvider";
-import { SiteHeader } from "@/components/SiteHeader";
+import type { Metadata } from 'next';
+import { Geist, Geist_Mono } from 'next/font/google';
+import './globals.css';
+import Link from 'next/link';
+import { auth } from '@/auth';
+import { SessionProvider } from '@/components/SessionProvider';
+import { SiteHeader } from '@/components/SiteHeader';
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
-  title: "LUCA Mod Library",
-  description: "Upload and share custom nodes for LUCA",
+  title: 'LUCA Mod Library',
+  description: 'Upload and share custom nodes for LUCA',
 };
 
 export default async function RootLayout({
@@ -48,7 +48,10 @@ export default async function RootLayout({
                   © 2024 LUCA Project. Open source under MIT License.
                 </div>
                 <div className="flex space-x-6 mt-4 md:mt-0">
-                  <a href="https://github.com/CROUDZ/LUCA" className="text-gray-400 hover:text-white">
+                  <a
+                    href="https://github.com/CROUDZ/LUCA"
+                    className="text-gray-400 hover:text-white"
+                  >
                     GitHub
                   </a>
                   <Link href="/docs" className="text-gray-400 hover:text-white">

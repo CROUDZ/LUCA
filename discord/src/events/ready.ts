@@ -7,7 +7,7 @@ const event: Event<'ready'> = {
   execute: async (client: Client) => {
     console.log(`🚀 Bot is ready! Logged in as ${client.user?.tag}`);
     console.log(`📊 Serving ${client.guilds.cache.size} guilds`);
-    
+
     // Set bot status
     client.user?.setPresence({
       status: 'online',

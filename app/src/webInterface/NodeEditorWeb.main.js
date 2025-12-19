@@ -4,8 +4,10 @@
 window.DrawflowEditor.setupMessageListener && window.DrawflowEditor.setupMessageListener();
 
 if (window.ReactNativeWebView) {
-    window.ReactNativeWebView.postMessage(JSON.stringify({
-        type: 'READY',
-        payload: { timestamp: Date.now() }
-    }));
+  window.ReactNativeWebView.postMessage(
+    JSON.stringify({
+      type: 'READY',
+      payload: { timestamp: Date.now() },
+    })
+  );
 }

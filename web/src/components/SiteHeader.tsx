@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { signOut, useSession } from "next-auth/react";
-import { useMemo, useState } from "react";
+import Link from 'next/link';
+import { signOut, useSession } from 'next-auth/react';
+import { useMemo, useState } from 'react';
 
 function buildInitials(name?: string | null, fallback?: string | null) {
-  const base = name?.trim() || fallback || "?";
-  const parts = base.split(" ").filter(Boolean);
-  if (parts.length === 0) return "?";
+  const base = name?.trim() || fallback || '?';
+  const parts = base.split(' ').filter(Boolean);
+  if (parts.length === 0) return '?';
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 }
@@ -16,16 +16,16 @@ export function SiteHeader() {
   const { data: session, status } = useSession();
   const [signingOut, setSigningOut] = useState(false);
 
-  const userLabel = session?.user?.name || session?.user?.email || "Utilisateur";
-  const initials = useMemo(() => buildInitials(session?.user?.name, session?.user?.email), [
-    session?.user?.name,
-    session?.user?.email,
-  ]);
+  const userLabel = session?.user?.name || session?.user?.email || 'Utilisateur';
+  const initials = useMemo(
+    () => buildInitials(session?.user?.name, session?.user?.email),
+    [session?.user?.name, session?.user?.email]
+  );
 
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
-      await signOut({ callbackUrl: "/" });
+      await signOut({ callbackUrl: '/' });
     } finally {
       setSigningOut(false);
     }
@@ -70,7 +70,7 @@ export function SiteHeader() {
             >
               + Upload Mod
             </Link>
-            {status === "loading" ? (
+            {status === 'loading' ? (
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-gray-700 animate-pulse" aria-hidden />
                 <div className="h-10 w-32 rounded-md bg-gray-700 animate-pulse" aria-hidden />
@@ -85,11 +85,13 @@ export function SiteHeader() {
                     {initials}
                   </div>
                   <div className="text-left">
-                    <div className="text-sm font-semibold text-white truncate max-w-40">{userLabel}</div>
+                    <div className="text-sm font-semibold text-white truncate max-w-40">
+                      {userLabel}
+                    </div>
                     <div
-                      className={`text-xs ${session.user.verified ? "text-green-400" : "text-yellow-300"}`}
+                      className={`text-xs ${session.user.verified ? 'text-green-400' : 'text-yellow-300'}`}
                     >
-                      {session.user.verified ? "Email vérifié" : "Vérification requise"}
+                      {session.user.verified ? 'Email vérifié' : 'Vérification requise'}
                     </div>
                   </div>
                 </Link>
@@ -99,7 +101,7 @@ export function SiteHeader() {
                   disabled={signingOut}
                   className="text-sm px-3 py-2 rounded-md border border-gray-600 hover:border-gray-400 hover:text-white transition-colors disabled:opacity-60"
                 >
-                  {signingOut ? "Déconnexion..." : "Déconnexion"}
+                  {signingOut ? 'Déconnexion...' : 'Déconnexion'}
                 </button>
               </div>
             ) : (

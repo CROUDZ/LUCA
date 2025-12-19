@@ -93,8 +93,8 @@ export function buildNodeCardHTML(params: NodeCardHTMLParams): string {
   const description = params.body
     ? ''
     : params.description
-    ? `<p class="node-card__description">${params.description}</p>`
-    : '';
+      ? `<p class="node-card__description">${params.description}</p>`
+      : '';
   const body = params.body ? `<div class="node-card__body">${params.body}</div>` : '';
   const footer = params.footer ? `<div class="node-card__footer">${params.footer}</div>` : '';
   const categoryBadge = params.category

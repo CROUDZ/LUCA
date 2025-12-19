@@ -1,12 +1,12 @@
 /**
  * LUCA Modding System - Sandbox Runner Process
  * Node.js 18+ ESM
- * 
+ *
  * Ce fichier est exécuté dans un processus enfant isolé via child_process.fork()
  * Il charge le mod et communique avec le core via IPC (JSON-RPC 2.0)
- * 
+ *
  * Lancer avec: node --experimental-vm-modules --max-old-space-size=128 runner.mjs
- * 
+ *
  * @module core/runner
  */
 
@@ -19,9 +19,9 @@ import path from 'path';
 // ============================================================================
 
 const CONFIG = {
-  maxExecutionTime: 3000,      // Timeout par défaut pour run() en ms
+  maxExecutionTime: 3000, // Timeout par défaut pour run() en ms
   maxStorageSize: 10 * 1024 * 1024, // 10MB max storage
-  logBufferSize: 100,          // Max logs en mémoire avant flush
+  logBufferSize: 100, // Max logs en mémoire avant flush
 };
 
 // ============================================================================
@@ -36,7 +36,7 @@ const state = {
   storage: new Map(),
   logBuffer: [],
   initialized: false,
-  shutdownRequested: false
+  shutdownRequested: false,
 };
 
 // ============================================================================
@@ -47,16 +47,16 @@ function createRuntimeAPI(requestId) {
   return {
     mod: {
       name: state.manifest?.name || 'unknown',
-      version: state.manifest?.version || '0.0.0'
+      version: state.manifest?.version || '0.0.0',
     },
-    
+
     // Storage API
     storage: {
       async get(key) {
         assertPermission('storage.read');
         return state.storage.get(key);
       },
-      
+
       async set(key, value) {
         assertPermission('storage.write');
         // Vérifier la taille totale
@@ -68,43 +68,45 @@ function createRuntimeAPI(requestId) {
         // Notifier le core pour persister
         sendNotification('storage.set', { key, value });
       },
-      
+
       async delete(key) {
         assertPermission('storage.write');
         state.storage.delete(key);
         sendNotification('storage.delete', { key });
       },
-      
+
       async list() {
         assertPermission('storage.read');
         return Array.from(state.storage.keys());
-      }
+      },
     },
-    
+
     // Logging API
     log: {
       debug: (message, data) => addLog('debug', message, data, requestId),
       info: (message, data) => addLog('info', message, data, requestId),
       warn: (message, data) => addLog('warn', message, data, requestId),
-      error: (message, data) => addLog('error', message, data, requestId)
+      error: (message, data) => addLog('error', message, data, requestId),
     },
-    
+
     // HTTP API (si permission accordée)
-    http: state.permissions.has('network.http') ? {
-      async request(url, options = {}) {
-        assertPermission('network.http');
-        // Déléguer au core qui fait le fetch réel
-        return await sendRequest('http.request', { url, options });
-      }
-    } : undefined,
-    
+    http: state.permissions.has('network.http')
+      ? {
+          async request(url, options = {}) {
+            assertPermission('network.http');
+            // Déléguer au core qui fait le fetch réel
+            return await sendRequest('http.request', { url, options });
+          },
+        }
+      : undefined,
+
     // Emit signal vers les outputs
     emit(output, value) {
       sendNotification('emit', { output, value });
     },
-    
+
     // Configuration du node courant
-    config: {}
+    config: {},
   };
 }
 
@@ -124,16 +126,16 @@ function addLog(level, message, data, requestId) {
     message: String(message),
     data: data !== undefined ? sanitizeLogData(data) : undefined,
     timestamp: Date.now(),
-    requestId
+    requestId,
   };
-  
+
   state.logBuffer.push(entry);
-  
+
   // Flush si buffer plein
   if (state.logBuffer.length >= CONFIG.logBufferSize) {
     flushLogs();
   }
-  
+
   // Aussi écrire en console pour debug
   const prefix = `[${state.manifest?.name || 'mod'}]`;
   console[level === 'debug' ? 'log' : level](`${prefix} ${message}`, data || '');
@@ -170,7 +172,7 @@ function sendResponse(id, result) {
   process.send({
     jsonrpc: '2.0',
     id,
-    result
+    result,
   });
 }
 
@@ -178,7 +180,7 @@ function sendError(id, code, message, data) {
   process.send({
     jsonrpc: '2.0',
     id,
-    error: { code, message, data }
+    error: { code, message, data },
   });
 }
 
@@ -186,7 +188,7 @@ function sendNotification(method, params) {
   process.send({
     jsonrpc: '2.0',
     method,
-    params
+    params,
   });
 }
 
@@ -197,14 +199,14 @@ async function sendRequest(method, params) {
       pendingRequests.delete(id);
       reject(new Error(`Request timeout: ${method}`));
     }, CONFIG.maxExecutionTime);
-    
+
     pendingRequests.set(id, { resolve, reject, timeout });
-    
+
     process.send({
       jsonrpc: '2.0',
       id,
       method,
-      params
+      params,
     });
   });
 }
@@ -215,39 +217,39 @@ async function sendRequest(method, params) {
 
 async function handleInit(params) {
   const { modPath, manifest, storage, permissions } = params;
-  
+
   state.modPath = modPath;
   state.manifest = manifest;
   state.permissions = new Set(permissions || []);
-  
+
   // Restaurer le storage
   if (storage && typeof storage === 'object') {
     Object.entries(storage).forEach(([key, value]) => {
       state.storage.set(key, value);
     });
   }
-  
+
   // Charger le module du mod
   const mainPath = path.join(modPath, manifest.main);
   const mainUrl = pathToFileURL(mainPath).href;
-  
+
   try {
     state.module = await import(mainUrl);
   } catch (err) {
     throw new Error(`Failed to load mod module: ${err.message}`);
   }
-  
+
   // Appeler nodeInit si défini
   if (typeof state.module.nodeInit === 'function') {
     const api = createRuntimeAPI('init');
     await state.module.nodeInit(api);
   }
-  
+
   state.initialized = true;
-  
+
   return {
     success: true,
-    nodeTypes: manifest.node_types?.map(n => n.type) || []
+    nodeTypes: manifest.node_types?.map((n) => n.type) || [],
   };
 }
 
@@ -255,56 +257,56 @@ async function handleRun(params) {
   if (!state.initialized) {
     throw new Error('Mod not initialized');
   }
-  
+
   const { nodeId, nodeType, inputs, config, context } = params;
   const startTime = Date.now();
   const requestId = context?.executionId || `run-${Date.now()}`;
-  
+
   // Reset log buffer pour cette exécution
   state.logBuffer = [];
-  
+
   const api = createRuntimeAPI(requestId);
   api.config = config || {};
-  
+
   // Exécuter avec timeout
   const timeout = context?.timeout || CONFIG.maxExecutionTime;
-  
+
   let result;
   const timeoutPromise = new Promise((_, reject) => {
     setTimeout(() => reject(new Error(`Execution timeout after ${timeout}ms`)), timeout);
   });
-  
+
   if (typeof state.module.run !== 'function') {
     throw new Error('Mod does not export run() function');
   }
-  
+
   result = await Promise.race([
     state.module.run({ nodeId, nodeType, inputs, config }, api),
-    timeoutPromise
+    timeoutPromise,
   ]);
-  
+
   const duration = Date.now() - startTime;
-  
+
   // Flush remaining logs
   flushLogs();
-  
+
   return {
     outputs: result?.outputs || {},
     logs: state.logBuffer,
-    duration
+    duration,
   };
 }
 
 async function handleUnload() {
   state.shutdownRequested = true;
-  
+
   if (state.module && typeof state.module.onUnload === 'function') {
     const api = createRuntimeAPI('unload');
     await state.module.onUnload(api);
   }
-  
+
   flushLogs();
-  
+
   return { success: true };
 }
 
@@ -313,13 +315,13 @@ async function handlePing() {
     pong: true,
     initialized: state.initialized,
     modName: state.manifest?.name,
-    uptime: process.uptime()
+    uptime: process.uptime(),
   };
 }
 
 async function handleGetNodeTypes() {
   return {
-    nodeTypes: state.manifest?.node_types || []
+    nodeTypes: state.manifest?.node_types || [],
   };
 }
 
@@ -333,7 +335,7 @@ process.on('message', async (message) => {
     const pending = pendingRequests.get(message.id);
     pendingRequests.delete(message.id);
     clearTimeout(pending.timeout);
-    
+
     if (message.error) {
       pending.reject(new Error(message.error.message));
     } else {
@@ -341,18 +343,18 @@ process.on('message', async (message) => {
     }
     return;
   }
-  
+
   // Gérer les requêtes entrantes
   if (!message.jsonrpc || message.jsonrpc !== '2.0') {
     console.error('[runner] Invalid message format:', message);
     return;
   }
-  
+
   const { id, method, params } = message;
-  
+
   try {
     let result;
-    
+
     switch (method) {
       case 'init':
         result = await handleInit(params);
@@ -373,14 +375,13 @@ process.on('message', async (message) => {
         sendError(id, -32601, `Method not found: ${method}`);
         return;
     }
-    
+
     sendResponse(id, result);
-    
+
     // Shutdown après unload
     if (method === 'unload') {
       setTimeout(() => process.exit(0), 100);
     }
-    
   } catch (err) {
     console.error(`[runner] Error handling ${method}:`, err);
     sendError(id, -32000, err.message, { stack: err.stack });
@@ -396,7 +397,7 @@ process.on('uncaughtException', (err) => {
   sendNotification('error', {
     type: 'uncaughtException',
     message: err.message,
-    stack: err.stack
+    stack: err.stack,
   });
   process.exit(1);
 });
@@ -406,7 +407,7 @@ process.on('unhandledRejection', (reason, promise) => {
   sendNotification('error', {
     type: 'unhandledRejection',
     message: String(reason),
-    stack: reason?.stack
+    stack: reason?.stack,
   });
 });
 

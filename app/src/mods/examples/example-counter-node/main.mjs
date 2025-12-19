@@ -1,7 +1,7 @@
 /**
  * Example Mod: Counter & Timer Nodes
  * LUCA Modding System - API Version 1.0.0
- * 
+ *
  * This mod demonstrates:
  * - nodeInit() lifecycle hook
  * - run() execution handler
@@ -9,7 +9,7 @@
  * - Storage API usage
  * - Logging API usage
  * - Signal emission
- * 
+ *
  * @module example-counter-node
  */
 
@@ -17,7 +17,7 @@
 const state = {
   counters: new Map(),
   timers: new Map(),
-  initialized: false
+  initialized: false,
 };
 
 /**
@@ -26,7 +26,7 @@ const state = {
  */
 export async function nodeInit(api) {
   api.log.info('Counter Node mod initializing...', { version: api.mod.version });
-  
+
   // Restaurer l'état depuis le storage si disponible
   try {
     const savedCounters = await api.storage.get('counters');
@@ -39,10 +39,10 @@ export async function nodeInit(api) {
   } catch (err) {
     api.log.warn('Could not restore counters from storage', { error: err.message });
   }
-  
+
   state.initialized = true;
   api.log.info('Counter Node mod initialized successfully');
-  
+
   return { success: true };
 }
 
@@ -57,7 +57,7 @@ export async function nodeInit(api) {
  */
 export async function run({ nodeId, nodeType, inputs, config }, api) {
   api.log.debug(`Running node ${nodeType}:${nodeId}`, { inputs, config });
-  
+
   switch (nodeType) {
     case 'counter':
       return await runCounter(nodeId, inputs, config, api);
@@ -74,24 +74,24 @@ export async function run({ nodeId, nodeType, inputs, config }, api) {
 async function runCounter(nodeId, inputs, config, api) {
   const { trigger, reset, step = 1 } = inputs;
   const { initialValue = 0, maxValue = null, wrapAround = false } = config;
-  
+
   // Initialiser le compteur si nécessaire
   if (!state.counters.has(nodeId)) {
     state.counters.set(nodeId, initialValue);
   }
-  
+
   let count = state.counters.get(nodeId);
-  
+
   // Gérer le reset
   if (reset) {
     count = initialValue;
     api.log.info(`Counter ${nodeId} reset to ${count}`);
   }
-  
+
   // Incrémenter sur trigger
   if (trigger) {
     count += step;
-    
+
     // Gérer la valeur max
     if (maxValue !== null && count > maxValue) {
       if (wrapAround) {
@@ -102,23 +102,23 @@ async function runCounter(nodeId, inputs, config, api) {
         api.log.debug(`Counter ${nodeId} capped at max`);
       }
     }
-    
+
     // Persister l'état
     state.counters.set(nodeId, count);
-    
+
     // Sauvegarder en storage (async, non-bloquant)
-    saveCountersToStorage(api).catch(err => {
+    saveCountersToStorage(api).catch((err) => {
       api.log.warn('Failed to save counter state', { error: err.message });
     });
-    
+
     // Émettre le signal onIncrement
     api.emit('onIncrement', { nodeId, count, step });
   }
-  
+
   return {
     outputs: {
-      count
-    }
+      count,
+    },
   };
 }
 
@@ -128,19 +128,19 @@ async function runCounter(nodeId, inputs, config, api) {
 async function runTimer(nodeId, inputs, config, api) {
   const { start, stop, interval = 1000 } = inputs;
   const { autoStart = false, repeatCount = -1 } = config;
-  
+
   // Initialiser l'état du timer
   if (!state.timers.has(nodeId)) {
     state.timers.set(nodeId, {
       running: autoStart,
       startTime: autoStart ? Date.now() : null,
       tickCount: 0,
-      lastTick: null
+      lastTick: null,
     });
   }
-  
+
   const timer = state.timers.get(nodeId);
-  
+
   // Gérer start/stop
   if (start && !timer.running) {
     timer.running = true;
@@ -148,17 +148,15 @@ async function runTimer(nodeId, inputs, config, api) {
     timer.tickCount = 0;
     api.log.info(`Timer ${nodeId} started`);
   }
-  
+
   if (stop && timer.running) {
     timer.running = false;
     api.log.info(`Timer ${nodeId} stopped`);
   }
-  
+
   // Calculer l'elapsed time
-  const elapsed = timer.running && timer.startTime 
-    ? Date.now() - timer.startTime 
-    : 0;
-  
+  const elapsed = timer.running && timer.startTime ? Date.now() - timer.startTime : 0;
+
   // Vérifier si on doit émettre un tick
   let shouldTick = false;
   if (timer.running) {
@@ -169,7 +167,7 @@ async function runTimer(nodeId, inputs, config, api) {
         shouldTick = true;
         timer.tickCount = expectedTicks;
         timer.lastTick = Date.now();
-        
+
         // Émettre le signal tick
         api.emit('tick', { nodeId, tickCount: timer.tickCount, elapsed });
       } else {
@@ -179,12 +177,12 @@ async function runTimer(nodeId, inputs, config, api) {
       }
     }
   }
-  
+
   return {
     outputs: {
       tick: shouldTick,
-      elapsed
-    }
+      elapsed,
+    },
   };
 }
 
@@ -202,7 +200,7 @@ async function saveCountersToStorage(api) {
  */
 export async function onUnload(api) {
   api.log.info('Counter Node mod unloading...');
-  
+
   // Sauvegarder l'état final
   try {
     await saveCountersToStorage(api);
@@ -210,19 +208,19 @@ export async function onUnload(api) {
   } catch (err) {
     api.log.error('Failed to save final state', { error: err.message });
   }
-  
+
   // Nettoyer les timers
   state.timers.forEach((timer, nodeId) => {
     if (timer.running) {
       api.log.debug(`Stopping timer ${nodeId}`);
     }
   });
-  
+
   // Reset de l'état
   state.counters.clear();
   state.timers.clear();
   state.initialized = false;
-  
+
   api.log.info('Counter Node mod unloaded');
   return { success: true };
 }
@@ -236,5 +234,5 @@ export const __test__ = {
     state.counters.clear();
     state.timers.clear();
     state.initialized = false;
-  }
+  },
 };

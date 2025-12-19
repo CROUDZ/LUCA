@@ -1,0 +1,34 @@
+# Base .prettierignore
+
+# Build output and dependencies
+node_modules/
+dist/
+build/
+coverage/
+public/
+.next/
+.nuxt/
+.out/
+.vercel/
+web/.next/
+web/node_modules/
+
+# Generated, bundled, and map files
+*.min.js
+*.min.css
+*.bundle.*
+*.map
+
+# Temp and logs
+tmp/
+temp/
+logs/
+*.log
+
+# IDE and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+android/

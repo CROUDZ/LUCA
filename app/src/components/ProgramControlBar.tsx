@@ -171,8 +171,8 @@ const ProgramControlBar: React.FC<ProgramControlBarProps> = ({
                 isRunning
                   ? styles.indicatorRunning
                   : hasTrigger
-                  ? styles.indicatorReady
-                  : styles.indicatorDisabled,
+                    ? styles.indicatorReady
+                    : styles.indicatorDisabled,
               ]}
             />
           </View>
@@ -185,22 +185,22 @@ const ProgramControlBar: React.FC<ProgramControlBarProps> = ({
                 isRunning
                   ? styles.statusTextRunning
                   : hasTrigger
-                  ? styles.statusTextReady
-                  : styles.statusTextDisabled,
+                    ? styles.statusTextReady
+                    : styles.statusTextDisabled,
               ]}
             >
               {!hasTrigger
                 ? '⚠️ AUCUN TRIGGER'
                 : isRunning
-                ? '● PROGRAMME EN COURS'
-                : '○ Programme arrêté'}
+                  ? '● PROGRAMME EN COURS'
+                  : '○ Programme arrêté'}
             </Text>
             <Text style={styles.helpText}>
               {!hasTrigger
                 ? 'Ajoutez un nœud Trigger'
                 : isRunning
-                ? 'Appuyez pour ARRÊTER'
-                : 'Appuyez pour DÉMARRER'}
+                  ? 'Appuyez pour ARRÊTER'
+                  : 'Appuyez pour DÉMARRER'}
             </Text>
           </View>
         </View>
@@ -218,8 +218,8 @@ const ProgramControlBar: React.FC<ProgramControlBarProps> = ({
               isRunning
                 ? styles.playButtonRunning
                 : hasTrigger
-                ? styles.playButtonReady
-                : styles.playButtonDisabled,
+                  ? styles.playButtonReady
+                  : styles.playButtonDisabled,
               { transform: [{ scale: isRunning ? pulseAnim : 1 }] },
             ]}
           >

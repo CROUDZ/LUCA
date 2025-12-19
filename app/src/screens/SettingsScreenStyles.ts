@@ -54,6 +54,7 @@ export const createSettingsStyles = (theme: AppTheme) => {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+      paddingVertical: 8,
     },
     settingInfo: {
       flex: 1,
@@ -72,6 +73,10 @@ export const createSettingsStyles = (theme: AppTheme) => {
     },
     switch: {
       transform: [{ scaleX: 1.1 }, { scaleY: 1.1 }],
+    },
+    optionSelected: {
+      backgroundColor: theme.colors.backgroundSecondary,
+      borderRadius: 6,
     },
     infoBox: {
       backgroundColor: hexToRgba(theme.colors.info, 0.12),

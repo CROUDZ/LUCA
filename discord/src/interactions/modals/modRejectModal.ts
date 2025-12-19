@@ -7,11 +7,12 @@ import { ModalHandler } from '../../types/index.js';
 const handler: ModalHandler = {
   // Match les custom_id qui commencent par "mod_reject_modal_"
   customId: /^mod_reject_modal_/,
-  
+
   execute: async (interaction: ModalSubmitInteraction) => {
     // Extraire l'ID du mod du custom_id
     const modId = interaction.customId.replace('mod_reject_modal_', '');
-    const reason = interaction.fields.getTextInputValue('rejection_reason') || 'Aucune raison fournie';
+    const reason =
+      interaction.fields.getTextInputValue('rejection_reason') || 'Aucune raison fournie';
 
     await interaction.deferReply({ ephemeral: true });
 
@@ -39,7 +40,7 @@ const handler: ModalHandler = {
         }),
       });
 
-      const result = await response.json() as { error?: string; message?: string };
+      const result = (await response.json()) as { error?: string; message?: string };
 
       if (!response.ok) {
         await interaction.editReply({
@@ -55,21 +56,21 @@ const handler: ModalHandler = {
       if (channel && 'messages' in channel) {
         try {
           const messages = await channel.messages.fetch({ limit: 50 });
-          const originalMessage = messages.find(msg => 
-            msg.embeds.some(embed => 
-              embed.footer?.text?.includes(modId)
-            )
+          const originalMessage = messages.find((msg) =>
+            msg.embeds.some((embed) => embed.footer?.text?.includes(modId))
           );
 
           if (originalMessage && originalMessage.embeds[0]) {
             const originalEmbed = originalMessage.embeds[0];
             const updatedEmbed = EmbedBuilder.from(originalEmbed)
-              .setColor(0xFF0000)
-              .setTitle(`❌ REFUSÉ: ${originalEmbed.title?.replace('🆕 Nouveau Mod: ', '') || 'Mod'}`)
+              .setColor(0xff0000)
+              .setTitle(
+                `❌ REFUSÉ: ${originalEmbed.title?.replace('🆕 Nouveau Mod: ', '') || 'Mod'}`
+              )
               .addFields(
                 { name: '❌ Refusé par', value: `<@${interaction.user.id}>`, inline: true },
                 { name: '📅 Date', value: new Date().toLocaleString('fr-FR'), inline: true },
-                { name: '📝 Raison', value: reason, inline: false },
+                { name: '📝 Raison', value: reason, inline: false }
               );
 
             await originalMessage.edit({
@@ -86,7 +87,6 @@ const handler: ModalHandler = {
       await interaction.editReply({
         content: `✅ Le mod a été refusé et supprimé.\n**Raison:** ${reason}`,
       });
-
     } catch (error) {
       console.error('Error rejecting mod:', error);
       await interaction.editReply({

@@ -41,7 +41,7 @@ export default function ModDetailPage() {
           return;
         }
         if (!response.ok) throw new Error('Erreur lors du chargement');
-        
+
         const data = await response.json();
         setMod(data);
       } catch (err) {
@@ -57,13 +57,15 @@ export default function ModDetailPage() {
   const handleInstall = async () => {
     // Génère une URL pour l'installation sur Android
     const installUrl = `luca://install-mod/${modName}`;
-    
+
     // Sur mobile, essaie d'ouvrir l'app
     if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
       window.location.href = installUrl;
     } else {
       // Sur desktop, affiche un QR code ou un message
-      alert(`Pour installer ce mod, ouvrez ce lien sur votre appareil Android avec LUCA installé:\n\n${window.location.origin}/api/mods/${modName}/download`);
+      alert(
+        `Pour installer ce mod, ouvrez ce lien sur votre appareil Android avec LUCA installé:\n\n${window.location.origin}/api/mods/${modName}/download`
+      );
     }
   };
 
@@ -107,9 +109,17 @@ export default function ModDetailPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Back link */}
-      <Link href="/mods" className="text-gray-400 hover:text-white mb-6 inline-flex items-center gap-2">
+      <Link
+        href="/mods"
+        className="text-gray-400 hover:text-white mb-6 inline-flex items-center gap-2"
+      >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M10 19l-7-7m0 0l7-7m-7 7h18"
+          />
         </svg>
         Retour à la bibliothèque
       </Link>
@@ -130,12 +140,19 @@ export default function ModDetailPage() {
               )}
             </div>
             <p className="text-gray-400 mb-4">{mod.description}</p>
-            
+
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-              <span>Par <span className="text-white">{mod.author.name}</span></span>
+              <span>
+                Par <span className="text-white">{mod.author.name}</span>
+              </span>
               <span className="flex items-center gap-1">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
                 </svg>
                 {mod.downloads} téléchargements
               </span>
@@ -147,14 +164,19 @@ export default function ModDetailPage() {
               </span>
             </div>
           </div>
-          
+
           <div className="flex flex-col gap-2">
             <button
               onClick={handleInstall}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors inline-flex items-center justify-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
               </svg>
               Installer dans LUCA
             </button>
@@ -170,9 +192,7 @@ export default function ModDetailPage() {
 
       {/* Tags & Category */}
       <div className="flex flex-wrap gap-2 mb-6">
-        <span className="bg-blue-600/20 text-blue-400 px-3 py-1 rounded-lg">
-          {mod.category}
-        </span>
+        <span className="bg-blue-600/20 text-blue-400 px-3 py-1 rounded-lg">{mod.category}</span>
         {mod.tags.map((tag) => (
           <Link
             key={tag}
@@ -190,11 +210,19 @@ export default function ModDetailPage() {
           <h2 className="text-xl font-semibold mb-4">Nodes inclus ({nodeTypesArray.length})</h2>
           <div className="grid md:grid-cols-2 gap-4">
             {nodeTypesArray.map((node: unknown, index) => {
-              const nodeData = node as { name?: string; displayName?: string; description?: string; inputs?: unknown[]; outputs?: unknown[] };
+              const nodeData = node as {
+                name?: string;
+                displayName?: string;
+                description?: string;
+                inputs?: unknown[];
+                outputs?: unknown[];
+              };
               return (
                 <div key={index} className="bg-gray-700/50 rounded-lg p-4">
                   <h3 className="font-medium mb-1">{nodeData.displayName || nodeData.name}</h3>
-                  <p className="text-sm text-gray-400 mb-2">{nodeData.description || 'Pas de description'}</p>
+                  <p className="text-sm text-gray-400 mb-2">
+                    {nodeData.description || 'Pas de description'}
+                  </p>
                   <div className="flex gap-4 text-xs text-gray-500">
                     <span>{(nodeData.inputs as unknown[])?.length || 0} entrées</span>
                     <span>{(nodeData.outputs as unknown[])?.length || 0} sorties</span>
@@ -222,7 +250,7 @@ export default function ModDetailPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        
+
         {showCode && (
           <div className="border-t border-gray-700">
             <pre className="p-6 overflow-x-auto text-sm text-green-400 font-mono bg-gray-900">

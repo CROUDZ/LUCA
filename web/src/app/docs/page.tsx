@@ -10,7 +10,7 @@ export default function DocsPage() {
 
   const sections: { id: Section; title: string; icon: string }[] = [
     { id: 'quickstart', title: 'Quickstart', icon: '🚀' },
-    { id: 'structure', title: 'Structure d\'un mod', icon: '📁' },
+    { id: 'structure', title: "Structure d'un mod", icon: '📁' },
     { id: 'manifest', title: 'Manifest.json', icon: '📋' },
     { id: 'code', title: 'Écrire le code', icon: '💻' },
     { id: 'api', title: 'API Runtime', icon: '⚡' },
@@ -98,7 +98,7 @@ function QuickstartSection() {
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-bold">🚀 Quickstart en 5 minutes</h2>
-      
+
       <div className="bg-blue-600/20 border border-blue-500 rounded-lg p-4">
         <p className="text-blue-300">
           <strong>Prérequis :</strong> Node.js 18+ et connaissance de base de JavaScript/ES Modules
@@ -107,19 +107,37 @@ function QuickstartSection() {
 
       <h3 className="text-xl font-semibold mt-8">Ce que vous pouvez faire</h3>
       <ul className="space-y-2 text-gray-300">
-        <li className="flex items-center gap-2"><span className="text-green-500">✅</span> Créer de nouveaux types de nodes</li>
-        <li className="flex items-center gap-2"><span className="text-green-500">✅</span> Implémenter de la logique personnalisée</li>
-        <li className="flex items-center gap-2"><span className="text-green-500">✅</span> Stocker des données persistantes</li>
-        <li className="flex items-center gap-2"><span className="text-green-500">✅</span> Faire des requêtes HTTP (avec permission)</li>
-        <li className="flex items-center gap-2"><span className="text-green-500">✅</span> Interagir avec certains périphériques</li>
+        <li className="flex items-center gap-2">
+          <span className="text-green-500">✅</span> Créer de nouveaux types de nodes
+        </li>
+        <li className="flex items-center gap-2">
+          <span className="text-green-500">✅</span> Implémenter de la logique personnalisée
+        </li>
+        <li className="flex items-center gap-2">
+          <span className="text-green-500">✅</span> Stocker des données persistantes
+        </li>
+        <li className="flex items-center gap-2">
+          <span className="text-green-500">✅</span> Faire des requêtes HTTP (avec permission)
+        </li>
+        <li className="flex items-center gap-2">
+          <span className="text-green-500">✅</span> Interagir avec certains périphériques
+        </li>
       </ul>
 
       <h3 className="text-xl font-semibold mt-8">Ce qui n&apos;est pas autorisé</h3>
       <ul className="space-y-2 text-gray-300">
-        <li className="flex items-center gap-2"><span className="text-red-500">❌</span> Accéder au système de fichiers</li>
-        <li className="flex items-center gap-2"><span className="text-red-500">❌</span> Exécuter des commandes système</li>
-        <li className="flex items-center gap-2"><span className="text-red-500">❌</span> Modifier le code de LUCA</li>
-        <li className="flex items-center gap-2"><span className="text-red-500">❌</span> Accéder aux données d&apos;autres mods</li>
+        <li className="flex items-center gap-2">
+          <span className="text-red-500">❌</span> Accéder au système de fichiers
+        </li>
+        <li className="flex items-center gap-2">
+          <span className="text-red-500">❌</span> Exécuter des commandes système
+        </li>
+        <li className="flex items-center gap-2">
+          <span className="text-red-500">❌</span> Modifier le code de LUCA
+        </li>
+        <li className="flex items-center gap-2">
+          <span className="text-red-500">❌</span> Accéder aux données d&apos;autres mods
+        </li>
       </ul>
 
       <h3 className="text-xl font-semibold mt-8">Étape 1 : Créer le manifest.json</h3>
@@ -178,7 +196,9 @@ export async function onUnload(api) {
       <h3 className="text-xl font-semibold mt-8">Étape 3 : Publier 🎉</h3>
       <p className="text-gray-300">
         Votre mod est prêt ! Rendez-vous sur la page{' '}
-        <Link href="/mods/upload" className="text-blue-400 hover:underline">Upload</Link>{' '}
+        <Link href="/mods/upload" className="text-blue-400 hover:underline">
+          Upload
+        </Link>{' '}
         pour le publier.
       </p>
     </div>
@@ -190,7 +210,7 @@ function StructureSection() {
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-bold">📁 Structure d&apos;un mod</h2>
-      
+
       <CodeBlock language="text">{`mon-mod/
 ├── manifest.json      # Métadonnées obligatoires
 ├── main.mjs           # Point d'entrée (code principal)
@@ -213,7 +233,9 @@ function StructureSection() {
           <tbody>
             <tr className="border-b border-gray-700">
               <td className="py-3 px-4 font-mono text-blue-400">manifest.json</td>
-              <td className="py-3 px-4 text-gray-300">Métadonnées, permissions, définition des nodes</td>
+              <td className="py-3 px-4 text-gray-300">
+                Métadonnées, permissions, définition des nodes
+              </td>
             </tr>
             <tr className="border-b border-gray-700">
               <td className="py-3 px-4 font-mono text-blue-400">main.mjs</td>
@@ -257,7 +279,9 @@ function ManifestSection() {
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-bold">📋 Le fichier manifest.json</h2>
-      <p className="text-gray-300">Le manifest est le cœur de votre mod. Il définit toutes les métadonnées.</p>
+      <p className="text-gray-300">
+        Le manifest est le cœur de votre mod. Il définit toutes les métadonnées.
+      </p>
 
       <h3 className="text-xl font-semibold mt-8">Champs obligatoires</h3>
       <CodeBlock language="json">{`{
@@ -323,7 +347,7 @@ function ManifestSection() {
           </thead>
           <tbody>
             {[
-              ['any', 'Accepte n\'importe quel type'],
+              ['any', "Accepte n'importe quel type"],
               ['number', 'Nombre (entier ou décimal)'],
               ['string', 'Chaîne de caractères'],
               ['boolean', 'Vrai/Faux'],
@@ -407,7 +431,10 @@ function ApiSection() {
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-bold">⚡ API Runtime disponible</h2>
-      <p className="text-gray-300">L&apos;objet <code className="text-blue-400">api</code> passé à vos fonctions donne accès aux services LUCA.</p>
+      <p className="text-gray-300">
+        L&apos;objet <code className="text-blue-400">api</code> passé à vos fonctions donne accès
+        aux services LUCA.
+      </p>
 
       <h3 className="text-xl font-semibold mt-8">api.log - Logging</h3>
       <CodeBlock language="javascript">{`api.log.debug('Message de debug', { data: 123 });
@@ -417,7 +444,9 @@ api.log.error('Erreur', { error: err.message });`}</CodeBlock>
 
       <h3 className="text-xl font-semibold mt-8">api.storage - Stockage persistant</h3>
       <div className="bg-yellow-600/20 border border-yellow-500 rounded-lg p-3 mb-4">
-        <p className="text-yellow-300 text-sm">⚠️ Nécessite les permissions <code>storage.read</code> et/ou <code>storage.write</code></p>
+        <p className="text-yellow-300 text-sm">
+          ⚠️ Nécessite les permissions <code>storage.read</code> et/ou <code>storage.write</code>
+        </p>
       </div>
       <CodeBlock language="javascript">{`// Lire une valeur
 const value = await api.storage.get('ma-cle');
@@ -433,7 +462,9 @@ const keys = await api.storage.list();`}</CodeBlock>
 
       <h3 className="text-xl font-semibold mt-8">api.http - Requêtes HTTP</h3>
       <div className="bg-yellow-600/20 border border-yellow-500 rounded-lg p-3 mb-4">
-        <p className="text-yellow-300 text-sm">⚠️ Nécessite la permission <code>network.http</code></p>
+        <p className="text-yellow-300 text-sm">
+          ⚠️ Nécessite la permission <code>network.http</code>
+        </p>
       </div>
       <CodeBlock language="javascript">{`// GET
 const response = await api.http.request('https://api.example.com/data');
@@ -462,7 +493,8 @@ function PermissionsSection() {
     <div className="space-y-6">
       <h2 className="text-3xl font-bold">🔒 Système de permissions</h2>
       <p className="text-gray-300">
-        Les permissions doivent être déclarées dans <code className="text-blue-400">manifest.json</code> et sont vérifiées à l&apos;exécution.
+        Les permissions doivent être déclarées dans{' '}
+        <code className="text-blue-400">manifest.json</code> et sont vérifiées à l&apos;exécution.
       </p>
 
       <CodeBlock language="json">{`{
@@ -500,11 +532,17 @@ function PermissionsSection() {
                 <td className="py-3 px-4 font-mono text-purple-400">{perm}</td>
                 <td className="py-3 px-4 text-gray-300">{desc}</td>
                 <td className="py-3 px-4">
-                  <span className={`px-2 py-1 rounded text-xs ${
-                    risk === 'Faible' ? 'bg-green-600/30 text-green-400' :
-                    risk === 'Moyen' ? 'bg-yellow-600/30 text-yellow-400' :
-                    'bg-red-600/30 text-red-400'
-                  }`}>{risk}</span>
+                  <span
+                    className={`px-2 py-1 rounded text-xs ${
+                      risk === 'Faible'
+                        ? 'bg-green-600/30 text-green-400'
+                        : risk === 'Moyen'
+                          ? 'bg-yellow-600/30 text-yellow-400'
+                          : 'bg-red-600/30 text-red-400'
+                    }`}
+                  >
+                    {risk}
+                  </span>
                 </td>
                 <td className="py-3 px-4 text-gray-400">{review}</td>
               </tr>
@@ -517,19 +555,28 @@ function PermissionsSection() {
       <div className="grid md:grid-cols-2 gap-4">
         <div className="bg-gray-700/50 rounded-lg p-4">
           <h4 className="font-semibold text-green-400 mb-2">✅ Isolation par processus</h4>
-          <p className="text-sm text-gray-400">Chaque mod s&apos;exécute dans un processus Node.js séparé. Un crash n&apos;affecte pas l&apos;app.</p>
+          <p className="text-sm text-gray-400">
+            Chaque mod s&apos;exécute dans un processus Node.js séparé. Un crash n&apos;affecte pas
+            l&apos;app.
+          </p>
         </div>
         <div className="bg-gray-700/50 rounded-lg p-4">
           <h4 className="font-semibold text-green-400 mb-2">✅ Limites de ressources</h4>
-          <p className="text-sm text-gray-400">Mémoire : 128 MB, Timeout : 3000 ms, Stockage : 10 MB</p>
+          <p className="text-sm text-gray-400">
+            Mémoire : 128 MB, Timeout : 3000 ms, Stockage : 10 MB
+          </p>
         </div>
         <div className="bg-gray-700/50 rounded-lg p-4">
           <h4 className="font-semibold text-green-400 mb-2">✅ Validation statique</h4>
-          <p className="text-sm text-gray-400">Analyse AST pour détecter les patterns dangereux (eval, require fs, etc.)</p>
+          <p className="text-sm text-gray-400">
+            Analyse AST pour détecter les patterns dangereux (eval, require fs, etc.)
+          </p>
         </div>
         <div className="bg-gray-700/50 rounded-lg p-4">
           <h4 className="font-semibold text-green-400 mb-2">✅ Checksum & Signature</h4>
-          <p className="text-sm text-gray-400">Hash SHA-256 et signature ed25519 optionnelle pour vérifier l&apos;intégrité</p>
+          <p className="text-sm text-gray-400">
+            Hash SHA-256 et signature ed25519 optionnelle pour vérifier l&apos;intégrité
+          </p>
         </div>
       </div>
     </div>
@@ -544,7 +591,12 @@ function PublishSection() {
 
       <h3 className="text-xl font-semibold mt-8">Option 1 : Via l&apos;interface web</h3>
       <ol className="list-decimal list-inside space-y-3 text-gray-300">
-        <li>Rendez-vous sur la page <Link href="/mods/upload" className="text-blue-400 hover:underline">Upload</Link></li>
+        <li>
+          Rendez-vous sur la page{' '}
+          <Link href="/mods/upload" className="text-blue-400 hover:underline">
+            Upload
+          </Link>
+        </li>
         <li>Remplissez les informations (nom, description, catégorie)</li>
         <li>Collez votre code JavaScript dans l&apos;éditeur</li>
         <li>Cliquez sur &quot;Publier&quot;</li>

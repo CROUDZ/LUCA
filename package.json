@@ -10,13 +10,19 @@
     "migrate:dev": "npx prisma migrate dev",
     "migrate:deploy": "npx prisma migrate deploy",
     "db:push": "npx prisma db push",
-    "db:studio": "npx prisma studio"
+    "db:studio": "npx prisma studio",
+    "format": "prettier --write .",
+    "f": "npm run format"
   },
   "devDependencies": {
+    "@babel/runtime": "^7.25.0",
     "@prisma/client": "^5.22.0",
     "prisma": "^5.22.0"
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "prettier": "^3.7.4"
   }
 }

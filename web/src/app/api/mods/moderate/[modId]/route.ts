@@ -8,7 +8,7 @@ interface Params {
 
 /**
  * POST /api/mods/moderate/[modId] - Modérer un mod (approuver ou refuser)
- * 
+ *
  * Body:
  * - action: 'approve' | 'reject'
  * - reason?: string (optionnel, pour le refus)
@@ -49,10 +49,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
 
     if (!mod) {
-      return NextResponse.json(
-        { error: 'Mod not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Mod not found' }, { status: 404 });
     }
 
     if (action === 'approve') {
@@ -77,7 +74,6 @@ export async function POST(request: NextRequest, { params }: Params) {
         message: `Mod "${mod.displayName}" has been approved`,
         status: 'APPROVED',
       });
-
     } else if (action === 'reject') {
       // Envoyer notification avant suppression
       await sendModRejectedNotification({
@@ -98,17 +94,10 @@ export async function POST(request: NextRequest, { params }: Params) {
       });
     }
 
-    return NextResponse.json(
-      { error: 'Unknown error' },
-      { status: 500 }
-    );
-
+    return NextResponse.json({ error: 'Unknown error' }, { status: 500 });
   } catch (error) {
     console.error('Error moderating mod:', error);
-    return NextResponse.json(
-      { error: 'Failed to moderate mod' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to moderate mod' }, { status: 500 });
   }
 }
 
@@ -134,18 +123,12 @@ export async function GET(request: NextRequest, { params }: Params) {
     });
 
     if (!mod) {
-      return NextResponse.json(
-        { error: 'Mod not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Mod not found' }, { status: 404 });
     }
 
     return NextResponse.json(mod);
   } catch (error) {
     console.error('Error fetching mod status:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch mod status' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch mod status' }, { status: 500 });
   }
 }

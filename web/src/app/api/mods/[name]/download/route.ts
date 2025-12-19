@@ -31,18 +31,12 @@ export async function GET(request: NextRequest, { params }: Params) {
     });
 
     if (!mod) {
-      return NextResponse.json(
-        { error: 'Mod not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Mod not found' }, { status: 404 });
     }
 
     // Vérifier que le mod est approuvé
     if (mod.status !== 'APPROVED') {
-      return NextResponse.json(
-        { error: 'Mod is not available for download' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Mod is not available for download' }, { status: 403 });
     }
 
     // Si une version spécifique est demandée
@@ -61,10 +55,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       });
 
       if (!modVersion) {
-        return NextResponse.json(
-          { error: 'Version not found' },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: 'Version not found' }, { status: 404 });
       }
 
       mainCode = modVersion.mainCode;
@@ -99,12 +90,8 @@ export async function GET(request: NextRequest, { params }: Params) {
       permissions: mod.permissions,
       checksum,
     });
-
   } catch (error) {
     console.error('Error downloading mod:', error);
-    return NextResponse.json(
-      { error: 'Failed to download mod' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to download mod' }, { status: 500 });
   }
 }
