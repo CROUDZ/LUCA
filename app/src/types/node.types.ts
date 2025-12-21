@@ -18,6 +18,21 @@ export interface NodePortDefinition {
 }
 
 // ============================================================================
+// Types pour les champs de configuration
+// ============================================================================
+
+export interface NodeSettingsField {
+  name: string;
+  label: string;
+  type: 'string' | 'number' | 'boolean' | 'color' | 'select' | 'text';
+  defaultValue?: any;
+  description?: string;
+  options?: { label: string; value: any }[]; // Pour le type 'select'
+  min?: number; // Pour le type 'number'
+  max?: number; // Pour le type 'number'
+}
+
+// ============================================================================
 // Configuration et définition d'une node
 // ============================================================================
 
@@ -75,6 +90,9 @@ export interface NodeDefinition {
 
   // Configuration par défaut
   defaultSettings?: Record<string, any>;
+  
+  // Champs de configuration pour l'éditeur de settings (optionnel)
+  settingsFields?: NodeSettingsField[];
 
   // Fonction d'exécution
   execute: (context: NodeExecutionContext) => Promise<NodeExecutionResult> | NodeExecutionResult;

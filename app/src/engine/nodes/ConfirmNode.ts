@@ -181,6 +181,11 @@ const ConfirmNode: NodeDefinition = {
           context.nodeId,
           async (signal: Signal): Promise<SignalPropagation> => {
             try {
+              // Ne traiter que les signaux ON
+              if (signal.state === 'OFF') {
+                return { propagate: true, state: 'OFF', data: signal.data };
+              }
+
               const question = settings.question || "Continuer l'itération ?";
               const confirmLabel = settings.confirmLabel || 'Oui';
               const cancelLabel = settings.cancelLabel || 'Non';
@@ -192,7 +197,7 @@ const ConfirmNode: NodeDefinition = {
 
               if (autoConfirm) {
                 logger.debug(`[Confirm Node ${context.nodeId}] autoConfirm=true -> propagation`);
-                return { propagate: true, data: { ...signal.data, confirmed: true } };
+                return { propagate: true, state: 'ON', data: { ...signal.data, confirmed: true } };
               }
 
               return await promptConfirmation({

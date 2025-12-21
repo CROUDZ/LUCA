@@ -202,16 +202,23 @@ const LogicGateNode: NodeDefinition = {
           async (signal: Signal): Promise<SignalPropagation> => {
             logger.debug(`[LogicGate Node ${context.nodeId}] Signal reçu`);
 
-            if (signal.continuous && signal.state === 'stop') {
+            // Si le signal est un OFF explicite (pas un pulse), réinitialiser
+            if (signal.state === 'OFF' && signal.explicitOff) {
               clearNodeState(context.nodeId);
               // eslint-disable-next-line dot-notation
               const node = signalSystem['graph'].nodes.get(context.nodeId);
               const targets = node ? node.outputs.filter(Boolean) : [];
               return {
                 propagate: targets.length > 0,
+                state: 'OFF',
                 data: { ...signal.data, logicResult: false, finalResult: false, stopped: true },
                 targetOutputs: targets,
               };
+            }
+            
+            // Ignorer les OFF des pulses - on garde l'état pour évaluer la logique
+            if (signal.state === 'OFF') {
+              return { propagate: false, data: signal.data };
             }
 
             const gateType = normalizeGateType(settings.gateType);
@@ -318,6 +325,7 @@ const LogicGateNode: NodeDefinition = {
 
               return {
                 propagate: finalResult,
+                state: finalResult ? 'ON' : 'OFF', // Propager ON si true, OFF si false
                 data: {
                   ...signal.data,
                   logicResult: result,

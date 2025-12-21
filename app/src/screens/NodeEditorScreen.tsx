@@ -4,10 +4,9 @@
  */
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { View, TouchableOpacity, Text, Alert } from 'react-native';
+import { View, TouchableOpacity, Text, Alert, DeviceEventEmitter } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 // Import des hooks personnalisés
 import { useWebViewMessaging } from '../hooks/useWebViewMessaging';
@@ -117,6 +116,13 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
       );
 
       const signalSystem = initializeSignalSystem(graph);
+
+      // Informer les overlays/UI qu'une nouvelle instance est en place
+      try {
+        DeviceEventEmitter.emit?.('signalsystem.initialized', { timestamp: Date.now() });
+      } catch {
+        // ignore
+      }
       startMonitoringNativeTorch();
       clearFlashlightAutoEmitRegistry();
 

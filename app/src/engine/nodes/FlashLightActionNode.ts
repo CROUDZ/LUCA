@@ -92,19 +92,23 @@ const FlashLightActionNode: NodeDefinition = {
 
       signalSystem.registerHandler(context.nodeId, async (signal: any): Promise<any> => {
         try {
-          logger.info(`[FlashLightAction ${context.nodeId}] 🔥 SIGNAL RECEIVED! Processing...`);
+          logger.info(`[FlashLightAction ${context.nodeId}] 🔥 SIGNAL RECEIVED! State: ${signal.state}`);
           logger.debug(`[FlashLightAction ${context.nodeId}] Signal data:`, signal);
 
-          if (signal?.continuous && signal.state === 'stop') {
+          // Si le signal est OFF, propager OFF sans modifier la lampe
+          if (signal.state === 'OFF') {
+            logger.info(`[FlashLightAction ${context.nodeId}] Signal OFF received, propagating...`);
             return {
               propagate: propagateSignal,
+              state: 'OFF',
               data: {
                 ...(signal?.data ?? {}),
                 flashlightState: getFlashlightState(),
-                stopped: true,
               },
             };
           }
+          
+          // Signal ON : effectuer l'action sur la lampe
 
           let newState: boolean;
           if (mode === 'set') {
@@ -219,6 +223,7 @@ const FlashLightActionNode: NodeDefinition = {
 
           return {
             propagate: propagateSignal,
+            state: signal.state, // Propager le même état que le signal reçu (ON)
             data: {
               ...signal.data,
               flashlightState: newState,

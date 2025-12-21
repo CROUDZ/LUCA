@@ -5,94 +5,210 @@ import type {
   NodeExecutionResult,
   NodeMeta,
 } from '../../types/node.types';
-import { getSignalSystem, type Signal } from '../SignalSystem';
+import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 import { logger } from '../../utils/logger';
 import { buildNodeCardHTML } from './templates/nodeCard';
 import {
-  ensureVolumeMonitoring,
   getLastVolumeButtonEvent,
   isVolumeButtonPressed,
   subscribeToVolumeButtons,
-  type VolumeButtonEvent,
   type VolumeDirection,
+  type VolumeButtonEvent,
 } from '../../utils/volumeController';
 
-interface AutoEmitConfig {
-  direction: VolumeDirection;
-  invert: boolean;
-}
-
-const autoEmitRegistry = new Map<number, AutoEmitConfig>();
-let unsubscribeButtons: (() => void) | null = null;
-
-function ensureAutoEmitListener() {
-  if (unsubscribeButtons) return;
-  ensureVolumeMonitoring();
-  unsubscribeButtons = subscribeToVolumeButtons(handleVolumeButton);
-}
-
-async function emitAutoSignal(nodeId: number, event: VolumeButtonEvent) {
-  const ss = getSignalSystem();
-  if (!ss) return;
-
-  try {
-    await ss.emitSignal(nodeId, {
-      fromEvent: 'volume.button',
-      direction: event.direction,
-      action: event.action,
-      pressed: event.pressed,
-      repeat: event.repeat,
-      timestamp: event.timestamp,
-      volume: event.volume,
-      maxVolume: event.maxVolume,
-      source: event.source,
-    });
-  } catch (error) {
-    logger.warn(`[VolumeConditionNode] Failed auto emission for node ${nodeId}`, error);
-  }
-}
-
-function handleVolumeButton(event: VolumeButtonEvent) {
-  if (autoEmitRegistry.size === 0) return;
-  autoEmitRegistry.forEach((config, nodeId) => {
-    if (config.direction !== event.direction) return;
-    const shouldEmit = config.invert ? !event.pressed : event.pressed;
-    if (!shouldEmit) return;
-    emitAutoSignal(nodeId, event);
-  });
-}
+// Stockage des états des nodes pour le mode continu
+const nodeStates = new Map<number, {
+  hasActiveSignal: boolean;
+  lastSignalData: any;
+  unsubscribeVolume: (() => void) | null;
+  isOutputActive: boolean;  // État actuel de la sortie (mode switch)
+  timerHandle: ReturnType<typeof setTimeout> | null;  // Timer pour le mode timer
+}>();
 
 function createExecute(direction: VolumeDirection): NodeDefinition['execute'] {
   return async (context: NodeExecutionContext): Promise<NodeExecutionResult> => {
-    ensureAutoEmitListener();
     const ss = getSignalSystem();
     if (!ss) {
       return { success: false, error: 'Signal system not initialized', outputs: {} };
     }
 
-    const autoEmit = context.settings?.autoEmitOnChange ?? true;
     const invert = context.settings?.invertSignal ?? false;
-    const hasInputs = Boolean(context.inputsCount && context.inputsCount > 0);
+    const switchMode = context.settings?.switchMode ?? false;
+    const timerDuration = context.settings?.timerDuration ?? 0; // 0 = pas de timer (continu)
+    const nodeId = context.nodeId;
 
-    if (autoEmit && !hasInputs) {
-      autoEmitRegistry.set(context.nodeId, { direction, invert });
-      logger.info(
-        `[VolumeConditionNode] Auto-emit enabled for node ${context.nodeId} (direction=${direction}, invert=${invert})`
-      );
-    } else {
-      autoEmitRegistry.delete(context.nodeId);
+    // Initialiser l'état de la node
+    if (!nodeStates.has(nodeId)) {
+      nodeStates.set(nodeId, {
+        hasActiveSignal: false,
+        lastSignalData: null,
+        unsubscribeVolume: null,
+        isOutputActive: false,
+        timerHandle: null,
+      });
     }
 
-    ss.registerHandler(context.nodeId, async (signal: Signal) => {
-      if (signal.continuous && signal.state === 'stop') {
-        return { propagate: true, data: { ...signal.data, volumePressed: false } };
+    const state = nodeStates.get(nodeId)!;
+
+    // Fonction pour activer la sortie
+    const activateOutput = async () => {
+      if (state.isOutputActive) return; // Déjà actif
+      
+      state.isOutputActive = true;
+      
+      logger.info(`[VolumeConditionNode] Node ${nodeId} OUTPUT ON (timer=${timerDuration}s, switch=${switchMode})`);
+      
+      await ss.setNodeState(nodeId, 'ON', {
+        ...state.lastSignalData,
+        volumeButton: direction,
+        volumePressed: true,
+        lastVolumeEvent: getLastVolumeButtonEvent(direction),
+      }, undefined, { forcePropagation: true });
+
+      // Si mode timer (et pas mode switch), programmer l'arrêt
+      if (timerDuration > 0 && !switchMode) {
+        if (state.timerHandle) {
+          clearTimeout(state.timerHandle);
+        }
+        state.timerHandle = setTimeout(() => {
+          deactivateOutput();
+        }, timerDuration * 1000);
+      }
+    };
+
+    // Fonction pour désactiver la sortie
+    const deactivateOutput = async () => {
+      if (!state.isOutputActive) return; // Déjà inactif
+      
+      if (state.timerHandle) {
+        clearTimeout(state.timerHandle);
+        state.timerHandle = null;
+      }
+      
+      state.isOutputActive = false;
+      
+      logger.info(`[VolumeConditionNode] Node ${nodeId} OUTPUT OFF`);
+      
+      await ss.setNodeState(nodeId, 'OFF', {
+        ...state.lastSignalData,
+        volumeButton: direction,
+        volumePressed: false,
+      }, undefined, { forcePropagation: true });
+    };
+
+    // Fonction pour basculer la sortie (mode switch)
+    const toggleOutput = async () => {
+      if (state.isOutputActive) {
+        await deactivateOutput();
+      } else {
+        await activateOutput();
+      }
+    };
+
+    // Fonction appelée quand la condition est détectée
+    const onConditionMet = async () => {
+      if (!state.hasActiveSignal) return;
+
+      logger.info(
+        `[VolumeConditionNode] Node ${nodeId} condition MET, switchMode=${switchMode}, timerDuration=${timerDuration}`
+      );
+
+      if (switchMode) {
+        // Mode switch : basculer l'état à chaque appui
+        await toggleOutput();
+      } else if (!state.isOutputActive) {
+        // Mode normal : activer si pas déjà actif
+        await activateOutput();
+      }
+    };
+
+    // S'abonner aux événements de bouton volume pour réagir en temps réel
+    if (state.unsubscribeVolume) {
+      state.unsubscribeVolume();
+    }
+    
+    state.unsubscribeVolume = subscribeToVolumeButtons((event: VolumeButtonEvent) => {
+      if (event.direction === direction) {
+        const pressed = event.action === 'press';
+        const condition = invert ? !pressed : pressed;
+        
+        if (event.action === 'press' && condition) {
+          // Bouton appuyé et condition remplie
+          onConditionMet();
+        } else if (event.action === 'release') {
+          // Bouton relâché
+          // En mode continu sans timer et sans switch, désactiver quand le bouton est relâché
+          if (!switchMode && timerDuration === 0 && state.isOutputActive && state.hasActiveSignal) {
+            const stillPressed = isVolumeButtonPressed(direction);
+            const stillCondition = invert ? !stillPressed : stillPressed;
+            if (!stillCondition) {
+              logger.info(`[VolumeConditionNode] Node ${nodeId} button released, deactivating (continuous mode)`);
+              deactivateOutput();
+            }
+          }
+        }
+      }
+    });
+
+    // Handler enregistré pour chaque signal reçu
+    ss.registerHandler(nodeId, async (signal: Signal): Promise<SignalPropagation> => {
+      logger.info(
+        `[VolumeConditionNode] Node ${nodeId} received signal: state=${signal.state}`
+      );
+
+      // Si signal OFF, nettoyer l'état et propager OFF
+      if (signal.state === 'OFF') {
+        state.hasActiveSignal = false;
+        state.lastSignalData = null;
+        
+        // Nettoyer le timer si actif
+        if (state.timerHandle) {
+          clearTimeout(state.timerHandle);
+          state.timerHandle = null;
+        }
+        
+        // Désactiver la sortie si elle était active
+        if (state.isOutputActive) {
+          state.isOutputActive = false;
+          return { 
+            propagate: true, 
+            state: 'OFF',
+            data: { ...signal.data, volumePressed: false } 
+          };
+        }
+        
+        return { propagate: true, state: 'OFF', data: signal.data };
       }
 
+      // Signal ON : mémoriser et vérifier la condition
+      state.hasActiveSignal = true;
+      state.lastSignalData = signal.data;
+      
+      // Vérifier immédiatement si la condition est déjà vraie
       const pressed = isVolumeButtonPressed(direction);
       const condition = invert ? !pressed : pressed;
+      
+      logger.info(
+        `[VolumeConditionNode] Node ${nodeId} signal ON received, checking condition: pressed=${pressed}, condition=${condition}`
+      );
+      
       if (condition) {
+        // Condition déjà remplie au moment où le signal arrive
+        state.isOutputActive = true;
+        
+        // Si mode timer (et pas switch), programmer l'arrêt
+        if (timerDuration > 0 && !switchMode) {
+          if (state.timerHandle) {
+            clearTimeout(state.timerHandle);
+          }
+          state.timerHandle = setTimeout(() => {
+            deactivateOutput();
+          }, timerDuration * 1000);
+        }
+        
         return {
           propagate: true,
+          state: 'ON',
           data: {
             ...signal.data,
             volumeButton: direction,
@@ -101,6 +217,18 @@ function createExecute(direction: VolumeDirection): NodeDefinition['execute'] {
           },
         };
       }
+      
+      // Condition non remplie : émettre un événement signal.blocked pour le visuel
+      logger.info(
+        `[VolumeConditionNode] Node ${nodeId} signal ON pending, waiting for condition`
+      );
+      
+      ss.emitEvent('signal.blocked', {
+        nodeId,
+        reason: 'condition_not_met',
+        waitingFor: `volume_${direction}`,
+      });
+      
       return { propagate: false, data: signal.data };
     });
 
@@ -114,25 +242,52 @@ function buildHTML(
   nodeMeta?: NodeMeta
 ) {
   const invertSignal = settings?.invertSignal ?? false;
-  const autoEmit = settings?.autoEmitOnChange !== false;
-  const subtitle = invertSignal ? 'Signal inversé' : 'Signal direct';
-  const statusText = autoEmit ? 'Auto-émission active' : 'Écoute uniquement';
-  const statusClass = autoEmit ? 'auto-emit-status active' : 'auto-emit-status disabled';
+  const switchMode = settings?.switchMode ?? false;
+  const timerDuration = settings?.timerDuration ?? 0;
+  
+  let subtitle = invertSignal ? 'Signal inversé' : 'Signal direct';
+  if (switchMode) {
+    subtitle += ' • Mode Switch';
+  } else if (timerDuration > 0) {
+    subtitle += ` • Timer ${timerDuration}s`;
+  } else {
+    subtitle += ' • Continu';
+  }
 
   const body = `
-    <div class="volume-node${invertSignal ? ' inverted' : ''}">
-      <div class="${statusClass}">
-        <span class="status-dot"></span>
-        <span class="status-text">${statusText}</span>
-      </div>
+    <div class="volume-node${invertSignal ? ' inverted' : ''}${switchMode ? ' switch-mode' : ''}">
       <p class="node-card__description">${options.description}</p>
+      
+      <!-- Contrôles de configuration -->
+      <div class="condition-settings">
+        <!-- Mode Switch -->
+        <div class="setting-row">
+          <label class="setting-label">
+            <span class="setting-text">Mode Switch</span>
+            <span class="setting-hint">Bascule ON/OFF à chaque appui</span>
+          </label>
+          <label class="toggle-switch">
+            <input type="checkbox" class="switch-mode-toggle" ${switchMode ? 'checked' : ''}>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        
+        <!-- Timer Duration (visible uniquement si pas en mode switch) -->
+        <div class="setting-row timer-setting" ${switchMode ? 'style="display:none;"' : ''}>
+          <label class="setting-label">
+            <span class="setting-text">Timer (secondes)</span>
+            <span class="setting-hint">0 = continu tant que maintenu</span>
+          </label>
+          <input type="number" class="timer-duration-input" value="${timerDuration}" min="0" max="300" step="0.5" placeholder="0">
+        </div>
+      </div>
     </div>
   `;
 
   return buildNodeCardHTML({
     title: `${options.name} Condition`,
     subtitle,
-    description: statusText,
+    description: subtitle,
     iconName: options.icon,
     category: nodeMeta?.category || 'Condition',
     accentColor: options.color,
@@ -173,8 +328,9 @@ function createVolumeConditionNode(options: {
       },
     ],
     defaultSettings: {
-      autoEmitOnChange: true,
       invertSignal: false,
+      switchMode: false,       // Mode switch (toggle à chaque appui)
+      timerDuration: 0,        // Durée en secondes (0 = continu tant que maintenu)
     },
     execute: createExecute(options.direction),
     validate: () => true,
@@ -207,5 +363,4 @@ registerNode(VolumeDownConditionNode);
 export {
   VolumeUpConditionNode,
   VolumeDownConditionNode,
-  autoEmitRegistry as __TESTING_AUTO_EMIT_REGISTRY,
 };

@@ -14,11 +14,17 @@ import {
   startMonitoringNativeTorch,
   stopMonitoringNativeTorch,
 } from './src/engine/nodes/FlashLightConditionNode';
+import ColorScreenOverlay from './src/components/ColorScreenOverlay';
 
 // Chargement de toutes les nodes
 import './src/engine/nodes';
 import SplashScreen from './src/components/SplashScreen';
 import { SHOW_SPLASH_DEV } from './src/config/splashDev';
+
+// Utilitaires de debug (en DEV uniquement)
+if (__DEV__) {
+  import('./src/utils/debugSignalSystem');
+}
 
 function App() {
   const [isAppReady, setIsAppReady] = useState(SHOW_SPLASH_DEV ? true : false);
@@ -78,6 +84,7 @@ function App() {
       <AppThemeProvider>
         {!showApp && <SplashScreen onFinish={() => setIsSplashFinished(true)} />}
         {showApp && <AppNavigator />}
+        <ColorScreenOverlay />
       </AppThemeProvider>
     </SafeAreaProvider>
   );

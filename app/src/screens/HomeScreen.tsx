@@ -49,8 +49,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.actionButton}
+              testID="shortcut-button"
             >
-              <Icon name="flash-on" size={20} color={'#FFFFFF'} />
+              <View
+                style={styles.actionIconWrapper}
+                accessibilityLabel="shortcut-icon"
+                testID="shortcut-icon"
+              >
+                <Icon name="flash-on" size={20} color={'#FFFFFF'} />
+              </View>
               <Text style={styles.actionText}>Raccourci</Text>
               <Icon name="chevron-right" size={22} style={styles.chevron as any} />
             </LinearGradient>

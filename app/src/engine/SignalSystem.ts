@@ -1,13 +1,14 @@
 /**
- * SignalSystem - Système de propagation de signaux dans le graphe
+ * SignalSystem - Système de propagation de signaux continus dans le graphe
  *
- * Ce système permet aux nodes de communiquer entre elles via des signaux
- * qui se propagent à travers les connexions du graphe.
+ * Ce système utilise uniquement des signaux continus (états ON/OFF) pour une stabilité maximale.
  *
  * Fonctionnement :
- * - Les nodes "Condition" vérifient une condition et propagent le signal si elle est vraie
- * - Les nodes "Action" reçoivent le signal et exécutent une action
- * - Les signaux se propagent de manière asynchrone à travers le graphe
+ * - Chaque node peut être dans un état ON ou OFF
+ * - Quand une node s'active (ON), elle propage l'état ON à ses sorties
+ * - Quand une node se désactive (OFF), elle propage l'état OFF à ses sorties
+ * - Les nodes condition évaluent l'état entrant et décident de la propagation
+ * - Les nodes action s'exécutent quand elles reçoivent ON et s'arrêtent sur OFF
  * - Gestion d'un contexte partagé (variables) entre toutes les nodes
  * - Support des événements personnalisés pour communication inter-nodes
  */
@@ -19,16 +20,17 @@ import { logger } from '../utils/logger';
 // Types
 // ============================================================================
 
+export type SignalState = 'ON' | 'OFF';
+
 export interface Signal {
   id: string;
   sourceNodeId: number;
   timestamp: number;
+  state: SignalState; // Toujours ON ou OFF
   data?: any;
-  // Contexte partagé pour cette propagation de signal
   context?: ExecutionContext;
-  // Pour les signaux continus (mode interrupteur)
-  continuous?: boolean;
-  state?: 'start' | 'stop';
+  // Indique si c'est un OFF explicite (toggle, stop manuel) vs un pulse automatique
+  explicitOff?: boolean;
 }
 
 export interface SignalHandler {
@@ -37,16 +39,9 @@ export interface SignalHandler {
 
 export interface SignalPropagation {
   propagate: boolean; // Si true, le signal continue vers les nodes suivantes
+  state?: SignalState; // État à propager (par défaut: même état que le signal reçu)
   data?: any; // Données à transmettre avec le signal
-  // Possibilité de cibler des sorties spécifiques (pour les branches conditionnelles)
-  targetOutputs?: number[];
-  // Délai avant propagation (en ms)
-  delay?: number;
-}
-
-export interface SignalCallback {
-  nodeId: number;
-  handler: SignalHandler;
+  targetOutputs?: number[]; // Sorties spécifiques (pour les branches conditionnelles)
 }
 
 // ============================================================================
@@ -77,14 +72,26 @@ export interface EventSubscription {
 }
 
 // ============================================================================
+// État des nodes
+// ============================================================================
+
+interface NodeState {
+  state: SignalState;
+  data?: any;
+  lastUpdate: number;
+  activeConnections: Set<number>; // IDs des nodes sources qui maintiennent cet état ON
+}
+
+// ============================================================================
 // Classe SignalSystem
 // ============================================================================
 
 export class SignalSystem {
-  private graph: Graph;
+  public graph: Graph;
   private handlers: Map<number, SignalHandler> = new Map();
-  private signalQueue: Signal[] = [];
-  private isProcessing: boolean = false;
+  
+  // États actuels de toutes les nodes
+  private nodeStates: Map<number, NodeState> = new Map();
 
   // Contexte d'exécution global
   private globalContext: ExecutionContext;
@@ -92,15 +99,11 @@ export class SignalSystem {
   // Système d'événements
   private eventHandlers: Map<string, EventSubscription[]> = new Map();
 
-  // Signaux continus actifs (mode interrupteur)
-  private continuousSignals: Map<
-    number,
-    {
-      data?: any;
-      context?: ExecutionContext;
-      startedAt: number;
-    }
-  > = new Map();
+  // Signaux en cours de traitement pour éviter les boucles infinies
+  private processingSignals: Set<string> = new Set();
+  
+  // Compteur de propagations en cours (pour savoir si le système est idle)
+  private activePropagations: number = 0;
 
   // Statistiques et métriques
   private stats: {
@@ -118,6 +121,15 @@ export class SignalSystem {
   constructor(graph: Graph) {
     this.graph = graph;
     this.globalContext = this.createNewContext();
+    
+    // Initialiser tous les nodes à OFF
+    this.graph.nodes.forEach((_node, nodeId) => {
+      this.nodeStates.set(nodeId, {
+        state: 'OFF',
+        lastUpdate: Date.now(),
+        activeConnections: new Set(),
+      });
+    });
   }
 
   /**
@@ -137,6 +149,40 @@ export class SignalSystem {
    */
   getContext(): ExecutionContext {
     return this.globalContext;
+  }
+
+  /**
+   * Obtenir l'état actuel d'une node
+   */
+  getNodeState(nodeId: number): SignalState {
+    return this.nodeStates.get(nodeId)?.state ?? 'OFF';
+  }
+
+  /**
+   * Obtenir les données d'état d'une node
+   */
+  getNodeData(nodeId: number): any {
+    return this.nodeStates.get(nodeId)?.data;
+  }
+
+  /**
+   * Vérifier si une node est active (ON)
+   */
+  isNodeActive(nodeId: number): boolean {
+    return this.getNodeState(nodeId) === 'ON';
+  }
+
+  /**
+   * Obtenir toutes les nodes actives
+   */
+  getActiveNodes(): number[] {
+    const activeNodes: number[] = [];
+    this.nodeStates.forEach((state, nodeId) => {
+      if (state.state === 'ON') {
+        activeNodes.push(nodeId);
+      }
+    });
+    return activeNodes;
   }
 
   /**
@@ -259,8 +305,16 @@ export class SignalSystem {
    */
   registerHandler(nodeId: number, handler: SignalHandler): void {
     this.handlers.set(nodeId, handler);
-    // Handlers registration is expected during node initialization; use info
-    // level so LogBox does not show an error stack for routine operations.
+    
+    // Initialiser l'état si pas déjà fait
+    if (!this.nodeStates.has(nodeId)) {
+      this.nodeStates.set(nodeId, {
+        state: 'OFF',
+        lastUpdate: Date.now(),
+        activeConnections: new Set(),
+      });
+    }
+    
     logger.info(
       `[SignalSystem] Handler enregistré pour node ${nodeId}. Total handlers: ${this.handlers.size}`
     );
@@ -271,206 +325,221 @@ export class SignalSystem {
    */
   unregisterHandler(nodeId: number): void {
     this.handlers.delete(nodeId);
-  }
-
-  /**
-   * Vérifier si un signal continu est actif pour une node
-   */
-  isContinuousSignalActive(nodeId: number): boolean {
-    return this.continuousSignals.has(nodeId);
-  }
-
-  /**
-   * Obtenir les données du signal continu actif
-   */
-  getContinuousSignalData(nodeId: number):
-    | {
-        data?: any;
-        context?: ExecutionContext;
-        startedAt: number;
-      }
-    | undefined {
-    return this.continuousSignals.get(nodeId);
-  }
-
-  /**
-   * Obtenir tous les signaux continus actifs (pour le feedback visuel)
-   */
-  getActiveContinuousSignals(): Map<
-    number,
-    {
-      data?: any;
-      startedAt: number;
+    
+    // Réinitialiser l'état
+    if (this.nodeStates.has(nodeId)) {
+      this.nodeStates.set(nodeId, {
+        state: 'OFF',
+        lastUpdate: Date.now(),
+        activeConnections: new Set(),
+      });
     }
-  > {
-    return new Map(this.continuousSignals);
   }
 
   /**
-   * Basculer un signal continu (mode interrupteur)
-   * Si le signal est actif, il s'arrête. Sinon, il démarre.
-   *
-   * @param sourceNodeId - Node qui émet le signal
-   * @param data - Données à associer au signal
+   * Basculer l'état d'une node (ON <-> OFF)
+   * C'est la méthode principale pour activer/désactiver des nodes
+   * 
+   * @param sourceNodeId - Node qui change d'état
+   * @param targetState - État cible ('ON' ou 'OFF'), ou undefined pour basculer
+   * @param data - Données à associer à l'état
    * @param context - Contexte d'exécution
-   * @param options - Options de contrôle :
-   *   - forceState: forcer start ou stop
+   */
+  async setNodeState(
+    sourceNodeId: number,
+    targetState?: SignalState,
+    data?: any,
+    context?: ExecutionContext,
+    options?: { explicitOff?: boolean; forcePropagation?: boolean }
+  ): Promise<SignalState> {
+    const currentState = this.getNodeState(sourceNodeId);
+    const newState = targetState ?? (currentState === 'ON' ? 'OFF' : 'ON');
+    
+    // Pour les triggers et événements, toujours propager (forcePropagation)
+    // Sinon, vérifier si l'état change réellement
+    // CORRECTION: Toujours propager pour les changements d'état, même si l'état cible est le même
+    // Car cela peut être un nouveau cycle de propagation
+    const shouldCheckData = !options?.forcePropagation && currentState === newState;
+    if (shouldCheckData) {
+      const currentData = this.getNodeData(sourceNodeId);
+      if (data && currentData && JSON.stringify(data) === JSON.stringify(currentData)) {
+        logger.debug(`[SignalSystem] Node ${sourceNodeId} déjà dans l'état ${newState} avec mêmes données, propagation ignorée`);
+        return currentState;
+      }
+      // Si pas de données ou données différentes, continuer la propagation
+    }
+    
+    // Mettre à jour l'état de la node
+    const nodeState = this.nodeStates.get(sourceNodeId);
+    if (nodeState) {
+      nodeState.state = newState;
+      nodeState.data = data;
+      nodeState.lastUpdate = Date.now();
+    } else {
+      this.nodeStates.set(sourceNodeId, {
+        state: newState,
+        data,
+        lastUpdate: Date.now(),
+        activeConnections: new Set(),
+      });
+    }
+
+    // Créer le signal
+    const signal: Signal = {
+      id: `signal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      sourceNodeId,
+      timestamp: Date.now(),
+      state: newState,
+      data,
+      context: context || this.globalContext,
+      // Marquer explicitement si c'est un OFF délibéré (toggle, stop) vs pulse
+      explicitOff: newState === 'OFF' && (options?.explicitOff !== false),
+    };
+
+    logger.info(
+      `[SignalSystem] Node ${sourceNodeId} état changé: ${currentState} -> ${newState}`
+    );
+    this.stats.totalSignals++;
+
+    // Émettre des événements pour le feedback visuel
+    this.emitEvent(`signal.state.${newState.toLowerCase()}`, {
+      nodeId: sourceNodeId,
+      timestamp: Date.now(),
+      state: newState,
+    });
+
+    // Propager le signal
+    logger.debug(`[SignalSystem] Appel propagateSignal pour node ${sourceNodeId}`);
+    await this.propagateSignal(signal, sourceNodeId);
+
+    return newState;
+  }
+
+  /**
+   * Activer une node (passer à ON)
+   */
+  async activateNode(nodeId: number, data?: any, context?: ExecutionContext, options?: { forcePropagation?: boolean }): Promise<void> {
+    await this.setNodeState(nodeId, 'ON', data, context, options);
+  }
+
+  /**
+   * Désactiver une node (passer à OFF)
+   */
+  async deactivateNode(nodeId: number, data?: any, context?: ExecutionContext, options?: { forcePropagation?: boolean }): Promise<void> {
+    await this.setNodeState(nodeId, 'OFF', data, context, options);
+  }
+
+  /**
+   * Basculer l'état d'une node
+   */
+  async toggleNode(nodeId: number, data?: any, context?: ExecutionContext, options?: { forcePropagation?: boolean }): Promise<SignalState> {
+    return await this.setNodeState(nodeId, undefined, data, context, options);
+  }
+
+  /**
+   * DEPRECATED: Maintenu pour compatibilité - utiliser setNodeState à la place
    */
   async toggleContinuousSignal(
     sourceNodeId: number,
     data?: any,
     context?: ExecutionContext,
-    options?: {
-      forceState?: 'start' | 'stop';
-    }
+    options?: { forceState?: 'start' | 'stop' }
   ): Promise<'started' | 'stopped'> {
-    const currentlyActive = this.continuousSignals.has(sourceNodeId);
-    const targetState = options?.forceState ?? (currentlyActive ? 'stop' : 'start');
-
-    if (targetState === 'start' && !currentlyActive) {
-      // Démarrer le signal continu
-      this.continuousSignals.set(sourceNodeId, {
-        data,
-        context,
-        startedAt: Date.now(),
-      });
-
-      const signal: Signal = {
-        id: `signal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        sourceNodeId,
-        timestamp: Date.now(),
-        data,
-        context: context || this.globalContext,
-        continuous: true,
-        state: 'start',
-      };
-
-      logger.info(`[SignalSystem] Signal continu DÉMARRÉ pour node ${sourceNodeId}`);
-      this.stats.totalSignals++;
-
-      // Émettre un événement pour le feedback visuel
-      this.emitEvent('signal.continuous.started', {
-        nodeId: sourceNodeId,
-        timestamp: Date.now(),
-      });
-
-      this.signalQueue.push(signal);
-      if (!this.isProcessing) {
-        await this.processQueue();
-      }
-
-      return 'started';
-    } else if (targetState === 'stop' && currentlyActive) {
-      // Arrêter le signal continu
-      const storedData = this.continuousSignals.get(sourceNodeId);
-      this.continuousSignals.delete(sourceNodeId);
-
-      const signal: Signal = {
-        id: `signal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        sourceNodeId,
-        timestamp: Date.now(),
-        data: storedData?.data ?? data,
-        context: storedData?.context || context || this.globalContext,
-        continuous: true,
-        state: 'stop',
-      };
-
-      logger.info(`[SignalSystem] Signal continu ARRÊTÉ pour node ${sourceNodeId}`);
-      this.stats.totalSignals++;
-
-      // Émettre un événement pour le feedback visuel
-      this.emitEvent('signal.continuous.stopped', {
-        nodeId: sourceNodeId,
-        timestamp: Date.now(),
-        duration: storedData ? Date.now() - storedData.startedAt : 0,
-      });
-
-      this.signalQueue.push(signal);
-      if (!this.isProcessing) {
-        await this.processQueue();
-      }
-
-      return 'stopped';
-    }
-
-    // Pas de changement d'état
-    return currentlyActive ? 'started' : 'stopped';
+    const targetState = options?.forceState === 'start' ? 'ON' : 
+                       options?.forceState === 'stop' ? 'OFF' : 
+                       undefined;
+    
+    const newState = await this.setNodeState(sourceNodeId, targetState, data, context);
+    return newState === 'ON' ? 'started' : 'stopped';
   }
 
   /**
-   * Arrêter tous les signaux continus (utile lors du reset)
+   * DEPRECATED: Maintenu pour compatibilité
+   */
+  isContinuousSignalActive(nodeId: number): boolean {
+    return this.isNodeActive(nodeId);
+  }
+
+  /**
+   * DEPRECATED: Maintenu pour compatibilité
+   */
+  getContinuousSignalData(nodeId: number): { data?: any; startedAt: number } | undefined {
+    const state = this.nodeStates.get(nodeId);
+    if (state && state.state === 'ON') {
+      return {
+        data: state.data,
+        startedAt: state.lastUpdate,
+      };
+    }
+    return undefined;
+  }
+
+  /**
+   * DEPRECATED: Maintenu pour compatibilité
+   */
+  getActiveContinuousSignals(): Map<number, { data?: any; startedAt: number }> {
+    const activeSignals = new Map<number, { data?: any; startedAt: number }>();
+    this.nodeStates.forEach((state, nodeId) => {
+      if (state.state === 'ON') {
+        activeSignals.set(nodeId, {
+          data: state.data,
+          startedAt: state.lastUpdate,
+        });
+      }
+    });
+    return activeSignals;
+  }
+
+  /**
+   * Arrêter toutes les nodes actives
+   */
+  async stopAllActiveNodes(): Promise<void> {
+    const activeNodes = this.getActiveNodes();
+    for (const nodeId of activeNodes) {
+      await this.deactivateNode(nodeId);
+    }
+  }
+
+  /**
+   * DEPRECATED: Maintenu pour compatibilité
    */
   async stopAllContinuousSignals(): Promise<void> {
-    const activeNodes = Array.from(this.continuousSignals.keys());
-    for (const nodeId of activeNodes) {
-      await this.toggleContinuousSignal(nodeId, undefined, undefined, { forceState: 'stop' });
-    }
+    await this.stopAllActiveNodes();
   }
 
   /**
-   * Émettre un signal depuis une node source
+   * DEPRECATED: Émettre un signal - utiliser setNodeState à la place
    */
   async emitSignal(sourceNodeId: number, data?: any, context?: ExecutionContext): Promise<void> {
-    const signal: Signal = {
-      id: `signal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      sourceNodeId,
-      timestamp: Date.now(),
-      data,
-      context: context || this.globalContext,
-    };
-
-    logger.debug(`[SignalSystem] Signal émis depuis node ${sourceNodeId}`, signal);
-    this.stats.totalSignals++;
-
-    // Ajouter à la queue
-    this.signalQueue.push(signal);
-
-    // Traiter la queue si pas déjà en cours
-    if (!this.isProcessing) {
-      await this.processQueue();
-    }
+    // Pour les triggers et tests, on force toujours un nouveau pulse
+    // même si l'état est déjà ON
+    await this.pulseNode(sourceNodeId, data, context);
   }
 
   /**
-   * Émettre un signal immédiatement sans passer par la queue (synchronous propagation)
-   * Utile pour des sources haute fréquence qui ne doivent pas créer une longue file d'attente.
+   * DEPRECATED: Émettre un signal immédiat - utiliser setNodeState à la place
    */
   async emitSignalImmediate(
     sourceNodeId: number,
     data?: any,
     context?: ExecutionContext
   ): Promise<void> {
-    const signal: Signal = {
-      id: `signal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      sourceNodeId,
-      timestamp: Date.now(),
-      data,
-      context: context || this.globalContext,
-    };
-
-    logger.debug(`[SignalSystem] Immediate signal emitted from node ${sourceNodeId}`);
-
-    this.stats.totalSignals++;
-
-    // Direct propagation without queue
-    await this.propagateSignal(signal, sourceNodeId);
+    await this.pulseNode(sourceNodeId, data, context);
   }
 
   /**
-   * Traiter la queue de signaux
+   * Émettre un pulse (ON puis OFF immédiatement après propagation)
+   * Utile pour les triggers et événements ponctuels
    */
-  private async processQueue(): Promise<void> {
-    if (this.isProcessing) return;
-    this.isProcessing = true;
-
-    while (this.signalQueue.length > 0) {
-      const signal = this.signalQueue.shift();
-      if (signal) {
-        await this.propagateSignal(signal, signal.sourceNodeId);
-      }
-    }
-
-    this.isProcessing = false;
+  async pulseNode(sourceNodeId: number, data?: any, context?: ExecutionContext): Promise<void> {
+    // Émettre ON avec forcePropagation pour garantir la propagation même si déjà ON
+    await this.setNodeState(sourceNodeId, 'ON', data, context, { explicitOff: false, forcePropagation: true });
+    
+    // Attendre un court délai pour que le signal ON se propage complètement
+    await new Promise(resolve => setTimeout(resolve, 10));
+    
+    // Émettre OFF immédiatement pour terminer le pulse (non explicite)
+    await this.setNodeState(sourceNodeId, 'OFF', data, context, { explicitOff: false, forcePropagation: true });
   }
 
   /**
@@ -481,104 +550,269 @@ export class SignalSystem {
     currentNodeId: number,
     allowedOutputs?: number[]
   ): Promise<void> {
-    const node = this.graph.nodes.get(currentNodeId);
-    if (!node) return;
+    // Incrémenter le compteur de propagations actives
+    this.activePropagations++;
+    
+    try {
+      // Éviter les boucles infinies
+      const signalKey = `${signal.id}_${currentNodeId}`;
+      if (this.processingSignals.has(signalKey)) {
+        logger.debug(`[SignalSystem] Boucle détectée, arrêt de la propagation`);
+        return;
+      }
+      this.processingSignals.add(signalKey);
 
-    // Ajouter à la pile d'exécution
-    if (signal.context) {
-      signal.context.executionStack.push(currentNodeId);
-    }
+      try {
+        const node = this.graph.nodes.get(currentNodeId);
+        if (!node) {
+          logger.warn(`[SignalSystem] Node ${currentNodeId} introuvable dans le graphe`);
+          return;
+        }
 
-    // Récupérer les nodes de sortie (nodes connectées)
-    let outputNodes = node.outputs;
-    // If a subset of outputs is allowed, apply filter
-    if (allowedOutputs && allowedOutputs.length > 0) {
-      outputNodes = outputNodes.filter((o) => allowedOutputs.includes(o));
-    }
+      logger.debug(
+        `[SignalSystem] Node ${currentNodeId} (${node.type}) a ${node.outputs.length} sorties: [${node.outputs.join(', ')}]`
+      );
 
-    for (const outputNodeId of outputNodes) {
-      const handler = this.handlers.get(outputNodeId);
+      // Ajouter à la pile d'exécution
+      if (signal.context) {
+        signal.context.executionStack.push(currentNodeId);
+      }
 
-      if (handler) {
-        try {
-          logger.debug(`[SignalSystem] Propagation du signal vers node ${outputNodeId}`);
+      // Récupérer les nodes de sortie
+      let outputNodes = node.outputs;
+      if (allowedOutputs && allowedOutputs.length > 0) {
+        outputNodes = outputNodes.filter((o) => allowedOutputs.includes(o));
+      }
 
-          // Émettre un événement pour la visualisation
-          this.emitEvent('signal.propagated', {
-            fromNodeId: currentNodeId,
-            toNodeId: outputNodeId,
-            signalId: signal.id,
-          });
+      // Propager vers chaque sortie
+      for (const outputNodeId of outputNodes) {
+        logger.debug(
+          `[SignalSystem] Tentative de propagation vers node ${outputNodeId}, handler existe: ${this.handlers.has(outputNodeId)}`
+        );
+        
+        const handler = this.handlers.get(outputNodeId);
 
-          const startTime = Date.now();
+        if (handler) {
+          try {
+            logger.debug(
+              `[SignalSystem] Propagation du signal ${signal.state} vers node ${outputNodeId}`
+            );
 
-          // Exécuter le handler
-          const result = await Promise.resolve(handler(signal));
+            const startTime = Date.now();
 
-          const executionTime = Date.now() - startTime;
+            // Exécuter le handler
+            const result = await Promise.resolve(handler(signal));
 
-          // Mettre à jour les statistiques
-          this.stats.averageExecutionTime = (this.stats.averageExecutionTime + executionTime) / 2;
+            const executionTime = Date.now() - startTime;
 
-          // Si le handler demande de continuer la propagation
-          if (result.propagate) {
-            // Gérer le délai si spécifié
-            if (result.delay && result.delay > 0) {
-              await new Promise((resolve) => setTimeout(resolve, result.delay));
+            // Mettre à jour les statistiques
+            this.stats.averageExecutionTime =
+              (this.stats.averageExecutionTime + executionTime) / 2;
+
+            // Déterminer l'état à propager (même si on ne propage pas, on met à jour l'état local)
+            const propagatedState = result.state ?? signal.state;
+
+            // Émettre l'événement de propagation - le signal a été reçu et traité par cette node
+            this.emitEvent('signal.propagated', {
+              fromNodeId: currentNodeId,
+              toNodeId: outputNodeId,
+              signalId: signal.id,
+              state: propagatedState,
+            });
+
+            // Mettre à jour l'état de la node de sortie AVANT de vérifier si on propage
+            const outputNodeState = this.nodeStates.get(outputNodeId);
+            let stateChanged = false;
+            let oldState: SignalState = 'OFF'; // Initialiser oldState pour éviter l'erreur
+            
+            if (outputNodeState) {
+              oldState = outputNodeState.state; // Capturer l'ancien état
+              
+              if (propagatedState === 'ON') {
+                const wasNew = !outputNodeState.activeConnections.has(currentNodeId);
+                outputNodeState.activeConnections.add(currentNodeId);
+                
+                if (oldState !== 'ON' || wasNew) {
+                  stateChanged = true;
+                }
+                
+                outputNodeState.state = 'ON';
+                outputNodeState.data = result.data ?? signal.data;
+                outputNodeState.lastUpdate = Date.now();
+                
+                if (oldState !== 'ON') {
+                  logger.info(
+                    `[SignalSystem] Node ${outputNodeId} état: ${oldState} -> ON`
+                  );
+                }
+              } else if (propagatedState === 'OFF') {
+                outputNodeState.activeConnections.delete(currentNodeId);
+                
+                // Ne passer à OFF que si aucune autre connexion n'est active
+                if (outputNodeState.activeConnections.size === 0) {
+                  if (oldState !== 'OFF') {
+                    stateChanged = true;
+                  }
+                  
+                  outputNodeState.state = 'OFF';
+                  outputNodeState.data = result.data ?? signal.data;
+                  outputNodeState.lastUpdate = Date.now();
+                  
+                  if (oldState !== 'OFF') {
+                    logger.info(
+                      `[SignalSystem] Node ${outputNodeId} état: ${oldState} -> OFF`
+                    );
+                  }
+                } else {
+                  logger.debug(
+                    `[SignalSystem] Node ${outputNodeId} reste ON (${outputNodeState.activeConnections.size} connexions actives)`
+                  );
+                }
+              }
             }
 
-            // Créer un nouveau signal avec les données mises à jour
-            const newSignal: Signal = {
-              ...signal,
-              id: `signal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              data: result.data ?? signal.data,
-              context: signal.context,
-            };
+            // Si le handler demande de continuer la propagation
+            if (result.propagate) {
+              // Déterminer si on doit vraiment propager
+              // CORRECTION: Pour un signal ON initial, toujours propager même si la node cible est déjà ON
+              // car c'est peut-être un nouveau cycle de propagation depuis le trigger
+              let shouldPropagate = true; // Par défaut, propager si le handler dit oui
+              
+              if (outputNodeState) {
+                const isInitialActivation = propagatedState === 'ON' && oldState === 'OFF';
+                const isNewConnection = propagatedState === 'ON' && !outputNodeState.activeConnections.has(currentNodeId);
+                
+                // Toujours propager si c'est une nouvelle activation ou une nouvelle connexion
+                if (isInitialActivation || isNewConnection || stateChanged) {
+                  shouldPropagate = true;
+                } else if (propagatedState === 'OFF' && outputNodeState.activeConnections.size > 0) {
+                  // Ne pas propager OFF si la node a d'autres connexions actives
+                  logger.debug(
+                    `[SignalSystem] Node ${outputNodeId} reste ON, propagation OFF ignorée (${outputNodeState.activeConnections.size} connexions actives)`
+                  );
+                  shouldPropagate = false;
+                } else if (propagatedState === 'ON' && !stateChanged) {
+                  // Propager ON même si l'état n'a pas changé, pour continuer le flux
+                  logger.debug(
+                    `[SignalSystem] Node ${outputNodeId} déjà ON, mais propagation maintenue pour continuer le flux`
+                  );
+                  shouldPropagate = true;
+                }
+                
+                // Forcer la propagation pour les pulses
+                const isPulse = signal.data && typeof signal.data === 'object' && '_pulse' in signal.data;
+                if (isPulse) {
+                  shouldPropagate = true;
+                }
+              }
+              
+              if (!shouldPropagate) {
+                logger.debug(
+                  `[SignalSystem] Node ${outputNodeId} propagation arrêtée`
+                );
+              }
+              
+              if (shouldPropagate) {
+                // Créer un nouveau signal pour la propagation
+                const newSignal: Signal = {
+                  id: `signal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                  sourceNodeId: outputNodeId,
+                  timestamp: Date.now(),
+                  state: propagatedState,
+                  data: result.data ?? signal.data,
+                  context: signal.context,
+                };
 
-            // Si des outputs spécifiques sont ciblés (filtrer parmi les sorties du node cible),
-            // on appelera propagateSignal sur le node cible en limitant ses outputs
-            if (result.targetOutputs && result.targetOutputs.length > 0) {
-              await this.propagateSignal(newSignal, outputNodeId, result.targetOutputs);
+                // Propager récursivement
+                if (result.targetOutputs && result.targetOutputs.length > 0) {
+                  await this.propagateSignal(newSignal, outputNodeId, result.targetOutputs);
+                } else {
+                  await this.propagateSignal(newSignal, outputNodeId);
+                }
+              }
             } else {
-              // Propager récursivement vers toutes les sorties
-              await this.propagateSignal(newSignal, outputNodeId);
+              // Signal bloqué par le handler (propagate: false)
+              // Note: signal.propagated a déjà été émis car le signal a bien été reçu
+              // On émet signal.blocked pour indiquer que la propagation s'arrête ici
+              this.emitEvent('signal.blocked', {
+                nodeId: outputNodeId,
+                reason: 'handler_stopped_propagation',
+                state: signal.state,
+              });
             }
-          } else {
-            // Signal bloqué - émettre l'événement
+          } catch (error) {
+            logger.error(
+              `[SignalSystem] Erreur lors du traitement du signal par node ${outputNodeId}:`,
+              error
+            );
+            this.stats.failedSignals++;
+
             this.emitEvent('signal.blocked', {
               nodeId: outputNodeId,
-              reason: 'condition_not_met',
+              reason: 'error',
+              error: error instanceof Error ? error.message : 'Unknown error',
             });
           }
-        } catch (error) {
-          logger.error(
-            `[SignalSystem] Erreur lors du traitement du signal par node ${outputNodeId}:`,
-            error
+        } else {
+          // Pas de handler, propager directement avec le même état
+          // CORRECTION: Les nodes sans handler (comme triggers) doivent toujours propager
+          logger.debug(
+            `[SignalSystem] Pas de handler pour node ${outputNodeId}, propagation directe de l'état ${signal.state}`
           );
-          this.stats.failedSignals++;
 
-          // Émettre événement de blocage pour erreur
-          this.emitEvent('signal.blocked', {
-            nodeId: outputNodeId,
-            reason: 'error',
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
+          // Mettre à jour l'état de la node
+          const outputNodeState = this.nodeStates.get(outputNodeId);
+          if (outputNodeState) {
+            const oldState = outputNodeState.state;
+            let shouldPropagate = true;
+            
+            if (signal.state === 'ON') {
+              outputNodeState.activeConnections.add(currentNodeId);
+              outputNodeState.state = 'ON';
+              outputNodeState.data = signal.data;
+              outputNodeState.lastUpdate = Date.now();
+              // Toujours propager ON pour les nodes sans handler
+              shouldPropagate = true;
+            } else {
+              outputNodeState.activeConnections.delete(currentNodeId);
+              
+              if (outputNodeState.activeConnections.size === 0) {
+                outputNodeState.state = 'OFF';
+                outputNodeState.data = signal.data;
+                outputNodeState.lastUpdate = Date.now();
+                shouldPropagate = true;
+              } else {
+                // Il reste des connexions actives, ne pas propager OFF
+                logger.debug(
+                  `[SignalSystem] Node ${outputNodeId} reste ON (${outputNodeState.activeConnections.size} connexions actives)`
+                );
+                shouldPropagate = false;
+              }
+            }
+            
+            if (shouldPropagate) {
+              // Toujours propager le signal pour les nodes sans handler (comme triggers)
+              this.emitEvent('signal.propagated', {
+                fromNodeId: currentNodeId,
+                toNodeId: outputNodeId,
+                signalId: signal.id,
+                state: signal.state,
+              });
+              
+              await this.propagateSignal(signal, outputNodeId);
+            }
+          }
         }
-      } else {
-        // Si pas de handler, propager directement
-        logger.debug(
-          `[SignalSystem] Pas de handler pour node ${outputNodeId}, propagation directe`
-        );
-
-        // Émettre l'événement de propagation même sans handler
-        this.emitEvent('signal.propagated', {
-          fromNodeId: currentNodeId,
-          toNodeId: outputNodeId,
-          signalId: signal.id,
-        });
-
-        await this.propagateSignal(signal, outputNodeId);
       }
+      } finally {
+        // Nettoyer après un délai
+        setTimeout(() => {
+          this.processingSignals.delete(signalKey);
+        }, 1000);
+      }
+    } finally {
+      // Décrémenter le compteur de propagations actives
+      this.activePropagations--;
     }
   }
 
@@ -587,15 +821,25 @@ export class SignalSystem {
    */
   reset(): void {
     this.handlers.clear();
-    this.signalQueue = [];
-    this.isProcessing = false;
+    this.processingSignals.clear();
+    this.activePropagations = 0;
     this.globalContext = this.createNewContext();
     this.eventHandlers.clear();
-    this.continuousSignals.clear();
+    
+    // Réinitialiser tous les états à OFF
+    this.nodeStates.forEach((state) => {
+      state.state = 'OFF';
+      state.data = undefined;
+      state.lastUpdate = Date.now();
+      state.activeConnections.clear();
+    });
+    
     this.stats.totalSignals = 0;
     this.stats.failedSignals = 0;
     this.stats.averageExecutionTime = 0;
     this.stats.lastEmittedEvent = null;
+    
+    logger.info('[SignalSystem] Système réinitialisé');
   }
 
   /**
@@ -603,27 +847,27 @@ export class SignalSystem {
    */
   getStats(): {
     registeredHandlers: number;
-    queuedSignals: number;
-    isProcessing: boolean;
     totalSignals: number;
     failedSignals: number;
     averageExecutionTime: number;
     variablesCount: number;
     eventHandlersCount: number;
     lastEmittedEvent: string | null;
-    activeContinuousSignals: number;
+    activeNodes: number;
+    processingSignals: number;
+    isIdle: boolean;
   } {
     return {
       registeredHandlers: this.handlers.size,
-      queuedSignals: this.signalQueue.length,
-      isProcessing: this.isProcessing,
       totalSignals: this.stats.totalSignals,
       failedSignals: this.stats.failedSignals,
       averageExecutionTime: this.stats.averageExecutionTime,
       variablesCount: this.globalContext.variables.size,
       eventHandlersCount: this.eventHandlers.size,
       lastEmittedEvent: (this.stats.lastEmittedEvent ?? null) as string | null,
-      activeContinuousSignals: this.continuousSignals.size,
+      activeNodes: this.getActiveNodes().length,
+      processingSignals: this.processingSignals.size,
+      isIdle: this.activePropagations === 0,
     };
   }
 }
@@ -635,6 +879,7 @@ let globalSignalSystem: SignalSystem | null = null;
 
 export function initializeSignalSystem(graph: Graph): SignalSystem {
   globalSignalSystem = new SignalSystem(graph);
+  logger.info('[SignalSystem] Système initialisé');
   return globalSignalSystem;
 }
 
@@ -647,5 +892,5 @@ export function resetSignalSystem(): void {
     globalSignalSystem.reset();
   }
   globalSignalSystem = null;
-  // No Source node available — nothing to stop here
+  logger.info('[SignalSystem] Système global réinitialisé');
 }

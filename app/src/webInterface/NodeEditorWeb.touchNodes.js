@@ -278,7 +278,14 @@ document.addEventListener(
       e.target.closest('.invert-signal-toggle') ||
       e.target.closest('.switch-label') ||
       e.target.closest('.condition-invert-control') ||
-      e.target.closest('.delay-control')
+      e.target.closest('.delay-control') ||
+      e.target.closest('.switch-mode-toggle') ||
+      e.target.closest('.timer-duration-input') ||
+      e.target.closest('.toggle-switch') ||
+      e.target.closest('.condition-settings') ||
+      e.target.tagName === 'INPUT' ||
+      e.target.tagName === 'SELECT' ||
+      e.target.tagName === 'TEXTAREA'
     ) {
       return;
     }

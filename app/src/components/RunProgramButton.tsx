@@ -46,23 +46,24 @@ const RunProgramButton: React.FC<RunProgramButtonProps> = ({
     // Vérifier l'état initial
     const checkActiveSignals = () => {
       const stats = ss.getStats();
-      const running = stats.activeContinuousSignals > 0;
+      // Utiliser activeNodes au lieu de activeContinuousSignals (nouveau système)
+      const running = stats.activeNodes > 0;
       setIsRunning(running);
       backgroundService.updateTriggerState(running);
     };
 
     checkActiveSignals();
 
-    // S'abonner aux événements du SignalSystem
-    const unsubStart = ss.subscribeToEvent('signal.continuous.started', 0, () => {
+    // S'abonner aux nouveaux événements du SignalSystem
+    const unsubStart = ss.subscribeToEvent('signal.state.on', 0, () => {
       setIsRunning(true);
       backgroundService.updateTriggerState(true);
     });
 
-    const unsubStop = ss.subscribeToEvent('signal.continuous.stopped', 0, () => {
-      // Vérifier s'il reste des signaux actifs
+    const unsubStop = ss.subscribeToEvent('signal.state.off', 0, () => {
+      // Vérifier s'il reste des nodes actives
       const stats = ss.getStats();
-      if (stats.activeContinuousSignals === 0) {
+      if (stats.activeNodes === 0) {
         setIsRunning(false);
         backgroundService.updateTriggerState(false);
       }

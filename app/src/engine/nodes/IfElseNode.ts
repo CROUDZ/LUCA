@@ -174,12 +174,12 @@ const IfElseNode: NodeDefinition = {
           async (signal: Signal): Promise<SignalPropagation> => {
             logger.debug(`[IfElse Node ${context.nodeId}] Évaluation de la condition`);
 
-            if (signal.continuous && signal.state === 'stop') {
+            if (signal.state === 'OFF') {
               // Propager l'arrêt vers toutes les sorties pour couper les actions en aval
               // eslint-disable-next-line dot-notation
               const node = signalSystem['graph'].nodes.get(context.nodeId);
               const targets = node ? node.outputs.filter(Boolean) : [];
-              return { propagate: targets.length > 0, data: signal.data, targetOutputs: targets };
+              return { propagate: targets.length > 0, state: 'OFF', data: signal.data, targetOutputs: targets };
             }
 
             let conditionResult = false;
@@ -275,6 +275,7 @@ const IfElseNode: NodeDefinition = {
               return {
                 // Propagate only if we have target outputs
                 propagate: shouldPropagate,
+                state: 'ON', // Propager explicitement l'état ON
                 data: {
                   ...signal.data,
                   conditionResult,

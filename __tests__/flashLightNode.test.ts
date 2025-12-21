@@ -9,7 +9,14 @@ describe('FlashLightConditionNode - react-native-torch integration', () => {
     const torchSwitchMock = jest.fn();
 
     // Mock react-native to avoid permission checks on iOS
-    jest.doMock('react-native', () => ({ Platform: { OS: 'ios' } }));
+    jest.doMock('react-native', () => ({
+      Platform: { OS: 'ios' },
+      NativeModules: {
+        TorchModule: {
+          switchState: torchSwitchMock,
+        },
+      },
+    }));
 
     // Mock le module natif
     jest.doMock(

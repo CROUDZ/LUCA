@@ -27,6 +27,7 @@ import './VolumeConditionNodes';
 // NODES DE CONTRÔLE DE FLUX
 // ============================================================================
 import './DelayNode';
+import './EventListenerNode';
 
 // ============================================================================
 // NODES D'ACTIONS
@@ -35,6 +36,7 @@ import './NotificationNode';
 import './VibrationNode';
 import './FlashLightActionNode';
 import './VolumeActionNodes';
+import './ColorScreenNode';
 
 import { logger } from '../../utils/logger';
 
@@ -56,6 +58,8 @@ export { default as VibrationNode } from './VibrationNode';
 export { default as FlashLightActionNode } from './FlashLightActionNode';
 export { VolumeUpActionNode, VolumeDownActionNode } from './VolumeActionNodes';
 export { default as ConfirmNode } from './ConfirmNode';
+export { default as ColorScreenNode } from './ColorScreenNode';
+export { default as EventListenerNode } from './EventListenerNode';
 
 // ============================================================================
 // EXPORTS DES HELPERS

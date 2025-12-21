@@ -284,16 +284,16 @@ describe('VoiceKeywordConditionNode', () => {
       const ss = getSignalSystem();
       if (!ss) throw new Error('SignalSystem not initialized');
 
-      expect(ss.getStats().activeContinuousSignals).toBe(0);
+      expect(ss.getStats().activeNodes).toBe(0);
 
       await ss.toggleContinuousSignal(1, undefined, undefined, { forceState: 'start' });
-      expect(ss.getStats().activeContinuousSignals).toBe(1);
+      expect(ss.getStats().activeNodes).toBe(1);
 
       await ss.toggleContinuousSignal(2, undefined, undefined, { forceState: 'start' });
-      expect(ss.getStats().activeContinuousSignals).toBe(2);
+      expect(ss.getStats().activeNodes).toBe(2);
 
       await ss.toggleContinuousSignal(1, undefined, undefined, { forceState: 'stop' });
-      expect(ss.getStats().activeContinuousSignals).toBe(1);
+      expect(ss.getStats().activeNodes).toBe(1);
     });
 
     it('should clear continuous signals on reset', async () => {

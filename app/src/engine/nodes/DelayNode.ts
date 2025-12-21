@@ -111,9 +111,9 @@ const DelayNode: NodeDefinition = {
           async (signal: Signal): Promise<SignalPropagation> => {
             logger.debug(`[Delay Node ${context.nodeId}] Délai en cours...`);
 
-            if (signal.continuous && signal.state === 'stop') {
-              logger.debug(`[Delay Node ${context.nodeId}] Stop reçu, bypass du délai`);
-              return { propagate: true, data: signal.data };
+            if (signal.state === 'OFF') {
+              logger.debug(`[Delay Node ${context.nodeId}] Signal OFF reçu, bypass du délai`);
+              return { propagate: true, state: 'OFF', data: signal.data };
             }
 
             try {

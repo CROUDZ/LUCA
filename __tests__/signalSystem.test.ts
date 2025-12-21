@@ -105,7 +105,11 @@ describe('Signal System', () => {
   it('should handle multiple signals', async () => {
     await setFlashlightState(true);
 
-    // Déclencher plusieurs signaux
+    // Avec le nouveau système de signaux continus optimisé pour la visibilité,
+    // chaque appel de trigger génère un nouveau cycle de propagation (forcePropagation).
+    // C'est le comportement attendu pour que l'utilisateur voie le signal à chaque activation.
+    
+    // Test du comportement : plusieurs triggers = plusieurs propagations
     triggerNode(1);
     triggerNode(1);
     triggerNode(1);
@@ -113,7 +117,7 @@ describe('Signal System', () => {
     // Attendre
     await new Promise((resolve) => setTimeout(resolve, 200));
 
-    // Vérifier le compteur
+    // Avec forcePropagation, on a 3 pings (un par trigger)
     expect(getPingCount()).toBe(3);
   });
 });

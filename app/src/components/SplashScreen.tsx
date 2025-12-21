@@ -6,7 +6,7 @@ import LinearGradient from 'react-native-linear-gradient';
 // Create an animated version of LinearGradient instead of using "Animated.LinearGradient"
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface SplashScreenProps {
   onFinish?: () => void;
@@ -20,6 +20,7 @@ type Phase =
   | 'moving'
   | 'text-arrive'
   | 'final'
+  | 'expanding'
   | 'fadeout';
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
@@ -44,6 +45,10 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   const textOpacity = useRef(new Animated.Value(0)).current;
   const textPositionX = useRef(new Animated.Value(-SCREEN_WIDTH)).current; // Hors écran à gauche
 
+  // Remplissage final (le point qui devient un gradient fullscreen)
+  const fillOpacity = useRef(new Animated.Value(0)).current;
+  const fillScale = useRef(new Animated.Value(1)).current; // 1 = taille du point
+
   // Phase 1: Logo apparaît au centre
   useEffect(() => {
     if (phase !== 'logo-appear') return;
@@ -51,7 +56,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
     Animated.parallel([
       Animated.timing(logoOpacity, {
         toValue: 1,
-        duration: 600,
+        duration: 200,
         useNativeDriver: true,
         easing: Easing.out(Easing.cubic),
       }),
@@ -72,7 +77,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
 
     const timer = setTimeout(() => {
       setPhase('shrinking');
-    }, 400);
+    }, 200);
 
     return () => clearTimeout(timer);
   }, [phase]);
@@ -84,19 +89,19 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
     Animated.parallel([
       Animated.timing(logoScale, {
         toValue: 0.055, // Très petit, taille d'un point
-        duration: 1000,
+        duration: 700,
         useNativeDriver: true,
         easing: Easing.inOut(Easing.cubic),
       }),
       Animated.timing(logoRotation, {
         toValue: 1,
-        duration: 1000,
+        duration: 700,
         useNativeDriver: true,
         easing: Easing.inOut(Easing.cubic),
       }),
       Animated.timing(logoTranslateY, {
         toValue: 13, // déplacement vers le bas (ajuste la valeur si nécessaire)
-        duration: 1000,
+        duration: 700,
         useNativeDriver: true,
         easing: Easing.inOut(Easing.cubic),
       }),
@@ -122,8 +127,9 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         useNativeDriver: true,
       }),
     ]).start(() => {
-      setPhase('moving');
+      
     });
+    setPhase('moving');
   }, [phase, logoOpacity, blueDotOpacity]);
 
   // Phase 5: Le point se déplace vers la droite (position finale)
@@ -170,19 +176,63 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
     if (phase !== 'final') return;
 
     const timer = setTimeout(() => {
-      setPhase('fadeout');
-      Animated.timing(containerOpacity, {
-        toValue: 0,
-        duration: 400,
-        useNativeDriver: true,
-        easing: Easing.in(Easing.cubic),
-      }).start(() => {
-        onFinish?.();
-      });
+      // Lance l'étape d'expansion (le point devient un grand dégradé)
+      setPhase('expanding');
     }, 700);
 
     return () => clearTimeout(timer);
   }, [phase, containerOpacity, onFinish]);
+
+  // Phase d'expansion: le petit point se transforme en un dégradé qui remplit l'écran
+  useEffect(() => {
+    if (phase !== 'expanding') return;
+
+    // Calculer l'échelle nécessaire pour couvrir la diagonale de l'écran
+    const dotSize = 8; // comme défini dans styles.blueDot
+    const diag = Math.sqrt(SCREEN_WIDTH * SCREEN_WIDTH + SCREEN_HEIGHT * SCREEN_HEIGHT);
+    const targetScale = (diag * 1.2) / dotSize; // marge pour s'assurer que tout est couvert
+
+    // Crossfade: masquer le petit point et afficher le gradient (petit)
+    Animated.parallel([
+      Animated.timing(blueDotOpacity, {
+        toValue: 0,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fillOpacity, {
+        toValue: 1,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+      // Masquer le texte "L.U.C.A" en même temps que l'expansion
+      Animated.timing(textOpacity, {
+        toValue: 0,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Agrandissement rapide pour couvrir l'écran
+      Animated.timing(fillScale, {
+        toValue: targetScale,
+        duration: 420,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.cubic),
+      }).start(() => {
+        // Une demi-seconde après que l'écran est rempli, on lance le fade out final
+        setTimeout(() => {
+          setPhase('fadeout');
+          Animated.timing(containerOpacity, {
+            toValue: 0,
+            duration: 400,
+            useNativeDriver: true,
+            easing: Easing.in(Easing.cubic),
+          }).start(() => {
+            onFinish?.();
+          });
+        }, 500);
+      });
+    });
+  }, [phase, blueDotOpacity, fillOpacity, fillScale, containerOpacity, onFinish, textOpacity]);
 
   // Interpolation pour la rotation (2 tours = 720deg)
   const spin = logoRotation.interpolate({
@@ -234,6 +284,25 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         ]}
       />
 
+      {/* Remplissage final: petit point -> grand dégradé fullscreen */}
+      <Animated.View
+        style={[
+          styles.filling,
+          {
+            opacity: fillOpacity,
+            transform: [{ translateX: blueDotPositionX }, { scale: fillScale }],
+          },
+        ]}
+        pointerEvents="none"
+      >
+        <AnimatedLinearGradient
+          colors={[ '#1899d6', '#9069cd' ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.fillingGradient}
+        />
+      </Animated.View>
+
       {/* Texte "L.U.C.A" avec les 3 premiers points normaux (couleur texte) */}
       <Animated.View
         style={[
@@ -267,7 +336,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 100,
+    borderRadius: 40,
     width: 160,
     height: 160,
   },
@@ -282,6 +351,22 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#1899d6',
     marginTop: 26,
+  },
+  filling: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 5,
+    marginTop: 26,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fillingGradient: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    borderRadius: 100,
   },
   textContainer: {
     flexDirection: 'row',

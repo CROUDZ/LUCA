@@ -124,6 +124,149 @@ document.addEventListener(
 );
 
 // ============================================
+// CONTRÔLE DU MODE SWITCH (CONDITIONS)
+// ============================================
+
+document.addEventListener(
+  'change',
+  (e) => {
+    if (e.target.classList.contains('switch-mode-toggle')) {
+      const node = e.target.closest('.drawflow-node');
+      if (!node) return;
+
+      const nodeId = node.id.replace('node-', '');
+      const nodeData = window.DrawflowEditor.editor.drawflow.drawflow.Home.data[nodeId];
+
+      if (nodeData && nodeData.data) {
+        if (!nodeData.data.settings) {
+          nodeData.data.settings = {};
+        }
+
+        const switchMode = e.target.checked;
+        nodeData.data.settings.switchMode = switchMode;
+
+        // Afficher/masquer le timer setting en fonction du mode switch
+        const timerSetting = node.querySelector('.timer-setting');
+        if (timerSetting) {
+          timerSetting.style.display = switchMode ? 'none' : '';
+        }
+
+        // Mettre à jour le subtitle
+        updateConditionSubtitle(node, nodeData.data.settings);
+
+        window.DrawflowEditor.debugLog &&
+          window.DrawflowEditor.debugLog(
+            `[SwitchMode] Node ${nodeId}: switchMode set to ${switchMode}`
+          );
+
+        window.DrawflowEditor.exportGraph();
+
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({
+              type: 'NODE_SETTING_CHANGED',
+              payload: { nodeId, nodeType: nodeData.data?.type, settings: nodeData.data.settings },
+            })
+          );
+        }
+
+        if (navigator.vibrate) navigator.vibrate(30);
+      }
+    }
+  },
+  false
+);
+
+// ============================================
+// CONTRÔLE DU TIMER DURATION (CONDITIONS)
+// ============================================
+
+function handleTimerDurationChange(target, isFinal = false) {
+  const node = target.closest('.drawflow-node');
+  if (!node) return;
+
+  const nodeId = node.id.replace('node-', '');
+  const nodeData = window.DrawflowEditor.editor.drawflow.drawflow.Home.data[nodeId];
+  if (!nodeData) return;
+
+  if (!nodeData.data) nodeData.data = {};
+  if (!nodeData.data.settings) nodeData.data.settings = {};
+
+  // Parser la valeur (accepte virgule ou point comme séparateur)
+  let value = parseFloat(target.value.replace(',', '.')) || 0;
+  value = Math.max(0, Math.min(300, value)); // Limiter entre 0 et 300 secondes
+
+  if (isFinal) {
+    target.value = value > 0 ? value : '';
+  }
+
+  nodeData.data.settings.timerDuration = value;
+
+  // Mettre à jour le subtitle
+  updateConditionSubtitle(node, nodeData.data.settings);
+
+  window.DrawflowEditor.exportGraph();
+
+  if (window.ReactNativeWebView) {
+    window.ReactNativeWebView.postMessage(
+      JSON.stringify({
+        type: 'NODE_SETTING_CHANGED',
+        payload: { nodeId, nodeType: nodeData.data?.type, settings: nodeData.data.settings },
+      })
+    );
+  }
+
+  if (isFinal && navigator.vibrate) navigator.vibrate(15);
+}
+
+['input', 'change'].forEach((eventName) => {
+  document.addEventListener(
+    eventName,
+    (e) => {
+      if (e.target.classList.contains('timer-duration-input')) {
+        e.stopPropagation();
+        handleTimerDurationChange(e.target, eventName === 'change');
+      }
+    },
+    { passive: true }
+  );
+});
+
+document.addEventListener(
+  'blur',
+  (e) => {
+    if (e.target.classList.contains('timer-duration-input')) {
+      handleTimerDurationChange(e.target, true);
+    }
+  },
+  true
+);
+
+// ============================================
+// MISE À JOUR DU SUBTITLE DES CONDITIONS
+// ============================================
+
+function updateConditionSubtitle(nodeEl, settings) {
+  const subtitle = nodeEl.querySelector('.node-subtitle');
+  if (!subtitle) return;
+
+  const invertSignal = settings?.invertSignal ?? false;
+  const switchMode = settings?.switchMode ?? false;
+  const timerDuration = settings?.timerDuration ?? 0;
+
+  let text = invertSignal ? 'Signal inversé' : 'Signal direct';
+  if (switchMode) {
+    text += ' • Mode Switch';
+  } else if (timerDuration > 0) {
+    text += ` • Timer ${timerDuration}s`;
+  } else {
+    text += ' • Continu';
+  }
+
+  subtitle.textContent = text;
+}
+
+// ============================================
 // CONTRÔLE DIRECT DU DÉLAI
 // ============================================
 
@@ -257,6 +400,145 @@ document.addEventListener(
 });
 
 window.DrawflowEditor.handleLogicGateSelectChange = handleLogicGateSelectChange;
+
+// ============================================
+// COLOR SCREEN CONTROL
+// ============================================
+
+function handleColorScreenPickerChange(target) {
+  const node = target.closest('.drawflow-node');
+  if (!node) return;
+
+  const nodeId = node.id.replace('node-', '');
+  const editor = window.DrawflowEditor?.editor;
+  const nodeData = editor?.drawflow?.drawflow?.Home?.data?.[nodeId];
+  if (!nodeData) return;
+
+  if (!nodeData.data) nodeData.data = {};
+  if (!nodeData.data.settings) nodeData.data.settings = {};
+
+  const color = target.value || '#FF0000';
+  nodeData.data.settings.color = color;
+
+  // Update the text input if it exists
+  const textInput = node.querySelector('.color-screen-input');
+  if (textInput) textInput.value = color;
+
+  // Update the subtitle
+  const subtitle = node.querySelector('.node-subtitle');
+  if (subtitle) subtitle.textContent = color;
+
+  window.DrawflowEditor.exportGraph?.();
+
+  if (window.ReactNativeWebView) {
+    window.ReactNativeWebView.postMessage(
+      JSON.stringify({
+        type: 'NODE_SETTING_CHANGED',
+        payload: { nodeId, nodeType: nodeData.data?.type, settings: nodeData.data.settings },
+      })
+    );
+  }
+
+  if (navigator.vibrate) navigator.vibrate(15);
+}
+
+function handleColorScreenInputChange(target) {
+  const node = target.closest('.drawflow-node');
+  if (!node) return;
+
+  const nodeId = node.id.replace('node-', '');
+  const editor = window.DrawflowEditor?.editor;
+  const nodeData = editor?.drawflow?.drawflow?.Home?.data?.[nodeId];
+  if (!nodeData) return;
+
+  if (!nodeData.data) nodeData.data = {};
+  if (!nodeData.data.settings) nodeData.data.settings = {};
+
+  let color = target.value || '#FF0000';
+  
+  // Validate hex color
+  if (!/^#[0-9A-Fa-f]{6}$/.test(color)) {
+    // If invalid, try to fix it
+    if (color.startsWith('#')) {
+      color = color.slice(0, 7);
+    } else {
+      color = '#' + color.replace(/[^0-9A-Fa-f]/g, '').slice(0, 6);
+    }
+    if (!/^#[0-9A-Fa-f]{6}$/.test(color)) {
+      color = '#FF0000'; // fallback to red
+    }
+  }
+
+  nodeData.data.settings.color = color;
+
+  // Update the color picker
+  const colorPicker = node.querySelector('.color-screen-picker');
+  if (colorPicker) colorPicker.value = color;
+
+  // Update the text input to show the validated color
+  target.value = color;
+
+  // Update the subtitle
+  const subtitle = node.querySelector('.node-subtitle');
+  if (subtitle) subtitle.textContent = color;
+
+  window.DrawflowEditor.exportGraph?.();
+
+  if (window.ReactNativeWebView) {
+    window.ReactNativeWebView.postMessage(
+      JSON.stringify({
+        type: 'NODE_SETTING_CHANGED',
+        payload: { nodeId, nodeType: nodeData.data?.type, settings: nodeData.data.settings },
+      })
+    );
+  }
+
+  if (navigator.vibrate) navigator.vibrate(15);
+}
+
+// Listen for color picker changes
+document.addEventListener(
+  'input',
+  (e) => {
+    if (e.target.classList.contains('color-screen-picker')) {
+      e.stopPropagation();
+      handleColorScreenPickerChange(e.target);
+    }
+  },
+  true
+);
+
+// Listen for text input changes
+document.addEventListener(
+  'change',
+  (e) => {
+    if (e.target.classList.contains('color-screen-input')) {
+      e.stopPropagation();
+      handleColorScreenInputChange(e.target);
+    }
+  },
+  true
+);
+
+// Prevent propagation on color screen controls
+['pointerdown', 'mousedown', 'touchstart'].forEach((eventName) => {
+  document.addEventListener(
+    eventName,
+    (e) => {
+      if (
+        e.target.classList.contains('color-screen-picker') ||
+        e.target.classList.contains('color-screen-input') ||
+        e.target.closest('.color-screen-control')
+      ) {
+        e.stopPropagation();
+      }
+    },
+    true
+  );
+});
+
+window.DrawflowEditor.handleColorScreenPickerChange = handleColorScreenPickerChange;
+window.DrawflowEditor.handleColorScreenInputChange = handleColorScreenInputChange;
 
 // Sanitize any pre-existing delay inputs having a hard-coded "0" value from templates
 function sanitizeDelayInputs() {

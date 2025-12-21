@@ -23,7 +23,7 @@ import { basePalette } from '../app/src/styles/global';
 describe('HomeScreen theming', () => {
   it('applies theme colors to the title', () => {
     const navigation: any = { navigate: jest.fn() };
-    const { getByText } = render(
+    const { getByText, getByTestId } = render(
       React.createElement(AppThemeProvider, null, React.createElement(HomeScreen as any, { navigation }))
     );
 
@@ -34,18 +34,14 @@ describe('HomeScreen theming', () => {
     expect(style.color).toBe(basePalette.textOnDark);
 
     // check that the first action button uses surfaceElevated and has a shadow color
-    const shortcut = render(
-      React.createElement(AppThemeProvider, null, React.createElement(HomeScreen, { navigation }))
-    ).getByA11yLabel('shortcut-button');
+    const shortcut = getByTestId('shortcut-button');
     const btnStyle = Array.isArray(shortcut.props.style)
       ? Object.assign({}, ...shortcut.props.style)
       : shortcut.props.style;
     expect(btnStyle.backgroundColor).toBeDefined();
 
     // icon wrapper background should be theme chip color
-    const iconWrapper = render(
-      React.createElement(AppThemeProvider, null, React.createElement(HomeScreen, { navigation }))
-    ).getByA11yLabel('shortcut-icon');
+    const iconWrapper = getByTestId('shortcut-icon');
     const iconStyle = Array.isArray(iconWrapper.props.style)
       ? Object.assign({}, ...iconWrapper.props.style)
       : iconWrapper.props.style;

@@ -12,6 +12,8 @@ module.exports = {
     '^react-native$': '<rootDir>/__mocks__/react-native.js',
     '^react-native-vector-icons/(.*)$': '<rootDir>/__mocks__/react-native-vector-icons/$1.js',
     '^react-native-linear-gradient$': '<rootDir>/__mocks__/react-native-linear-gradient.js',
+    '^react-native-safe-area-context$': '<rootDir>/__mocks__/react-native-safe-area-context.js',
+    '^../components/SocialMenu$': '<rootDir>/__mocks__/SocialMenu.js',
     '^../src/(.*)$': '<rootDir>/src/$1',
   },
   setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect'],

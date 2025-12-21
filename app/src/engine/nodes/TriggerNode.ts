@@ -50,20 +50,93 @@ export function triggerNode(
     return;
   }
 
+  // Validation : vérifier si des ColorScreen nodes n'ont pas de conditions après elles
+  if (signalSystem.graph) {
+    const colorScreenNodes: number[] = [];
+    
+    // Trouver toutes les ColorScreen nodes dans le graphe
+    signalSystem.graph.nodes.forEach((node) => {
+      if (node.type === 'action.colorscreen') {
+        colorScreenNodes.push(node.id);
+      }
+    });
+
+    // Vérifier chaque ColorScreen
+    for (const colorScreenId of colorScreenNodes) {
+      const colorScreenNode = signalSystem.graph.nodes.get(colorScreenId);
+      if (!colorScreenNode) continue;
+
+      // Vérifier si elle a des sorties
+      if (colorScreenNode.outputs.length === 0) {
+        // Import Alert seulement si nécessaire
+        const { Alert } = require('react-native');
+        Alert.alert(
+          '⚠️ Configuration incorrecte',
+          `La node Color Screen (ID: ${colorScreenId}) n'a pas de condition après elle.\n\nL'écran restera affiché indéfiniment jusqu'à ce qu'une condition stop le signal.\n\nAjoutez une node Condition (ex: FlashLight Condition) après Color Screen pour contrôler quand l'écran se ferme.`,
+          [{ text: 'OK' }]
+        );
+        return; // Ne pas lancer le trigger
+      }
+
+      // Vérifier si au moins une sortie est une condition
+      const hasConditionAfter = colorScreenNode.outputs.some((outputId) => {
+        const outputNode = signalSystem.graph?.nodes.get(outputId);
+        return outputNode && outputNode.type.includes('condition');
+      });
+
+      if (!hasConditionAfter) {
+        const { Alert } = require('react-native');
+        Alert.alert(
+          '⚠️ Configuration recommandée',
+          `La node Color Screen (ID: ${colorScreenId}) devrait être suivie d'une node Condition.\n\nSans condition, l'écran ne se fermera pas automatiquement.\n\nVoulez-vous continuer quand même ?`,
+          [
+            { text: 'Annuler', style: 'cancel' },
+            { 
+              text: 'Continuer', 
+              onPress: () => {
+                // Continuer le déclenchement
+                executeTrigger(nodeId, data, options, signalSystem);
+              }
+            }
+          ]
+        );
+        return; // Attendre la décision de l'utilisateur
+      }
+    }
+  }
+
+  executeTrigger(nodeId, data, options, signalSystem);
+}
+
+/**
+ * Fonction interne pour exécuter le trigger
+ */
+function executeTrigger(
+  nodeId: number,
+  data: any,
+  options: { mode?: TriggerMode; state?: 'start' | 'stop' } | undefined,
+  signalSystem: any
+): void {
   const entry = triggerNodes.get(nodeId);
   const mode = entry?.mode || 'pulse';
   const payload = data ?? entry?.defaultData;
 
   if (mode === 'continuous') {
-    signalSystem
-      .toggleContinuousSignal(nodeId, payload, undefined, {
-        forceState: options?.state,
-      })
-      .catch((err) => logger.error('[Trigger] Continuous toggle failed', err));
+    // Mode continu : toggle entre ON et OFF
+    // Pour les triggers, toujours forcer la propagation pour démarrer un nouveau cycle
+    if (options?.state === 'start') {
+      signalSystem.activateNode(nodeId, payload, undefined, { forcePropagation: true }).catch((err: any) => logger.error('[Trigger] Activation failed', err));
+    } else if (options?.state === 'stop') {
+      signalSystem.deactivateNode(nodeId, payload, undefined, { forcePropagation: true }).catch((err: any) => logger.error('[Trigger] Deactivation failed', err));
+    } else {
+      // Toggle avec force propagation pour démarrer un nouveau cycle
+      signalSystem.toggleNode(nodeId, payload, undefined, { forcePropagation: true }).catch((err: any) => logger.error('[Trigger] Toggle failed', err));
+    }
     return;
   }
 
-  signalSystem.emitSignal(nodeId, payload);
+  // Mode pulse : ON puis OFF rapide
+  signalSystem.pulseNode(nodeId, payload).catch((err: any) => logger.error('[Trigger] Pulse failed', err));
 }
 
 /**
@@ -82,11 +155,11 @@ export function triggerAll(data?: any): void {
     const payload = data ?? entry.defaultData;
     if (entry.mode === 'continuous') {
       signalSystem
-        .toggleContinuousSignal(nodeId, payload)
-        .catch((err) => logger.error('[Trigger] Continuous toggle failed', err));
+        .toggleNode(nodeId, payload, undefined, { forcePropagation: true })
+        .catch((err) => logger.error('[Trigger] Toggle failed', err));
       continue;
     }
-    signalSystem.emitSignal(nodeId, payload);
+    signalSystem.pulseNode(nodeId, payload).catch((err) => logger.error('[Trigger] Pulse failed', err));
   }
 }
 

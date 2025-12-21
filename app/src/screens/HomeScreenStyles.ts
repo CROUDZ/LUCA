@@ -38,7 +38,7 @@ const createStyles = (theme: AppTheme) => {
       transform: [{ translateY: 8 }],
     },
     title: {
-      color: '#FFFFFF',
+      color: theme.colors.text,
       fontSize: 40,
       fontWeight: '800',
       transform: [{ translateY: -15 }],
@@ -71,6 +71,14 @@ const createStyles = (theme: AppTheme) => {
       shadowOpacity: theme.mode === 'dark' ? 0.16 : 0.08,
       shadowRadius: 10,
       elevation: 4,
+    },
+    actionIconWrapper: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.chip,
     },
     actionText: {
       color: '#FFFFFF',

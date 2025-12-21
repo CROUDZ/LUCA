@@ -2,6 +2,9 @@
 import rn from 'react-native';
 jest.spyOn(rn, 'useColorScheme').mockImplementation(() => 'dark');
 
+// Mock complex native-dependent components before imports
+jest.mock('../components/SocialMenu', () => () => null);
+
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import HomeScreen from '../src/screens/HomeScreen';

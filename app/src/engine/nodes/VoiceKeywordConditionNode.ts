@@ -209,28 +209,26 @@ const VoiceKeywordConditionNode: NodeDefinition = {
       // Enregistrer le handler pour ce node
       ss.registerHandler(context.nodeId, async (signal: Signal): Promise<SignalPropagation> => {
         logger.debug(
-          `[VoiceKeyword Node ${context.nodeId}] Received signal: continuous=${signal.continuous}, state=${signal.state}`
+          `[VoiceKeyword Node ${context.nodeId}] Received signal: state=${signal.state}`
         );
 
-        // Gérer les signaux continus (mode interrupteur)
-        if (signal.continuous) {
-          if (signal.state === 'start') {
-            // Démarrer l'écoute
-            const started = await startListeningForNode(context.nodeId, {
-              ...config,
-              unsubscribe: null,
-            });
-            if (!started) {
-              logger.warn(`[VoiceKeyword Node ${context.nodeId}] Failed to start listening`);
-            }
-            // Ne pas propager le signal de démarrage, attendre la détection du mot-clé
-            return { propagate: false, data: signal.data };
-          } else if (signal.state === 'stop') {
-            // Arrêter l'écoute
-            await stopListeningForNode(context.nodeId);
-            // Propager le signal d'arrêt
-            return { propagate: true, data: { ...signal.data, voiceListeningStopped: true } };
+        // Gérer les états ON/OFF
+        if (signal.state === 'ON') {
+          // Démarrer l'écoute
+          const started = await startListeningForNode(context.nodeId, {
+            ...config,
+            unsubscribe: null,
+          });
+          if (!started) {
+            logger.warn(`[VoiceKeyword Node ${context.nodeId}] Failed to start listening`);
           }
+          // Ne pas propager le signal de démarrage, attendre la détection du mot-clé
+          return { propagate: false, data: signal.data };
+        } else if (signal.state === 'OFF') {
+          // Arrêter l'écoute
+          await stopListeningForNode(context.nodeId);
+          // Propager le signal d'arrêt
+          return { propagate: true, data: { ...signal.data, voiceListeningStopped: true } };
         }
 
         // Pour les signaux non-continus, on vérifie si le mot-clé a déjà été détecté
