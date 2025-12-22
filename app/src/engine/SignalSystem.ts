@@ -763,7 +763,6 @@ export class SignalSystem {
           // Mettre à jour l'état de la node
           const outputNodeState = this.nodeStates.get(outputNodeId);
           if (outputNodeState) {
-            const oldState = outputNodeState.state;
             let shouldPropagate = true;
             
             if (signal.state === 'ON') {
