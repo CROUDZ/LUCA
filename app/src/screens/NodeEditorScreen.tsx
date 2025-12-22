@@ -16,6 +16,7 @@ import { useGraphStorage } from '../hooks/useGraphStorage';
 import { APP_CONFIG } from '../config/constants';
 import type { DrawflowExport, Graph } from '../types';
 import type { RootStackParamList } from '../types/navigation.types';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import createStyles from './NodeEditorScreenStyles';
 import { useAppTheme } from '../styles/theme';
@@ -61,7 +62,7 @@ type GraphSyncResolver = {
 const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
   // États locaux pour l'UI
   const [showSaveMenu, setShowSaveMenu] = useState(false);
-  const { theme: appTheme } = useAppTheme();
+  const { theme: appTheme, toggle: toggleTheme } = useAppTheme();
   const styles = useMemo(() => createStyles(appTheme), [appTheme]);
 
   const [showNewSaveInput, setShowNewSaveInput] = useState(false);
@@ -249,6 +250,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
     addNode,
     requestExport,
     clearGraph: clearWebViewGraph,
+    setTheme: setWebViewTheme,
   } = useWebViewMessaging({
     onReady: () => {
       logger.debug('✅ WebView ready');
@@ -400,6 +402,33 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
   }, [hasFlashActionInGraph, isReady, triggerNodeId, waitForGraphSync]);
 
   // Show a small banner if FlashLight nodes present and permission denied
+
+  // Synchroniser le thème avec la WebView
+  useEffect(() => {
+    if (isReady && setWebViewTheme) {
+      // Petit délai pour s'assurer que la WebView est complètement initialisée
+      const timeout = setTimeout(() => {
+        setWebViewTheme(appTheme.mode);
+        logger.debug(`[NodeEditorScreen] Theme synced to WebView: ${appTheme.mode}`);
+      }, 100);
+      return () => clearTimeout(timeout);
+    }
+    return undefined;
+  }, [isReady, appTheme.mode, setWebViewTheme]);
+
+  const handleToggleTheme = useCallback(async () => {
+    try {
+      const next = appTheme.mode === 'dark' ? 'light' : 'dark';
+      await toggleTheme();
+      // Optimistically force the WebView theme to the expected next value
+      if (isReady && setWebViewTheme) {
+        setWebViewTheme(next);
+        logger.debug(`[NodeEditorScreen] Theme toggled and sent to WebView: ${next}`);
+      }
+    } catch (e) {
+      logger.error('[NodeEditorScreen] Failed to toggle theme', e);
+    }
+  }, [appTheme.mode, isReady, setWebViewTheme, toggleTheme]);
 
   // Connecter le bridge de visualisation des signaux au WebView
   useEffect(() => {
@@ -632,6 +661,24 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       )}
+      {/* Theme toggle controle */}
+      <View style={styles.controls} pointerEvents="box-none">
+        <TouchableOpacity
+          style={[styles.button, styles.buttonSecondary]}
+          onPress={handleToggleTheme}
+          accessibilityLabel={
+            appTheme.mode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
+          }
+        >
+          <Icon
+            name={appTheme.mode === 'dark' ? 'light_mode' : 'dark_mode'}
+            size={18}
+            color={appTheme.colors.text}
+            style={styles.buttonIcon}
+          />
+          <Text style={styles.buttonText}>{appTheme.mode === 'dark' ? 'Clair' : 'Sombre'}</Text>
+        </TouchableOpacity>
+      </View>
       {/* WebView avec éditeur nodal */}
       <WebView
         ref={webRef}
@@ -697,7 +744,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
         disabled={!isReady}
         activeOpacity={0.8}
       >
-        <Icon name="add" size={32} color="#ffffff" />
+        <Icon name="add" size={32} color={appTheme.colors.primaryContrast} />
       </TouchableOpacity>
 
       {/* Bouton Bibliothèque de Mods */}
@@ -706,7 +753,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
         onPress={() => navigation.navigate('ModLibrary')}
         activeOpacity={0.8}
       >
-        <Icon name="extension" size={24} color="#ffffff" />
+        <Icon name="extension" size={24} color={appTheme.colors.primaryContrast} />
         <Text style={styles.modLibraryButtonText}>Mods</Text>
       </TouchableOpacity>
     </View>

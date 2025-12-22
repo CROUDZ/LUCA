@@ -51,11 +51,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               style={styles.actionButton}
               testID="shortcut-button"
             >
-              <View
-                style={styles.actionIconWrapper}
-                accessibilityLabel="shortcut-icon"
-                testID="shortcut-icon"
-              >
+              <View testID="shortcut-icon" style={styles.actionIconWrapper}>
                 <Icon name="flash-on" size={20} color={'#FFFFFF'} />
               </View>
               <Text style={styles.actionText}>Raccourci</Text>

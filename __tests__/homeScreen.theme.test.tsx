@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Mock safe-area-context to avoid depending on native behavior in unit tests
 jest.mock('react-native-safe-area-context', () => {
   const R = require('react');
@@ -23,9 +24,12 @@ import { basePalette } from '../app/src/styles/global';
 describe('HomeScreen theming', () => {
   it('applies theme colors to the title', () => {
     const navigation: any = { navigate: jest.fn() };
-    const { getByText, getByTestId } = render(
-      React.createElement(AppThemeProvider, null, React.createElement(HomeScreen as any, { navigation }))
+    const Wrapper: React.FC = () => (
+      // cast navigation as any to avoid strict prop typing in test
+      React.createElement(AppThemeProvider, null, React.createElement(HomeScreen as any, { navigation: navigation as any }))
     );
+
+    const { getByText, getByTestId } = render(React.createElement(Wrapper));
 
     const title = getByText('LUCA');
     const style = Array.isArray(title.props.style)

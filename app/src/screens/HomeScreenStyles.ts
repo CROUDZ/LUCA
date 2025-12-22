@@ -81,13 +81,13 @@ const createStyles = (theme: AppTheme) => {
       backgroundColor: theme.colors.chip,
     },
     actionText: {
-      color: '#FFFFFF',
+      color: theme.colors.text,
       fontSize: 16,
       fontWeight: '700',
       marginLeft: 12,
     },
     chevron: {
-      color: '#FFFFFF',
+      color: theme.colors.text,
     },
     footer: {
       alignItems: 'center',
