@@ -3,6 +3,7 @@
  */
 
 import { useRef, useState, useCallback } from 'react';
+import { Keyboard } from 'react-native';
 import type { WebView } from 'react-native-webview';
 import type { WebViewMessageEvent } from 'react-native-webview';
 import { logger } from '../utils/logger';
@@ -18,18 +19,22 @@ interface UseWebViewMessagingOptions {
   onImported?: () => void;
   onRequestImport?: () => void;
   onNodeSettingsChanged?: (payload: any) => void;
+  onThemeApplied?: (theme: 'light' | 'dark') => void;
 }
 
 export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
   const webRef = useRef<WebView>(null);
   const [isReady, setIsReady] = useState(false);
+  // Use a ref to synchronously reflect readiness to avoid race conditions
+  // where `setIsReady(true)` hasn't propagated to the closure yet.
+  const isReadyRef = useRef(false);
 
   /**
    * Envoyer un message à la WebView
    */
   const sendMessage = useCallback(
     (message: WebViewMessage) => {
-      if (!isReady) {
+      if (!isReadyRef.current) {
         const error = createAppError(
           ErrorCode.WEBVIEW_NOT_READY,
           'Cannot send message: WebView is not ready'
@@ -69,8 +74,18 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
 
         switch (message.type) {
           case 'READY':
+            // Keep ref and state in sync. Set the ref first so any immediate
+            // invocations of sendMessage from the onReady handler will succeed.
+            isReadyRef.current = true;
             setIsReady(true);
-            options.onReady?.();
+            // Defer calling onReady to avoid synchronous side-effects during
+            // mount that could change the hooks call order unexpectedly.
+            try {
+              setTimeout(() => options.onReady?.(), 0);
+            } catch {
+              // Fallback: call directly if setTimeout fails for any reason
+              options.onReady?.();
+            }
             break;
 
           case 'EXPORT':
@@ -87,6 +102,35 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
 
           case 'NODE_SETTING_CHANGED':
             options.onNodeSettingsChanged?.(message.payload);
+            break;
+          case 'THEME_APPLIED':
+            options.onThemeApplied?.(message.payload?.theme);
+            break;
+
+          case 'DISMISS_KEYBOARD':
+            // Message from WebView: request to dismiss native keyboard.
+            // Use a short delay to improve reliability across Android WebView timing.
+            try {
+              setTimeout(() => {
+                try {
+                  Keyboard.dismiss();
+                } catch (e) {
+                  logger.warn('Failed to dismiss keyboard on first attempt:', e);
+                }
+                // Second attempt after a bit more delay for extra safety
+                setTimeout(() => {
+                  try {
+                    Keyboard.dismiss();
+                    logger.debug('📨 DISMISS_KEYBOARD: Keyboard.dismiss() called');
+                  } catch (e) {
+                    logger.warn('Failed to dismiss keyboard on second attempt:', e);
+                  }
+                }, 120);
+              }, 60);
+            } catch (err) {
+              logger.warn('Failed to schedule keyboard dismiss:', err);
+            }
+            break;
             break;
 
           default:
@@ -188,6 +232,19 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
     });
   }, [sendMessage]);
 
+  /**
+   * Envoyer le thème courant à la WebView
+   */
+  const setTheme = useCallback(
+    (theme: 'dark' | 'light') => {
+      return sendMessage({
+        type: 'SET_THEME',
+        payload: { theme },
+      });
+    },
+    [sendMessage]
+  );
+
   return {
     webRef,
     isReady,
@@ -197,5 +254,6 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
     addNode,
     requestExport,
     clearGraph,
+    setTheme,
   };
 }

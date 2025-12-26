@@ -130,6 +130,137 @@ export interface ModNodePort {
 }
 
 // ============================================================================
+// CONDITION NODE TYPES (for nodes using ConditionHandler)
+// ============================================================================
+
+/**
+ * Mode de condition pour les nodes de condition
+ */
+export type ModConditionMode = 'continu' | 'timer' | 'switch';
+
+/**
+ * Configuration d'un node de condition créé par un mod
+ */
+export interface ModConditionNodeConfig {
+  /** Identifiant unique du type de node */
+  type: string;
+
+  /** Label affiché dans l'UI */
+  label: string;
+
+  /** Catégorie pour le groupement */
+  category: string;
+
+  /** Description du node */
+  description?: string;
+
+  /** Couleur du node (optionnel) */
+  color?: string;
+
+  /** Nom de l'icône */
+  icon?: string;
+
+  /** Famille d'icônes: 'material' | 'fontawesome' */
+  iconFamily?: 'material' | 'fontawesome';
+
+  /**
+   * Configuration supplémentaire des ports
+   * Si non fourni, utilise les ports par défaut de ConditionHandler
+   */
+  extraInputs?: ModNodePort[];
+  extraOutputs?: ModNodePort[];
+
+  /**
+   * Mode par défaut du node de condition
+   */
+  defaultMode?: ModConditionMode;
+
+  /**
+   * Durée du timer par défaut (en secondes)
+   */
+  defaultTimerDuration?: number;
+}
+
+/**
+ * Configuration runtime pour créer un node de condition depuis un mod
+ */
+export interface ModConditionNodeRuntime {
+  /** Fonction pour vérifier si la condition est remplie */
+  checkCondition: () => boolean | Promise<boolean>;
+
+  /**
+   * Abonnement à un événement interne (EventBus)
+   * La callback reçoit le state actuel
+   */
+  eventSubscription?: {
+    eventName: string;
+    extractState?: (eventData: unknown) => boolean;
+  };
+
+  /**
+   * Abonnement externe (capteurs, hardware, etc.)
+   * Retourne une fonction de cleanup
+   */
+  externalSubscription?: {
+    setup: (onStateChange: (state: boolean) => void) => () => void;
+  };
+}
+
+/**
+ * Configuration d'un node d'action créé par un mod
+ */
+export interface ModActionNodeConfig {
+  /** Identifiant unique du type de node */
+  type: string;
+
+  /** Label affiché dans l'UI */
+  label: string;
+
+  /** Catégorie pour le groupement */
+  category: string;
+
+  /** Description du node */
+  description?: string;
+
+  /** Couleur du node (optionnel) */
+  color?: string;
+
+  /** Nom de l'icône */
+  icon?: string;
+
+  /** Famille d'icônes */
+  iconFamily?: 'material' | 'fontawesome';
+
+  /** Ports d'entrée */
+  inputs?: ModNodePort[];
+
+  /** Ports de sortie */
+  outputs?: ModNodePort[];
+}
+
+/**
+ * Configuration runtime pour créer un node d'action depuis un mod
+ */
+export interface ModActionNodeRuntime {
+  /** Fonction exécutée quand le signal arrive */
+  onExecute: (
+    signalState: boolean,
+    nodeData: Record<string, unknown>,
+    emit: (outputId: string, state: boolean) => void
+  ) => void | Promise<void>;
+}
+
+/**
+ * Type générique pour un node de mod
+ */
+export interface ModNodeDefinition {
+  config: ModConditionNodeConfig | ModActionNodeConfig;
+  runtime?: ModConditionNodeRuntime | ModActionNodeRuntime;
+  /** Type du node: 'condition' | 'action' | 'trigger' */
+  nodeType: 'condition' | 'action' | 'trigger';
+}
+
+// ============================================================================
 // RUNTIME API TYPES
 // ============================================================================
 
@@ -166,6 +297,26 @@ export interface ModRuntimeAPI {
 
   /** Configuration access */
   config: Record<string, unknown>;
+
+  /**
+   * API pour créer des nodes de condition (nouveau système)
+   */
+  createConditionNode?: (config: ModConditionNodeConfig, runtime: ModConditionNodeRuntime) => void;
+
+  /**
+   * API pour créer des nodes d'action
+   */
+  createActionNode?: (config: ModActionNodeConfig, runtime: ModActionNodeRuntime) => void;
+
+  /**
+   * Émettre un signal sur un output
+   */
+  emitSignal?: (outputId: string, state: boolean) => void;
+
+  /**
+   * S'abonner aux changements de signal sur un input
+   */
+  onSignal?: (inputId: string, callback: (state: boolean) => void) => () => void;
 }
 
 export interface HttpRequestOptions {

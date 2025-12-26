@@ -19,7 +19,6 @@ import './VoiceKeywordConditionNode';
 // ============================================================================
 // NODES CONDITIONNELLES
 // ============================================================================
-import './IfElseNode';
 import './LogicGateNode';
 import './VolumeConditionNodes';
 
@@ -27,7 +26,6 @@ import './VolumeConditionNodes';
 // NODES DE CONTRÔLE DE FLUX
 // ============================================================================
 import './DelayNode';
-import './EventListenerNode';
 
 // ============================================================================
 // NODES D'ACTIONS
@@ -49,7 +47,6 @@ export { default as FlashLightConditionNode } from './FlashLightConditionNode';
 export { default as PingNode } from './PingNode';
 export { default as TriggerNode } from './TriggerNode';
 export { default as VoiceKeywordConditionNode } from './VoiceKeywordConditionNode';
-export { default as IfElseNode } from './IfElseNode';
 export { default as LogicGateNode } from './LogicGateNode';
 export { VolumeUpConditionNode, VolumeDownConditionNode } from './VolumeConditionNodes';
 export { default as DelayNode } from './DelayNode';
@@ -59,7 +56,6 @@ export { default as FlashLightActionNode } from './FlashLightActionNode';
 export { VolumeUpActionNode, VolumeDownActionNode } from './VolumeActionNodes';
 export { default as ConfirmNode } from './ConfirmNode';
 export { default as ColorScreenNode } from './ColorScreenNode';
-export { default as EventListenerNode } from './EventListenerNode';
 
 // ============================================================================
 // EXPORTS DES HELPERS

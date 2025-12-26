@@ -1,7 +1,7 @@
 /**
  * FlashLightConditionNode
  * Node conditionnel qui propage le signal seulement si la lampe torche est activée.
- * 
+ *
  * Utilise le ConditionHandler centralisé pour la gestion des modes (continu, timer, switch).
  */
 
@@ -237,24 +237,24 @@ const FlashLightConditionNode = registerConditionNode({
   description: 'Propage le signal uniquement si la lampe torche est activée',
   color: FLASHLIGHT_CONDITION_COLOR,
   icon: 'flashlight-on',
-  
+
   // État de la condition
   checkCondition: () => getFlashlightState(),
   getSignalData: () => ({ flashlightState: getFlashlightState() }),
   waitingForLabel: 'flashlight',
-  
+
   // Abonnement à l'événement flashlight.changed
   eventSubscription: {
     eventName: 'flashlight.changed',
     getConditionFromEvent: (data: any) => data?.enabled ?? false,
   },
-  
+
   // Description dynamique
   getDescription: (settings) => {
     const invert = settings?.invertSignal ?? false;
     return `Propage si lampe ${invert ? 'éteinte' : 'allumée'}`;
   },
-  
+
   // HTML personnalisé
   customBodyHTML: (settings) => {
     const invert = settings?.invertSignal ?? false;

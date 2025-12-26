@@ -5,8 +5,7 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useAppTheme } from '../styles/theme';
-import { hexToRgba } from '../styles/colorUtils';
+import { useTheme, hexToRgba } from '../theme';
 
 interface BackButtonProps {
   onPress: () => void;
@@ -17,7 +16,7 @@ interface BackButtonProps {
 
 const BackButton: React.FC<BackButtonProps> = React.memo(
   ({ onPress, style, size = 24, iconName = 'arrow-back' }) => {
-    const { theme } = useAppTheme();
+    const { theme } = useTheme();
 
     return (
       <TouchableOpacity

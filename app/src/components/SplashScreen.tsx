@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Text, Animated, StyleSheet, Easing, Dimensions, Image } from 'react-native';
-import { useAppTheme } from '../styles/theme';
+import { useTheme } from '../theme';
 import LinearGradient from 'react-native-linear-gradient';
 
 // Create an animated version of LinearGradient instead of using "Animated.LinearGradient"
@@ -24,7 +24,7 @@ type Phase =
   | 'fadeout';
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
-  const { theme } = useAppTheme();
+  const { theme } = useTheme();
   const [phase, setPhase] = useState<Phase>('logo-appear');
 
   // Container
@@ -126,9 +126,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         duration: 150,
         useNativeDriver: true,
       }),
-    ]).start(() => {
-      
-    });
+    ]).start(() => {});
     setPhase('moving');
   }, [phase, logoOpacity, blueDotOpacity]);
 
@@ -260,7 +258,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         ]}
       >
         <AnimatedLinearGradient
-          colors={[ theme.colors.secondarySoft, theme.colors.primarySoft]}
+          colors={[theme.colors.secondarySoft, theme.colors.primarySoft]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.logoContainer}
@@ -296,7 +294,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         pointerEvents="none"
       >
         <AnimatedLinearGradient
-          colors={[ '#1899d6', '#9069cd' ]}
+          colors={['#1899d6', '#9069cd']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.fillingGradient}

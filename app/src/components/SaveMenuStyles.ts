@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
-import type { AppTheme } from '../styles/theme';
-import { hexToRgba } from '../styles/colorUtils';
+import type { AppTheme } from '../theme';
+import { hexToRgba } from '../theme';
 
 export const createStyles = (theme: AppTheme) =>
   StyleSheet.create({
@@ -41,7 +41,7 @@ export const createStyles = (theme: AppTheme) =>
     newSaveButtonText: { color: theme.colors.success, fontSize: 16, fontWeight: '600' },
     newSaveInputContainer: { marginBottom: 16 },
     input: {
-      backgroundColor: hexToRgba(theme.colors.inputBackground, theme.mode === 'dark' ? 0.9 : 1),
+      backgroundColor: hexToRgba(theme.colors.inputBackground, theme.mode === 'dark' ? 0.9 : 0.95),
       borderRadius: 8,
       borderWidth: 1,
       borderColor: hexToRgba(theme.colors.border, 0.6),

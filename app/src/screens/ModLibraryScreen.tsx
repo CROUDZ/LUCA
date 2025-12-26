@@ -18,7 +18,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types/navigation.types';
-import { useAppTheme } from '../styles/theme';
+import { useTheme } from '../theme';
 import { modStorage } from '../utils/modStorage';
 import { logger } from '../utils/logger';
 
@@ -73,7 +73,7 @@ interface ApiResponse {
 const CATEGORIES = ['All', 'Logic', 'Math', 'Timing', 'Network', 'Device', 'Data', 'UI', 'Other'];
 
 const ModLibraryScreen: React.FC<ModLibraryScreenProps> = ({ navigation }) => {
-  const { theme } = useAppTheme();
+  const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme.colors), [theme.colors]);
 
   const [mods, setMods] = useState<Mod[]>([]);

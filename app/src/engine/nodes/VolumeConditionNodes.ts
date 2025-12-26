@@ -1,14 +1,11 @@
 /**
  * VolumeConditionNodes
  * Nodes conditionnels qui propagent le signal si les boutons volume sont appuyés.
- * 
+ *
  * Utilise le ConditionHandler centralisé pour la gestion des modes (continu, timer, switch).
  */
 
-import {
-  registerConditionNode,
-  getConditionState,
-} from '../ConditionHandler';
+import { registerConditionNode, getConditionState } from '../ConditionHandler';
 import {
   getLastVolumeButtonEvent,
   isVolumeButtonPressed,
@@ -31,14 +28,14 @@ function createVolumeConditionNode(options: {
   icon: string;
 }) {
   const { id, name, description, direction, color, icon } = options;
-  
+
   return registerConditionNode({
     id,
     name,
     description,
     color,
     icon,
-    
+
     // État de la condition
     checkCondition: () => isVolumeButtonPressed(direction),
     getSignalData: () => ({
@@ -47,19 +44,19 @@ function createVolumeConditionNode(options: {
       lastVolumeEvent: getLastVolumeButtonEvent(direction),
     }),
     waitingForLabel: `volume_${direction}`,
-    
+
     // Abonnement externe aux événements volume (ne passe pas par SignalSystem)
     externalSubscription: {
       subscribe: (nodeId, settings, onConditionChange) => {
         return subscribeToVolumeButtons((event: VolumeButtonEvent) => {
           if (event.direction !== direction) return;
-          
+
           const conditionState = getConditionState(nodeId);
           if (!conditionState?.hasActiveSignal) return;
-          
+
           const pressed = event.action === 'press';
           const condition = settings.invertSignal ? !pressed : pressed;
-          
+
           logger.info(
             `[VolumeConditionNode] Node ${nodeId} volume ${direction}: action=${event.action}, condition=${condition}`
           );
@@ -72,13 +69,13 @@ function createVolumeConditionNode(options: {
         });
       },
     },
-    
+
     // Description dynamique
     getDescription: (settings) => {
       const invert = settings?.invertSignal ?? false;
       return `Propage si bouton ${name} ${invert ? 'relâché' : 'appuyé'}`;
     },
-    
+
     // HTML personnalisé
     customBodyHTML: (settings) => {
       const invert = settings?.invertSignal ?? false;
@@ -113,7 +110,4 @@ const VolumeDownConditionNode = createVolumeConditionNode({
   icon: 'volume-down',
 });
 
-export {
-  VolumeUpConditionNode,
-  VolumeDownConditionNode,
-};
+export { VolumeUpConditionNode, VolumeDownConditionNode };

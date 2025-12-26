@@ -1,143 +1,96 @@
-/**
- * TopControlsBar - Barre de contrôles supérieure pour l'éditeur de nœuds
- * Gère les boutons Saves, Save, Clear et l'affichage du statut
- * Version responsive avec adaptation automatique aux différentes tailles d'écran
- */
-
-import React, { useMemo } from 'react';
+import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useAppTheme, type AppTheme } from '../styles/theme';
-import { hexToRgba } from '../styles/colorUtils';
+import { useTheme, type AppTheme, hexToRgba } from '../theme';
+import type { RootStackParamList } from '../types/navigation.types';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
 
-// Seuils de largeur d'écran pour le mode compact
+type NodeEditorScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'NodeEditor'>;
+
 const COMPACT_THRESHOLD = 360;
-const MEDIUM_THRESHOLD = 400;
 
 interface TopControlsBarProps {
-  /** Indique si la WebView est prête */
   isReady: boolean;
-  /** ID de la sauvegarde actuelle */
   currentSaveId: string | null;
-  /** Nom de la sauvegarde actuelle */
   currentSaveName: string;
-  /** Callback pour ouvrir le menu de sauvegarde */
   onOpenSaveMenu: () => void;
-  /** Callback pour sauvegarder manuellement */
-  onManualSave: () => void;
-  /** Callback pour effacer le graphe */
   onClearGraph: () => void;
-  /** Callback pour ouvrir les paramètres */
   onOpenSettings: () => void;
 }
 
 const TopControlsBar: React.FC<TopControlsBarProps> = React.memo(
-  ({
-    isReady,
-    currentSaveId,
-    currentSaveName,
-    onOpenSaveMenu,
-    onManualSave,
-    onClearGraph,
-    onOpenSettings,
-  }) => {
-    const { theme: appTheme } = useAppTheme();
+  ({ isReady, currentSaveId, currentSaveName, onOpenSaveMenu, onClearGraph, onOpenSettings }) => {
+    const { theme } = useTheme();
     const { width: screenWidth } = useWindowDimensions();
-
-    // Déterminer le mode d'affichage selon la largeur d'écran
     const isCompact = screenWidth < COMPACT_THRESHOLD;
-    const isMedium = screenWidth >= COMPACT_THRESHOLD && screenWidth < MEDIUM_THRESHOLD;
 
-    const styles = useMemo(
-      () => createStyles(appTheme, isCompact, isMedium),
-      [appTheme, isCompact, isMedium]
-    );
+    const nav = useNavigation<NodeEditorScreenNavigationProp>();
+
+    const styles = createStyles(theme, isCompact);
 
     return (
       <View style={styles.container}>
-        {/* Section gauche: Statut */}
-        <View style={styles.statusContainer}>
-          <View style={styles.statusRow}>
-            <Icon
-              name={isReady ? 'check-circle' : 'sync'}
-              size={isCompact ? 12 : 14}
-              color={isReady ? appTheme.colors.success : appTheme.colors.textSecondary}
-            />
-            <Text style={[styles.statusText, isReady && styles.statusReady]}>
-              {isReady ? 'Ready' : 'Loading...'}
+        <View style={styles.left}>
+          <Icon name="folder" size={isCompact ? 14 : 16} color={theme.colors.text} />
+          {currentSaveId ? (
+            <Text
+              style={styles.saveText}
+              numberOfLines={1}
+              ellipsizeMode="middle"
+              accessibilityLabel={`Sauvegarde ${currentSaveName}`}
+            >
+              {currentSaveName}
             </Text>
-          </View>
-          {currentSaveId && (
-            <View style={styles.statusRow}>
-              <Icon name="folder" size={isCompact ? 10 : 12} color={appTheme.colors.text} />
-              <Text style={styles.currentSaveText} numberOfLines={1} ellipsizeMode="tail">
-                {currentSaveName}
-              </Text>
-            </View>
+          ) : (
+            <Text style={styles.saveText} numberOfLines={1} ellipsizeMode="tail">
+              —
+            </Text>
           )}
         </View>
 
-        {/* Section droite: Boutons de contrôle */}
-        <View style={styles.controlsContainer}>
-          <TouchableOpacity
-            style={[styles.button, styles.buttonPrimary, !isReady && styles.buttonDisabled]}
-            onPress={onOpenSaveMenu}
+        <View style={styles.right}>
+          <ToolIcon
+            name="home"
+            onPress={() => nav.navigate('Home')}
             disabled={!isReady}
-            activeOpacity={0.7}
-          >
-            <Icon
-              name="save"
-              size={isCompact ? 14 : 16}
-              color={appTheme.colors.primary}
-              style={styles.buttonIcon}
-            />
-            {!isCompact && <Text style={styles.buttonText}>Saves</Text>}
-          </TouchableOpacity>
-
-          {currentSaveId && (
-            <TouchableOpacity
-              style={[styles.button, styles.buttonSuccess, !isReady && styles.buttonDisabled]}
-              onPress={onManualSave}
-              disabled={!isReady}
-              activeOpacity={0.7}
-            >
-              <Icon
-                name="check"
-                size={isCompact ? 14 : 16}
-                color={appTheme.colors.success}
-                style={styles.buttonIcon}
-              />
-              {!isCompact && <Text style={styles.buttonText}>Save</Text>}
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={[styles.button, styles.buttonDanger, !isReady && styles.buttonDisabled]}
+            accessibilityLabel="Retourner à l'accueil"
+            theme={theme}
+            compact={isCompact}
+          />
+          <ToolIcon
+            name="menu"
+            onPress={() => nav.navigate('Shortcuts')}
+            disabled={!isReady}
+            accessibilityLabel="Ouvrir sauvegardes"
+            theme={theme}
+            compact={isCompact}
+          />
+          <ToolIcon
+            name="delete-outline"
             onPress={onClearGraph}
             disabled={!isReady}
-            activeOpacity={0.7}
-          >
-            <Icon
-              name="delete-outline"
-              size={isCompact ? 14 : 16}
-              color={appTheme.colors.error}
-              style={styles.buttonIcon}
-            />
-            {!isCompact && <Text style={styles.buttonText}>Clear</Text>}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, styles.buttonSecondary]}
-            onPress={onOpenSettings}
-            activeOpacity={0.7}
-          >
-            <Icon
-              name="settings"
-              size={isCompact ? 14 : 16}
-              color={appTheme.colors.textSecondary}
-              style={styles.buttonIcon}
-            />
-          </TouchableOpacity>
+            accessibilityLabel="Effacer"
+            theme={theme}
+            compact={isCompact}
+          />
+          <ToolIcon
+            name="settings"
+            onPress={() => {
+              // Use the provided handler but guard against missing navigation
+              // inside it as well (defensive). Prefer navigating via the
+              // parent's handler when available.
+              try {
+                onOpenSettings();
+              } catch {
+                nav?.navigate?.('Settings');
+              }
+            }}
+            disabled={false}
+            accessibilityLabel="Paramètres"
+            theme={theme}
+            compact={isCompact}
+          />
         </View>
       </View>
     );
@@ -145,19 +98,51 @@ const TopControlsBar: React.FC<TopControlsBarProps> = React.memo(
 );
 
 TopControlsBar.displayName = 'TopControlsBar';
+export default TopControlsBar;
 
-const createStyles = (theme: AppTheme, isCompact: boolean, isMedium: boolean) => {
-  const translucentSurface = hexToRgba(theme.colors.surface, theme.mode === 'dark' ? 0.94 : 0.9);
-  const subtleBorder = hexToRgba(theme.colors.border, 0.7);
+/* Minimal icon-button component */
+function ToolIcon({
+  name,
+  onPress,
+  disabled,
+  accessibilityLabel,
+  theme,
+  compact,
+}: {
+  name: string;
+  onPress: () => void;
+  disabled?: boolean;
+  accessibilityLabel?: string;
+  theme: AppTheme;
+  compact?: boolean;
+}) {
+  const size = compact ? 16 : 18;
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={!!disabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      hitSlop={8}
+      style={[
+        stylesIcon.button,
+        disabled && stylesIcon.buttonDisabled,
+        { borderColor: hexToRgba(theme.colors.border, 0.6) },
+      ]}
+      activeOpacity={0.7}
+    >
+      <Icon
+        name={name}
+        size={size}
+        color={disabled ? theme.colors.textSecondary : theme.colors.text}
+      />
+    </TouchableOpacity>
+  );
+}
 
-  // Tailles adaptatives
-  const buttonPaddingH = isCompact ? 10 : isMedium ? 12 : 14;
-  const buttonPaddingV = isCompact ? 6 : 8;
-  const statusPaddingH = isCompact ? 8 : 12;
-  const statusPaddingV = isCompact ? 6 : 8;
-  const buttonGap = isCompact ? 4 : 8;
-  const containerGap = isCompact ? 6 : 10;
-
+/* Styles */
+const createStyles = (theme: AppTheme, compact: boolean) => {
+  const bg = hexToRgba(theme.colors.surface, theme.mode === 'dark' ? 0.9 : 0.92);
   return StyleSheet.create({
     container: {
       position: 'absolute',
@@ -165,96 +150,50 @@ const createStyles = (theme: AppTheme, isCompact: boolean, isMedium: boolean) =>
       left: 10,
       right: 10,
       flexDirection: 'row',
+      alignItems: 'center',
       justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      zIndex: 1000,
-      gap: containerGap,
-    },
-    statusContainer: {
-      backgroundColor: translucentSurface,
-      paddingHorizontal: statusPaddingH,
-      paddingVertical: statusPaddingV,
+      paddingHorizontal: compact ? 6 : 10,
+      paddingVertical: compact ? 6 : 8,
+      backgroundColor: bg,
       borderRadius: 10,
       borderWidth: 1,
-      borderColor: subtleBorder,
-      gap: 4,
-      flexShrink: 1,
+      borderColor: hexToRgba(theme.colors.border, 0.6),
+      zIndex: 1000,
+      minHeight: 40,
+    },
+    left: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      maxWidth: '55%',
       minWidth: 0,
-      maxWidth: isCompact ? '35%' : '45%',
     },
-    statusRow: {
+    saveText: {
+      marginLeft: 8,
+      fontSize: compact ? 11 : 13,
+      color: theme.colors.text,
+      fontWeight: '600',
+      flexShrink: 1, // évite la superposition
+    },
+    right: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: isCompact ? 4 : 6,
-    },
-    statusText: {
-      fontSize: isCompact ? 10 : 12,
-      color: theme.colors.textSecondary,
-      fontWeight: '600',
-    },
-    statusReady: {
-      color: theme.colors.success,
-    },
-    currentSaveText: {
-      fontSize: isCompact ? 9 : 11,
-      color: theme.colors.text,
-      fontWeight: '500',
-      flexShrink: 1,
-    },
-    controlsContainer: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'flex-end',
-      gap: buttonGap,
-      flexShrink: 0,
-    },
-    button: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: buttonPaddingH,
-      paddingVertical: buttonPaddingV,
-      borderRadius: isCompact ? 10 : 12,
-      backgroundColor: translucentSurface,
-      borderWidth: 1,
-      borderColor: subtleBorder,
-      gap: isCompact ? 0 : 6,
-      elevation: 4,
-      shadowColor: theme.colors.shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 6,
-      minWidth: isCompact ? 36 : undefined,
-      minHeight: isCompact ? 36 : undefined,
-    },
-    buttonPrimary: {
-      borderColor: hexToRgba(theme.colors.primary, 0.6),
-      backgroundColor: hexToRgba(theme.colors.primary, 0.12),
-    },
-    buttonSuccess: {
-      borderColor: hexToRgba(theme.colors.success, 0.45),
-      backgroundColor: hexToRgba(theme.colors.success, 0.15),
-    },
-    buttonDanger: {
-      borderColor: hexToRgba(theme.colors.error, 0.45),
-      backgroundColor: hexToRgba(theme.colors.error, 0.15),
-    },
-    buttonSecondary: {
-      borderColor: subtleBorder,
-      backgroundColor: hexToRgba(theme.colors.backgroundSecondary, 0.5),
-    },
-    buttonDisabled: {
-      opacity: 0.5,
-    },
-    buttonIcon: {
-      marginRight: isCompact ? 0 : 2,
-    },
-    buttonText: {
-      color: theme.colors.text,
-      fontSize: isMedium ? 12 : 13,
-      fontWeight: '600',
+      gap: compact ? 6 : 8,
     },
   });
 };
 
-export default TopControlsBar;
+const stylesIcon = StyleSheet.create({
+  button: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
+    backgroundColor: 'transparent',
+  },
+  buttonDisabled: {
+    opacity: 0.45,
+  },
+});

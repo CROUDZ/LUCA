@@ -17,7 +17,6 @@ import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
-  NodeMeta,
 } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 import { logger } from '../../utils/logger';
@@ -38,8 +37,6 @@ export function resetPingCount(): void {
   logger.debug('[Ping] Compteur de pings réinitialisé');
 }
 
-const PING_NODE_ACCENT = '#4CAF50';
-
 const PingNode: NodeDefinition = {
   // ============================================================================
   // IDENTIFICATION
@@ -54,7 +51,6 @@ const PingNode: NodeDefinition = {
   // ============================================================================
   icon: 'notifications-active',
   iconFamily: 'material',
-  color: PING_NODE_ACCENT,
 
   // ============================================================================
   // INPUTS/OUTPUTS
@@ -196,14 +192,13 @@ const PingNode: NodeDefinition = {
   // ============================================================================
   // HTML (pour l'affichage dans le graphe)
   // ============================================================================
-  generateHTML: (settings: Record<string, any>, nodeMeta?: NodeMeta): string => {
+  generateHTML: (settings: Record<string, any>): string => {
     const message = settings?.message || 'PING';
     return buildNodeCardHTML({
       title: 'Ping',
       subtitle: message,
       iconName: 'notifications_active',
-      category: nodeMeta?.category || 'Action',
-      accentColor: PING_NODE_ACCENT,
+      category: 'Action',
       description: 'Émet un signal de test pour valider une portion de graphe.',
     });
   },

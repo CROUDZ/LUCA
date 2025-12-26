@@ -1,34 +1,27 @@
 /**
  * NodeEditorScreen - Écran d'édition de graphe nodal (VERSION OPTIMISÉE)
- * Utilise les hooks personnalisés pour une meilleure organisation du code
  */
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { View, TouchableOpacity, Text, Alert, DeviceEventEmitter } from 'react-native';
 import { WebView } from 'react-native-webview';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 
-// Import des hooks personnalisés
 import { useWebViewMessaging } from '../hooks/useWebViewMessaging';
 import { useGraphStorage } from '../hooks/useGraphStorage';
-
-// Import des configurations
 import { APP_CONFIG } from '../config/constants';
 import type { DrawflowExport, Graph } from '../types';
 import type { RootStackParamList } from '../types/navigation.types';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
 
-import createStyles from './NodeEditorScreenStyles';
-import { useAppTheme } from '../styles/theme';
+import { useTheme } from '../theme';
 import SaveMenu from '../components/SaveMenu';
-import ProgramControlBar from '../components/ProgramControlBar';
+import BottomControlsBar from '../components/BottomControlsBar';
 import TopControlsBar from '../components/TopControlsBar';
 import { nodeInstanceTracker } from '../engine/NodeInstanceTracker';
 import { subscribeNodeAdded } from '../utils/NodePickerEvents';
 import { logger } from '../utils/logger';
 import { signalVisualizationBridge } from '../utils/signalVisualizationBridge';
-
-// Import du système de signaux
 import { parseDrawflowGraph } from '../engine/engine';
 import {
   ensureCameraPermission,
@@ -43,15 +36,14 @@ import { programState } from '../engine/ProgramState';
 
 type NodeEditorScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'NodeEditor'>;
 
+type NodeEditorScreenRouteProp = RouteProp<RootStackParamList, 'NodeEditor'>;
+
 interface NodeEditorScreenProps {
   navigation: NodeEditorScreenNavigationProp;
+  route: NodeEditorScreenRouteProp;
 }
 
-type GraphInitResult = {
-  graph: Graph;
-  triggerIds: number[];
-};
-
+type GraphInitResult = { graph: Graph; triggerIds: number[] };
 type GraphSyncResolver = {
   id: number;
   resolve: (value: GraphInitResult) => void;
@@ -59,42 +51,38 @@ type GraphSyncResolver = {
   timeout: ReturnType<typeof setTimeout>;
 };
 
-const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
-  // États locaux pour l'UI
+const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }) => {
   const [showSaveMenu, setShowSaveMenu] = useState(false);
-  const { theme: appTheme, toggle: toggleTheme } = useAppTheme();
-  const styles = useMemo(() => createStyles(appTheme), [appTheme]);
-
   const [showNewSaveInput, setShowNewSaveInput] = useState(false);
   const [newSaveName, setNewSaveName] = useState('');
   const [currentGraph, setCurrentGraph] = useState<DrawflowExport | null>(null);
   const [triggerNodeId, setTriggerNodeId] = useState<number | null>(null);
   const [hasFlashActionInGraph, setHasFlashActionInGraph] = useState(false);
   const [cameraPermissionGranted, setCameraPermissionGranted] = useState<boolean | null>(null);
+
+  const { theme: appTheme } = useTheme();
+  const styles = useMemo(() => createStyles(appTheme), [appTheme]);
+
   const pendingSaveNameRef = useRef<string | null>(null);
-  const flashlightEventUnsubscribeRef = useRef<(() => void) | null>(null);
-  const pendingGraphSyncResolvers = useRef<GraphSyncResolver[]>([]);
+  const flashlightEventUnsubRef = useRef<(() => void) | null>(null);
+  const graphSyncResolvers = useRef<GraphSyncResolver[]>([]);
+  const lastGraphHashRef = useRef<string | null>(null);
+  const isRebuildingRef = useRef(false);
 
-  const resolveGraphSyncWaiters = useCallback((result: GraphInitResult | null) => {
-    if (!result || pendingGraphSyncResolvers.current.length === 0) {
-      return;
-    }
-
-    const waiters = [...pendingGraphSyncResolvers.current];
-    pendingGraphSyncResolvers.current = [];
+  const resolveGraphSync = useCallback((result: GraphInitResult | null) => {
+    if (!result || !graphSyncResolvers.current.length) return;
+    const waiters = [...graphSyncResolvers.current];
+    graphSyncResolvers.current = [];
     waiters.forEach(({ resolve, timeout }) => {
       clearTimeout(timeout);
       resolve(result);
     });
   }, []);
 
-  const rejectGraphSyncWaiters = useCallback((error: Error) => {
-    if (pendingGraphSyncResolvers.current.length === 0) {
-      return;
-    }
-
-    const waiters = [...pendingGraphSyncResolvers.current];
-    pendingGraphSyncResolvers.current = [];
+  const rejectGraphSync = useCallback((error: Error) => {
+    if (!graphSyncResolvers.current.length) return;
+    const waiters = [...graphSyncResolvers.current];
+    graphSyncResolvers.current = [];
     waiters.forEach(({ reject, timeout }) => {
       clearTimeout(timeout);
       reject(error);
@@ -102,93 +90,86 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
   }, []);
 
   const rebuildSignalSystem = useCallback(
-    async (graphData: DrawflowExport | null): Promise<GraphInitResult | null> => {
-      if (!graphData) {
+    async (graphData: DrawflowExport | null, force = false): Promise<GraphInitResult | null> => {
+      if (!graphData) return null;
+
+      // Éviter les appels concurrents
+      if (isRebuildingRef.current) {
         return null;
       }
 
-      logger.info('🔄 Initializing signal system...');
+      // Créer un hash simple du graphe pour détecter les changements
+      const graphHash = JSON.stringify(graphData);
 
-      resetSignalSystem();
+      // Ne pas reconstruire si le graphe n'a pas changé (sauf si forcé)
+      if (!force && lastGraphHashRef.current === graphHash && getSignalSystem()) {
+        const graph = parseDrawflowGraph(graphData);
+        const graphNodes = Array.from(graph.nodes.values());
+        const triggers = graphNodes.filter((n) => n.type === 'input.trigger').map((n) => n.id);
+        return { graph, triggerIds: triggers };
+      }
 
-      const graph = parseDrawflowGraph(graphData);
-      logger.info(
-        `📊 Parsed graph: ${graph.nodes.size} nodes, ${graph.edges.length} connection(s)`
-      );
+      isRebuildingRef.current = true;
 
-      const signalSystem = initializeSignalSystem(graph);
-
-      // Informer les overlays/UI qu'une nouvelle instance est en place
       try {
-        DeviceEventEmitter.emit?.('signalsystem.initialized', { timestamp: Date.now() });
-      } catch {
-        // ignore
-      }
-      startMonitoringNativeTorch();
-      clearFlashlightAutoEmitRegistry();
+        resetSignalSystem();
+        const graph = parseDrawflowGraph(graphData);
+        const signalSystem = initializeSignalSystem(graph);
 
-      if (flashlightEventUnsubscribeRef.current) {
-        flashlightEventUnsubscribeRef.current();
-        flashlightEventUnsubscribeRef.current = null;
-      }
+        lastGraphHashRef.current = graphHash;
 
-      if (signalSystem) {
-        flashlightEventUnsubscribeRef.current = signalSystem.subscribeToEvent(
-          'flashlight.permission.failed',
-          0,
-          () => {
-            logger.info(
-              '[NodeEditorScreen] Received flashlight.permission.failed - updating banner state'
-            );
-            setCameraPermissionGranted(false);
-          }
-        );
-      }
+        try {
+          DeviceEventEmitter.emit?.('signalsystem.initialized', { timestamp: Date.now() });
+        } catch {}
 
-      let handlersRegistered = 0;
-      graph.nodes.forEach((node) => {
-        const nodeDef = nodeRegistry.getNode(node.type);
-        if (nodeDef) {
+        startMonitoringNativeTorch();
+        clearFlashlightAutoEmitRegistry();
+
+        flashlightEventUnsubRef.current?.();
+        flashlightEventUnsubRef.current = null;
+
+        if (signalSystem) {
+          flashlightEventUnsubRef.current = signalSystem.subscribeToEvent(
+            'flashlight.permission.failed',
+            0,
+            () => setCameraPermissionGranted(false)
+          );
+        }
+
+        graph.nodes.forEach((node) => {
+          const nodeDef = nodeRegistry.getNode(node.type);
+          if (!nodeDef) return;
+
           try {
-            const resolvedSettings = {
+            const settings = {
               ...(nodeDef.defaultSettings || {}),
               ...(node.data?.settings || node.data || {}),
             };
-
             nodeDef.execute({
               nodeId: node.id,
               inputs: {},
               inputsCount: node.inputs.length,
-              settings: resolvedSettings,
-              log: (message: string) => {
-                logger.debug(`[Node ${node.id}] ${message}`);
-              },
+              settings,
+              log: (msg: string) => logger.debug(`[Node ${node.id}] ${msg}`),
             });
-            handlersRegistered++;
           } catch (error) {
-            logger.error(`❌ Error executing node ${node.id} (${node.type}):`, error);
+            logger.error(`Error executing node ${node.id}:`, error);
           }
-        }
-      });
+        });
 
-      logger.info(`✅ Registered ${handlersRegistered} signal handlers`);
+        const graphNodes = Array.from(graph.nodes.values());
+        const triggers = graphNodes.filter((n) => n.type === 'input.trigger').map((n) => n.id);
+        setTriggerNodeId(triggers[0] ?? null);
+        setHasFlashActionInGraph(graphNodes.some((n) => n.type === 'action.flashlight'));
 
-      const graphNodes = Array.from(graph.nodes.values());
-      const triggers = graphNodes.filter((n) => n.type === 'input.trigger').map((n) => n.id);
-      // Limiter à un seul trigger
-      setTriggerNodeId(triggers.length > 0 ? triggers[0] : null);
-
-      const hasFlashAction = graphNodes.some((n) => n.type === 'action.flashlight');
-      setHasFlashActionInGraph(hasFlashAction);
-
-      logger.info(`🎯 Found trigger node: ${triggers.length > 0 ? triggers[0] : 'none'}`);
-
-      return { graph, triggerIds: triggers };
+        return { graph, triggerIds: triggers };
+      } finally {
+        isRebuildingRef.current = false;
+      }
     },
-    [setCameraPermissionGranted, setHasFlashActionInGraph, setTriggerNodeId]
+    []
   );
 
-  // Hook de stockage des graphes
   const {
     saves,
     currentSaveId,
@@ -216,31 +197,69 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
               setNewSaveName('');
               setShowNewSaveInput(false);
               Alert.alert('Success', `Save "${save.name}" created!`);
-            } else {
-              Alert.alert('Error', 'Failed to create save.');
             }
           } catch (error) {
-            logger.error('Failed to finalize save creation', error);
+            logger.error('Failed to create save', error);
             Alert.alert('Error', 'Failed to create save.');
           }
         }
 
         const result = await rebuildSignalSystem(data);
-        if (!result) {
-          rejectGraphSyncWaiters(new Error('Graph rebuild produced no result'));
-          return;
+        if (result) {
+          resolveGraphSync(result);
+        } else if (graphSyncResolvers.current.length > 0) {
+          // Si le système existe déjà et n'a pas été reconstruit,
+          // résoudre avec les données actuelles
+          const existingSystem = getSignalSystem();
+          if (existingSystem) {
+            const graph = parseDrawflowGraph(data);
+            const graphNodes = Array.from(graph.nodes.values());
+            const triggers = graphNodes.filter((n) => n.type === 'input.trigger').map((n) => n.id);
+            resolveGraphSync({ graph, triggerIds: triggers });
+          } else {
+            rejectGraphSync(new Error('Graph rebuild failed'));
+          }
         }
-        resolveGraphSyncWaiters(result);
       } catch (error) {
-        const normalizedError = error instanceof Error ? error : new Error(String(error));
-        rejectGraphSyncWaiters(normalizedError);
-        logger.error('[NodeEditorScreen] Failed to handle graph export', normalizedError);
+        rejectGraphSync(error instanceof Error ? error : new Error(String(error)));
+        logger.error('Failed to handle graph export', error);
       }
     },
-    [autoSave, createSave, rebuildSignalSystem, resolveGraphSyncWaiters, rejectGraphSyncWaiters]
+    [autoSave, createSave, rebuildSignalSystem, resolveGraphSync, rejectGraphSync]
   );
 
-  // Hook de communication WebView
+  const handleNodeSettingsChanged = useCallback((payload: any) => {
+    try {
+      const { nodeId, settings } = payload || {};
+      if (!nodeId) return;
+
+      const ss = getSignalSystem();
+      const numericId = Number(nodeId);
+
+      if (ss) {
+        ss.unregisterHandler(numericId);
+        if (typeof ss.unsubscribeNode === 'function') ss.unsubscribeNode(numericId);
+      }
+
+      const nodeType = payload?.nodeType;
+      if (!nodeType) return;
+
+      const nodeDef = nodeRegistry.getNode(nodeType);
+      if (!nodeDef) return;
+
+      const resolvedSettings = { ...(nodeDef.defaultSettings || {}), ...(settings || {}) };
+      nodeDef.execute({
+        nodeId: numericId,
+        inputs: {},
+        inputsCount: 0,
+        settings: resolvedSettings,
+        log: (msg: string) => logger.debug(`[Node ${numericId}] ${msg}`),
+      });
+    } catch (err) {
+      logger.error('Failed to handle node setting change:', err);
+    }
+  }, []);
+
   const {
     webRef,
     isReady,
@@ -253,102 +272,52 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
     setTheme: setWebViewTheme,
   } = useWebViewMessaging({
     onReady: () => {
-      logger.debug('✅ WebView ready');
-      // Charger la dernière sauvegarde si disponible
       if (currentSaveId) {
         const save = saves.find((s) => s.id === currentSaveId);
         if (save) {
           loadGraph(save.data);
           setCurrentGraph(save.data);
-          rebuildSignalSystem(save.data).catch((error) => {
-            logger.warn('[NodeEditorScreen] Failed to rebuild graph on ready load', error);
-          });
+          rebuildSignalSystem(save.data).catch((e) => logger.warn('Failed to rebuild graph', e));
         }
       }
     },
     onExport: handleGraphExport,
-    onNodeSettingsChanged: (payload) => {
-      try {
-        logger.debug('[WebView] Node settings changed:', payload);
-        const { nodeId, settings } = payload || {};
-        if (!nodeId) return;
-        const graph = parseDrawflowGraph(currentGraph || { drawflow: { Home: { data: {} } } });
-        const node = graph.nodes.get(Number(nodeId));
-        // If not present in graph yet, fall back to nodeType coming from the webview
-        const nodeType = (node && node.type) || payload?.nodeType;
-        if (!node && !nodeType) return;
-        const nodeDef = nodeRegistry.getNode(nodeType || node?.type);
-        const ss = getSignalSystem();
-        if (ss) {
-          // Unregister existing handler and re-register with new settings
-          const numericId = Number(nodeId);
-          ss.unregisterHandler(numericId);
-          // Also unsubscribe from any event subscriptions this node had
-          if (typeof ss.unsubscribeNode === 'function') ss.unsubscribeNode(numericId);
-        }
-        if (nodeDef) {
-          const numericId = Number(nodeId);
-          const resolvedSettings = {
-            ...(nodeDef.defaultSettings || {}),
-            ...(node?.data?.settings || node?.data || {}),
-            ...(settings || {}),
-          };
-          const inputsCount = node?.inputs?.length ?? 0;
-
-          nodeDef.execute({
-            nodeId: numericId,
-            inputs: {},
-            inputsCount,
-            settings: resolvedSettings,
-            log: (message: string) => {
-              logger.debug(`[Node ${numericId}] ${message}`);
-            },
-          });
-          logger.info(`[NodeEditorScreen] Re-registered node ${numericId} after settings change`);
-        }
-      } catch (err) {
-        logger.error('Failed to handle node setting change:', err);
-      }
-    },
+    onNodeSettingsChanged: handleNodeSettingsChanged,
+    onThemeApplied: () => {},
   });
 
   const waitForGraphSync = useCallback((): Promise<GraphInitResult> => {
-    if (!isReady) {
-      return Promise.reject(new Error('WebView not ready'));
+    if (!isReady) return Promise.reject(new Error('WebView not ready'));
+
+    // Si le système existe déjà, retourner directement le résultat
+    const existingSystem = getSignalSystem();
+    if (existingSystem && currentGraph) {
+      const graph = parseDrawflowGraph(currentGraph);
+      const graphNodes = Array.from(graph.nodes.values());
+      const triggers = graphNodes.filter((n) => n.type === 'input.trigger').map((n) => n.id);
+      return Promise.resolve({ graph, triggerIds: triggers });
     }
 
-    return new Promise<GraphInitResult>((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const id = Date.now() + Math.random();
       const timeout = setTimeout(() => {
-        pendingGraphSyncResolvers.current = pendingGraphSyncResolvers.current.filter(
-          (entry) => entry.id !== id
-        );
+        graphSyncResolvers.current = graphSyncResolvers.current.filter((e) => e.id !== id);
         reject(new Error('Graph export timeout'));
       }, 2000);
 
-      pendingGraphSyncResolvers.current.push({ id, resolve, reject, timeout });
-
-      const success = requestExport();
-      if (!success) {
+      graphSyncResolvers.current.push({ id, resolve, reject, timeout });
+      if (!requestExport()) {
         clearTimeout(timeout);
-        pendingGraphSyncResolvers.current = pendingGraphSyncResolvers.current.filter(
-          (entry) => entry.id !== id
-        );
-        reject(new Error('Unable to request graph export'));
+        graphSyncResolvers.current = graphSyncResolvers.current.filter((e) => e.id !== id);
+        reject(new Error('Unable to request export'));
       }
     });
-  }, [isReady, requestExport]);
+  }, [isReady, currentGraph, requestExport]);
 
   const handleRunProgram = useCallback(async () => {
-    if (!isReady || triggerNodeId === null) {
-      return;
-    }
+    if (!isReady || triggerNodeId === null) return;
 
-    // Utiliser programState pour savoir si le programme est actif
-    // (persiste même quand le graphe est modifié)
     if (programState.isRunning) {
-      // Arrêter le programme
-      logger.info('🛑 Stopping program from trigger', triggerNodeId);
       programState.stop();
       triggerNode(
         triggerNodeId,
@@ -358,167 +327,127 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
       return;
     }
 
-    logger.info('🚀 Launching program from trigger', triggerNodeId);
-
     if (hasFlashActionInGraph) {
       try {
-        logger.info(
-          '[NodeEditorScreen] Flash action in graph - requesting camera permission if needed'
-        );
         const allowed = await ensureCameraPermission();
         if (!allowed) {
-          Alert.alert(
-            'Permission requise',
-            'La permission Caméra est nécessaire pour exécuter votre programme'
-          );
+          Alert.alert('Permission requise', 'La permission Caméra est nécessaire');
           return;
         }
-      } catch (error) {
-        logger.warn('[NodeEditorScreen] Permission request failed', error);
+      } catch {
         return;
       }
     }
 
-    // Si le SignalSystem n'existe pas encore, synchroniser le graphe
-    const ss = getSignalSystem();
-    if (!ss) {
+    if (!getSignalSystem()) {
       try {
         await waitForGraphSync();
-      } catch (error) {
-        logger.warn('[NodeEditorScreen] Graph sync before run failed', error);
-      }
+      } catch {}
     }
 
-    // Marquer le programme comme démarré
     programState.start();
-
-    const payload = {
-      timestamp: Date.now(),
-      source: 'run-button',
-    };
-
-    triggerNode(triggerNodeId, payload, { state: 'start' });
-    logger.debug(`[NodeEditorScreen] Emitted trigger ${triggerNodeId}`);
+    triggerNode(triggerNodeId, { timestamp: Date.now(), source: 'run-button' }, { state: 'start' });
   }, [hasFlashActionInGraph, isReady, triggerNodeId, waitForGraphSync]);
 
-  // Show a small banner if FlashLight nodes present and permission denied
-
-  // Synchroniser le thème avec la WebView
+  // Sync theme with WebView
   useEffect(() => {
-    if (isReady && setWebViewTheme) {
-      // Petit délai pour s'assurer que la WebView est complètement initialisée
-      const timeout = setTimeout(() => {
-        setWebViewTheme(appTheme.mode);
-        logger.debug(`[NodeEditorScreen] Theme synced to WebView: ${appTheme.mode}`);
-      }, 100);
-      return () => clearTimeout(timeout);
-    }
-    return undefined;
+    if (!isReady || !setWebViewTheme) return;
+    const timeout = setTimeout(() => setWebViewTheme(appTheme.mode), 100);
+    return () => clearTimeout(timeout);
   }, [isReady, appTheme.mode, setWebViewTheme]);
 
-  const handleToggleTheme = useCallback(async () => {
-    try {
-      const next = appTheme.mode === 'dark' ? 'light' : 'dark';
-      await toggleTheme();
-      // Optimistically force the WebView theme to the expected next value
-      if (isReady && setWebViewTheme) {
-        setWebViewTheme(next);
-        logger.debug(`[NodeEditorScreen] Theme toggled and sent to WebView: ${next}`);
-      }
-    } catch (e) {
-      logger.error('[NodeEditorScreen] Failed to toggle theme', e);
-    }
-  }, [appTheme.mode, isReady, setWebViewTheme, toggleTheme]);
-
-  // Connecter le bridge de visualisation des signaux au WebView
+  // Request initial export
   useEffect(() => {
-    if (isReady && sendMessage) {
-      signalVisualizationBridge.connect(sendMessage);
-      signalVisualizationBridge.setTriggerNodeId(triggerNodeId);
-      logger.debug('[NodeEditorScreen] Signal visualization bridge connected');
+    if (!isReady || currentGraph || !requestExport) return;
+    const timeout = setTimeout(() => requestExport(), 600);
+    return () => clearTimeout(timeout);
+  }, [isReady, currentGraph, requestExport]);
 
-      return () => {
-        signalVisualizationBridge.disconnect();
-      };
+  // If this screen was opened with a specific save id, load it immediately
+  useEffect(() => {
+    const openId = route?.params?.openSaveId;
+    if (!openId) return;
+
+    const save = loadSave(openId);
+    if (!save) return;
+
+    // Make sure we don't try to send messages to the WebView before it's ready.
+    // If the WebView is ready, load it immediately; otherwise set the current
+    // save and let the existing `onReady` handler (above) load it when ready.
+    nodeInstanceTracker.reset();
+    setCurrentGraph(save.data);
+    setCurrentSaveId(save.id);
+
+    if (isReady) {
+      loadGraph(save.data);
+      rebuildSignalSystem(save.data).catch((e) => logger.error('Failed to rebuild', e));
     }
-    return undefined;
+  }, [
+    route?.params?.openSaveId,
+    loadSave,
+    loadGraph,
+    rebuildSignalSystem,
+    setCurrentSaveId,
+    isReady,
+  ]);
+
+  // Connect visualization bridge
+  useEffect(() => {
+    if (!isReady || !sendMessage) return;
+    signalVisualizationBridge.connect(sendMessage);
+    signalVisualizationBridge.setTriggerNodeId(triggerNodeId);
+    return () => signalVisualizationBridge.disconnect();
   }, [isReady, sendMessage, triggerNodeId]);
 
+  // Check camera permission for flash nodes
   useEffect(() => {
-    (async () => {
-      try {
-        const hasFlashAction = currentGraph
-          ? Array.from(parseDrawflowGraph(currentGraph).nodes.values()).some(
-              (n) => n.type === 'action.flashlight'
-            )
-          : false;
+    if (!currentGraph) {
+      setCameraPermissionGranted(null);
+      return;
+    }
 
-        if (hasFlashAction) {
-          const perm = await hasCameraPermission();
-          setCameraPermissionGranted(perm);
-        } else {
-          setCameraPermissionGranted(null);
-        }
-      } catch (e) {
-        logger.warn('[NodeEditorScreen] Error checking camera permission for banner', e);
-      }
-    })();
-  }, [currentGraph, setCameraPermissionGranted]);
+    const hasFlash = Array.from(parseDrawflowGraph(currentGraph).nodes.values()).some(
+      (n) => n.type === 'action.flashlight'
+    );
 
-  // Ajouter un log pour vérifier les settings des nodes après export
-  useEffect(() => {
-    if (!currentGraph) return;
-    try {
-      const nodes = currentGraph.drawflow?.Home?.data || {};
-      Object.keys(nodes).forEach((id) => {
-        const n = nodes[id];
-        if ((n.class || '').includes('condition-node') || (n.class || '').includes('condition')) {
-          logger.debug(`[Web to RN] Node ${id} settings:`, n.data?.settings || n.data || {});
-        }
-      });
-    } catch (e) {
-      logger.warn('Failed to inspect currentGraph debug settings', e);
+    if (hasFlash) {
+      hasCameraPermission()
+        .then(setCameraPermissionGranted)
+        .catch(() => {});
+    } else {
+      setCameraPermissionGranted(null);
     }
   }, [currentGraph]);
 
-  /**
-   * Créer une nouvelle sauvegarde
-   */
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      flashlightEventUnsubRef.current?.();
+      rejectGraphSync(new Error('NodeEditorScreen unmounted'));
+      resetSignalSystem();
+    };
+  }, [rejectGraphSync]);
+
   const handleCreateSave = useCallback(async () => {
-    if (pendingSaveNameRef.current) {
-      Alert.alert('Please wait', 'A save is already being created.');
+    if (pendingSaveNameRef.current || !newSaveName.trim()) {
+      Alert.alert('Error', pendingSaveNameRef.current ? 'Please wait' : 'Enter a name');
       return;
     }
-
-    if (!newSaveName.trim()) {
-      Alert.alert('Error', 'Please enter a name for the save');
-      return;
-    }
-
-    // Demander l'export du graphe actuel
-    const success = requestExport();
-
-    if (success) {
-      pendingSaveNameRef.current = newSaveName.trim();
-    } else {
-      Alert.alert('Error', 'Unable to export the graph. Please try again.');
+    pendingSaveNameRef.current = newSaveName.trim();
+    if (!requestExport()) {
+      pendingSaveNameRef.current = null;
+      Alert.alert('Error', 'Unable to export graph');
     }
   }, [newSaveName, requestExport]);
 
-  /**
-   * Charger une sauvegarde
-   */
   const handleLoadSave = useCallback(
     (saveId: string) => {
       const save = loadSave(saveId);
       if (save) {
-        // Reset le tracker avant de charger
         nodeInstanceTracker.reset();
         loadGraph(save.data);
         setCurrentGraph(save.data);
-        rebuildSignalSystem(save.data).catch((error) => {
-          logger.error('[NodeEditorScreen] Failed to rebuild graph after load', error);
-        });
+        rebuildSignalSystem(save.data).catch((e) => logger.error('Failed to rebuild', e));
         setShowSaveMenu(false);
         Alert.alert('Loaded', `Loaded "${save.name}"`);
       }
@@ -526,9 +455,6 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
     [loadSave, loadGraph, rebuildSignalSystem]
   );
 
-  /**
-   * Supprimer une sauvegarde
-   */
   const handleDeleteSave = useCallback(
     async (saveId: string) => {
       await deleteSave(saveId);
@@ -536,67 +462,34 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
     [deleteSave]
   );
 
-  /**
-   * Sauvegarder manuellement
-   */
-  const handleManualSave = useCallback(() => {
-    const success = requestExport();
-    if (success) {
-      Alert.alert('Saved', 'Graph saved successfully!');
-    }
-  }, [requestExport]);
-
-  /**
-   * Ajouter un nœud
-   */
   const handleAddNode = useCallback(
     (nodeType: string) => {
       const x =
         Math.random() * APP_CONFIG.nodes.randomOffsetRange + APP_CONFIG.nodes.defaultPosition.x;
       const y =
         Math.random() * APP_CONFIG.nodes.randomOffsetRange + APP_CONFIG.nodes.defaultPosition.y;
-
-      logger.info('➕ Adding node:', nodeType);
       addNode(nodeType, x, y, { type: nodeType });
-
-      // Forcer l'export après ajout pour mettre à jour le graphe
-      setTimeout(() => {
-        requestExport();
-      }, 300);
+      setTimeout(() => requestExport(), 300);
     },
     [addNode, requestExport]
   );
 
-  // Subscribe to NodePicker events instead of passing callback through navigation params
   useEffect(() => {
-    const unsubscribe = subscribeNodeAdded((nodeType: string) => {
+    const unsub = subscribeNodeAdded((nodeType: string) => {
       handleAddNode(nodeType);
-
-      // Si l'utilisateur ajoute une node FlashLight action, demander la permission
       if (nodeType === 'action.flashlight') {
-        (async () => {
-          try {
-            const granted = await ensureCameraPermission();
-            if (!granted) {
-              Alert.alert(
-                'Permission requise',
-                'LUCA a besoin de la permission Caméra pour utiliser FlashLight nodes.'
-              );
-            }
-          } catch (e) {
-            logger.warn('[NodeEditorScreen] ensureCameraPermission on node add failed', e);
-          }
-        })();
+        ensureCameraPermission()
+          .then((granted) => {
+            if (!granted) Alert.alert('Permission requise', 'LUCA needs Camera permission');
+          })
+          .catch(() => {});
       }
     });
-    return unsubscribe;
+    return unsub;
   }, [handleAddNode]);
 
-  /**
-   * Effacer le graphe
-   */
   const handleClearGraph = useCallback(() => {
-    Alert.alert('Clear Graph', 'Are you sure you want to clear the graph?', [
+    Alert.alert('Clear Graph', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Clear',
@@ -604,33 +497,31 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
         onPress: () => {
           clearWebViewGraph();
           setCurrentSaveId(null);
-          nodeInstanceTracker.reset(); // Reset tous les compteurs
+          nodeInstanceTracker.reset();
           setCurrentGraph(null);
           setTriggerNodeId(null);
           setHasFlashActionInGraph(false);
-          flashlightEventUnsubscribeRef.current?.();
-          flashlightEventUnsubscribeRef.current = null;
+          flashlightEventUnsubRef.current?.();
+          flashlightEventUnsubRef.current = null;
           resetSignalSystem();
-          logger.info('🗑️ Graph cleared');
         },
       },
     ]);
   }, [clearWebViewGraph, setCurrentSaveId]);
 
-  /**
-   * Nom de la sauvegarde actuelle
-   */
   const currentSaveName = useMemo(() => {
     return saves.find((s) => s.id === currentSaveId)?.name || 'Untitled';
   }, [saves, currentSaveId]);
 
-  useEffect(() => {
-    return () => {
-      flashlightEventUnsubscribeRef.current?.();
-      rejectGraphSyncWaiters(new Error('NodeEditorScreen unmounted'));
-      resetSignalSystem();
-    };
-  }, [rejectGraphSyncWaiters]);
+  const injectedThemeScript = useMemo(
+    () =>
+      `(function(){try{var root=document.documentElement; if (${JSON.stringify(
+        appTheme.mode
+      )} === 'light'){root.classList.add('light-theme');root.classList.remove('dark-theme');}else{root.classList.remove('light-theme');root.classList.add('dark-theme');}try{if(window.DrawflowEditor&&typeof window.DrawflowEditor.setTheme==='function'){window.DrawflowEditor.setTheme(${JSON.stringify(
+        appTheme.mode
+      )});}}catch(e){};}catch(e){};true;})();`,
+    [appTheme.mode]
+  );
 
   return (
     <View style={styles.container}>
@@ -645,14 +536,8 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
               try {
                 const granted = await ensureCameraPermission();
                 setCameraPermissionGranted(granted);
-                if (!granted) {
-                  Alert.alert(
-                    'Permission requise',
-                    'LUCA needs Camera permission to use FlashLight nodes'
-                  );
-                }
-              } catch (e) {
-                logger.error('[NodeEditorScreen] Permission request failed', e);
+                if (!granted) Alert.alert('Permission requise', 'Camera permission needed');
+              } catch {
                 Alert.alert('Error', 'Permission request failed');
               }
             }}
@@ -661,29 +546,13 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       )}
-      {/* Theme toggle controle */}
-      <View style={styles.controls} pointerEvents="box-none">
-        <TouchableOpacity
-          style={[styles.button, styles.buttonSecondary]}
-          onPress={handleToggleTheme}
-          accessibilityLabel={
-            appTheme.mode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
-          }
-        >
-          <Icon
-            name={appTheme.mode === 'dark' ? 'light_mode' : 'dark_mode'}
-            size={18}
-            color={appTheme.colors.text}
-            style={styles.buttonIcon}
-          />
-          <Text style={styles.buttonText}>{appTheme.mode === 'dark' ? 'Clair' : 'Sombre'}</Text>
-        </TouchableOpacity>
-      </View>
-      {/* WebView avec éditeur nodal */}
+
       <WebView
         ref={webRef}
         source={{ uri: APP_CONFIG.webview.htmlUri }}
-        style={styles.webview}
+        style={{ flex: 1 }}
+        injectedJavaScriptBeforeContentLoaded={injectedThemeScript}
+        injectedJavaScript={injectedThemeScript}
         onMessage={handleMessage}
         javaScriptEnabled={true}
         domStorageEnabled={true}
@@ -695,34 +564,29 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
         bounces={false}
         overScrollMode="never"
         androidLayerType="hardware"
-        onError={(syntheticEvent) => {
-          const { nativeEvent } = syntheticEvent;
-          logger.error('❌ WebView error:', nativeEvent);
-        }}
-        onLoad={() => logger.debug('📄 WebView loaded')}
+        cacheEnabled={true}
+        cacheMode="LOAD_CACHE_ELSE_NETWORK"
+        startInLoadingState={false}
+        originWhitelist={['*']}
+        allowFileAccess={true}
+        onError={(e) => logger.error('WebView error:', e.nativeEvent)}
       />
 
-      {/* Signal controls removed - manual flashlight toggling is handled elsewhere */}
-
-      {/* Barre de contrôle du programme - unique point d'entrée */}
-      <ProgramControlBar
+      <BottomControlsBar
         triggerNodeId={triggerNodeId}
         isReady={isReady}
         onRunProgram={handleRunProgram}
       />
 
-      {/* Barre de contrôles supérieure */}
       <TopControlsBar
         isReady={isReady}
         currentSaveId={currentSaveId}
         currentSaveName={currentSaveName}
         onOpenSaveMenu={() => setShowSaveMenu(true)}
-        onManualSave={handleManualSave}
         onClearGraph={handleClearGraph}
         onOpenSettings={() => navigation.navigate('Settings')}
       />
 
-      {/* Modal Save Menu */}
       <SaveMenu
         visible={showSaveMenu}
         onClose={() => setShowSaveMenu(false)}
@@ -737,27 +601,57 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation }) => {
         onLoadSave={handleLoadSave}
         onDeleteSave={handleDeleteSave}
       />
-      {/* Bouton FAB pour ouvrir le NodePicker */}
-      <TouchableOpacity
-        style={[styles.fabButton, !isReady && styles.fabButtonDisabled]}
-        onPress={() => navigation.navigate('NodePicker')}
-        disabled={!isReady}
-        activeOpacity={0.8}
-      >
-        <Icon name="add" size={32} color={appTheme.colors.primaryContrast} />
-      </TouchableOpacity>
-
-      {/* Bouton Bibliothèque de Mods */}
-      <TouchableOpacity
-        style={styles.modLibraryButton}
-        onPress={() => navigation.navigate('ModLibrary')}
-        activeOpacity={0.8}
-      >
-        <Icon name="extension" size={24} color={appTheme.colors.primaryContrast} />
-        <Text style={styles.modLibraryButtonText}>Mods</Text>
-      </TouchableOpacity>
     </View>
   );
+};
+
+import { StyleSheet, StatusBar } from 'react-native';
+import type { AppTheme } from '../theme';
+import { hexToRgba } from '../theme';
+
+const createStyles = (theme: AppTheme) => {
+  const isDark = theme.mode === 'dark';
+  // Respect safe-area / status bar on Android and add a small bottom inset
+  const topInset = StatusBar.currentHeight || 8;
+  const bottomInset = 24;
+
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+      paddingTop: topInset,
+      paddingBottom: bottomInset,
+    },
+    permissionBanner: {
+      position: 'absolute',
+      top: 60 + topInset,
+      left: 10,
+      right: 10,
+      backgroundColor: hexToRgba(theme.colors.error, isDark ? 0.9 : 0.98),
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: hexToRgba(theme.colors.error, 0.6),
+      padding: 12,
+      zIndex: 999,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+      elevation: 6,
+      shadowColor: theme.colors.error,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.22,
+      shadowRadius: 8,
+    },
+    permissionText: { color: theme.colors.text, flex: 1, fontSize: 12 },
+    permissionButton: {
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      backgroundColor: theme.colors.error,
+      borderRadius: 8,
+    },
+    permissionButtonText: { color: theme.colors.background, fontWeight: '700' },
+  });
 };
 
 export default NodeEditorScreen;

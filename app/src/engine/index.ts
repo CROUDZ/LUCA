@@ -19,7 +19,6 @@ export type {
   Signal,
   SignalHandler,
   SignalPropagation,
-  SignalCallback,
   ExecutionContext,
   EventHandler,
   EventSubscription,

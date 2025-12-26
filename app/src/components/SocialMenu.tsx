@@ -1,8 +1,21 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, Linking, Animated, Easing, Dimensions, Platform, StyleSheet, Pressable, PanResponder } from 'react-native';
+import {
+  Modal,
+  View,
+  Text,
+  TouchableOpacity,
+  Linking,
+  Animated,
+  Easing,
+  Dimensions,
+  Platform,
+  StyleSheet,
+  Pressable,
+  PanResponder,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppTheme } from '../styles/theme';
-import createStyles from './SocialMenuStyles';
+import { useTheme } from '../theme';
+import type { AppTheme } from '../theme';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import FAIcon from 'react-native-vector-icons/FontAwesome6';
 import LinearGradient from 'react-native-linear-gradient';
@@ -13,13 +26,17 @@ interface SocialMenuProps {
 }
 
 const socials = [
-  { id: 'twitter', label: 'Twitter', url: 'https://twitter.com', icon: 'twitter', brandColor: '#1DA1F2' },
-  { id: 'github', label: 'GitHub', url: 'https://github.com', icon: 'github', brandColor: '#000000' },
-  { id: 'discord', label: 'Discord', url: 'https://discord.com', icon: 'discord', brandColor: '#5865F2' },
+  {
+    id: 'discord',
+    label: 'Discord',
+    url: 'https://discord.gg/ZfRag2h2T4',
+    icon: 'discord',
+    brandColor: '#5865F2',
+  },
 ];
 
 const SocialMenu: React.FC<SocialMenuProps> = ({ visible, onClose }) => {
-  const { theme } = useAppTheme();
+  const { theme } = useTheme();
   const styles = createStyles(theme);
 
   const screenHeight = Dimensions.get('window').height;
@@ -120,7 +137,11 @@ const SocialMenu: React.FC<SocialMenuProps> = ({ visible, onClose }) => {
   // Combine the base animation with the drag offset (in pixels)
   const finalTranslateY = Animated.add(
     translateY,
-    drag.interpolate({ inputRange: [0, screenHeight], outputRange: [0, screenHeight], extrapolate: 'clamp' })
+    drag.interpolate({
+      inputRange: [0, screenHeight],
+      outputRange: [0, screenHeight],
+      extrapolate: 'clamp',
+    })
   );
 
   const overlayOpacity = anim.interpolate({
@@ -131,7 +152,13 @@ const SocialMenu: React.FC<SocialMenuProps> = ({ visible, onClose }) => {
   if (!mounted) return null;
 
   return (
-    <Modal visible={mounted} animationType="none" transparent onRequestClose={onClose} hardwareAccelerated={Platform.OS === 'android'}>
+    <Modal
+      visible={mounted}
+      animationType="none"
+      transparent
+      onRequestClose={onClose}
+      hardwareAccelerated={Platform.OS === 'android'}
+    >
       <View style={styles.modalOverlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose}>
           <Animated.View style={[styles.backdrop, { opacity: overlayOpacity }]} />
@@ -141,17 +168,21 @@ const SocialMenu: React.FC<SocialMenuProps> = ({ visible, onClose }) => {
           accessibilityLabel="social-menu"
           style={[
             styles.modalContent,
-            { transform: [{ translateY: finalTranslateY }], elevation: 6, paddingBottom: Math.max(20, insets.bottom + 12) },
+            {
+              transform: [{ translateY: finalTranslateY }],
+              elevation: 6,
+              paddingBottom: Math.max(20, insets.bottom + 12),
+            },
           ]}
         >
-            <Animated.View {...panResponder.panHandlers}>
-              <LinearGradient
-                colors={[theme.colors.secondarySoft, theme.colors.primarySoft]}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0.5 }}
-                style={styles.dragIndicator}
-              />
-            </Animated.View>
+          <Animated.View {...panResponder.panHandlers}>
+            <LinearGradient
+              colors={[theme.colors.secondarySoft, theme.colors.primarySoft]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={styles.dragIndicator}
+            />
+          </Animated.View>
 
           {socials.map((s) => (
             <TouchableOpacity
@@ -163,7 +194,11 @@ const SocialMenu: React.FC<SocialMenuProps> = ({ visible, onClose }) => {
             >
               <View style={styles.leftColumn}>
                 <View style={styles.iconBadge}>
-                  <FAIcon name={s.icon as any} size={28} color={s.brandColor || theme.colors.primary} />
+                  <FAIcon
+                    name={s.icon as any}
+                    size={28}
+                    color={s.brandColor || theme.colors.primary}
+                  />
                 </View>
               </View>
 
@@ -176,13 +211,82 @@ const SocialMenu: React.FC<SocialMenuProps> = ({ visible, onClose }) => {
               </View>
             </TouchableOpacity>
           ))}
-                  <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>
-          Retrouvez-nous sur les réseaux !
-        </Text>
+          <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>
+            Retrouvez-nous sur les réseaux !
+          </Text>
         </Animated.View>
       </View>
     </Modal>
   );
 };
+
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'transparent',
+    },
+    backdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: '#000000a4',
+    },
+    modalContent: {
+      backgroundColor: theme.colors.surfaceElevated,
+      borderTopLeftRadius: 30,
+      borderTopRightRadius: 30,
+      paddingVertical: 14,
+      paddingHorizontal: 20,
+      borderTopWidth: 1,
+      borderColor: theme.colors.border,
+      elevation: 8,
+    },
+    dragIndicator: {
+      width: 100,
+      height: 5,
+      borderRadius: 2,
+      alignSelf: 'center',
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.borderStrong,
+    },
+    leftColumn: {
+      width: 56,
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+    },
+    centerColumn: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    rightColumn: {
+      width: 56, // match leftColumn so centerColumn is truly centered
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    iconBadge: {
+      width: 36,
+      height: 36,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    rowLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    footerText: {
+      textAlign: 'center',
+      paddingTop: 12,
+      backgroundColor: 'transparent',
+      fontSize: 14,
+    },
+  });
+}
 
 export default SocialMenu;

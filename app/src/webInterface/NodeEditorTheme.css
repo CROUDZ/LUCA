@@ -99,3 +99,57 @@
   --node-connection-selected: rgba(var(--node-success-rgb), 0.95);
   --node-connection-shadow: rgba(var(--editor-brand-soft-rgb), 0.45);
 }
+
+/* ============================================
+   LIGHT THEME OVERRIDES
+   ============================================ */
+:root.light-theme {
+  /* Background colors */
+  --editor-bg: #f8faff;
+  --editor-grid: rgba(180, 190, 220, 0.35);
+  --editor-grid-strong: rgba(160, 170, 200, 0.5);
+
+  /* Text colors */
+  --editor-text-primary: #1a1c3a;
+  --editor-text-secondary: #5a5f8a;
+
+  /* Card styling */
+  --editor-card-background: rgba(255, 255, 255, 0.98);
+  --editor-card-border: rgba(180, 190, 220, 0.5);
+  --editor-card-border-strong: rgba(90, 42, 245, 0.35);
+  --editor-card-border-muted: rgba(90, 42, 245, 0.2);
+
+  /* Node styling */
+  --node-border-default: rgba(180, 190, 220, 0.6);
+  --node-shadow: 0 8px 32px rgba(90, 100, 160, 0.15), 0 2px 8px rgba(90, 100, 160, 0.1);
+
+  /* Chips */
+  --node-chip-bg: rgba(90, 42, 245, 0.08);
+  --node-chip-border: rgba(90, 42, 245, 0.2);
+
+  /* Dividers */
+  --node-divider-soft: rgba(180, 190, 220, 0.3);
+  --node-divider-strong: rgba(180, 190, 220, 0.5);
+
+  /* Muted text */
+  --node-text-muted: #6a6f9a;
+  --node-text-soft: #8a8fb0;
+
+  /* Surface */
+  --node-surface-muted: rgba(240, 243, 255, 0.9);
+  --node-neutral-contrast-shadow: rgba(100, 110, 150, 0.2);
+
+  /* Anchors */
+  --node-anchor-default: rgba(180, 190, 220, 0.4);
+  --node-anchor-border: rgba(140, 150, 190, 0.8);
+  --node-anchor-hover: rgba(90, 42, 245, 0.25);
+  --node-anchor-active: rgba(90, 42, 245, 0.4);
+  --node-anchor-connected: rgba(90, 42, 245, 0.3);
+  --node-anchor-connected-border: rgba(90, 42, 245, 0.85);
+
+  /* Connections */
+  --node-connection: rgba(90, 42, 245, 0.6);
+  --node-connection-hover: rgba(90, 42, 245, 0.85);
+  --node-connection-selected: rgba(31, 200, 169, 0.85);
+  --node-connection-shadow: rgba(90, 42, 245, 0.25);
+}

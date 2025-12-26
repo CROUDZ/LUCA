@@ -20,6 +20,7 @@ class MainApplication : Application(), ReactApplication {
             add(VolumePackage())
             add(VoiceRecognitionPackage())
             add(BackgroundServicePackage())
+            add(ImmersiveModePackage())
         },
     )
   }

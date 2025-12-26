@@ -309,6 +309,95 @@ export class ModLoader extends EventEmitter {
   }
 
   /**
+   * Envoyer un signal à un node de mod
+   * @param {string} modName - Nom du mod
+   * @param {string} nodeId - ID du node
+   * @param {string} inputId - ID de l'input
+   * @param {boolean} state - État du signal (ON/OFF)
+   */
+  async sendSignalToMod(modName, nodeId, inputId, state) {
+    const mod = this.mods.get(modName);
+    if (!mod || mod.status !== 'active') {
+      return;
+    }
+
+    try {
+      await this.sendToRunner(modName, 'signal', {
+        nodeId,
+        inputId,
+        state,
+        timestamp: Date.now(),
+      });
+    } catch (err) {
+      console.error(`[loader] Failed to send signal to ${modName}:`, err.message);
+    }
+  }
+
+  /**
+   * Notifier un changement de condition à un node de mod
+   * @param {string} modName - Nom du mod
+   * @param {string} nodeId - ID du node
+   * @param {boolean} conditionMet - La condition est-elle remplie
+   */
+  async notifyConditionChange(modName, nodeId, conditionMet) {
+    const mod = this.mods.get(modName);
+    if (!mod || mod.status !== 'active') {
+      return;
+    }
+
+    try {
+      await this.sendToRunner(modName, 'conditionChange', {
+        nodeId,
+        conditionMet,
+        timestamp: Date.now(),
+      });
+    } catch (err) {
+      console.error(`[loader] Failed to notify condition change to ${modName}:`, err.message);
+    }
+  }
+
+  /**
+   * Enregistrer les nodes de condition d'un mod dans le système
+   * Cette méthode est appelée quand un mod est activé et déclare ses nodes
+   * @param {string} modName - Nom du mod
+   * @returns {Promise<Array>} - Liste des nodes enregistrés
+   */
+  async getModConditionNodes(modName) {
+    const mod = this.mods.get(modName);
+    if (!mod || mod.status !== 'active') {
+      return [];
+    }
+
+    try {
+      const result = await this.sendToRunner(modName, 'getConditionNodes', {});
+      return result.nodes || [];
+    } catch (err) {
+      console.error(`[loader] Failed to get condition nodes from ${modName}:`, err.message);
+      return [];
+    }
+  }
+
+  /**
+   * Enregistrer les nodes d'action d'un mod dans le système
+   * @param {string} modName - Nom du mod
+   * @returns {Promise<Array>} - Liste des nodes enregistrés
+   */
+  async getModActionNodes(modName) {
+    const mod = this.mods.get(modName);
+    if (!mod || mod.status !== 'active') {
+      return [];
+    }
+
+    try {
+      const result = await this.sendToRunner(modName, 'getActionNodes', {});
+      return result.nodes || [];
+    } catch (err) {
+      console.error(`[loader] Failed to get action nodes from ${modName}:`, err.message);
+      return [];
+    }
+  }
+
+  /**
    * Lister tous les mods
    */
   listMods() {
@@ -635,6 +724,44 @@ export class ModLoader extends EventEmitter {
 
       case 'emit':
         this.emit('modEmit', { name: modName, output: params.output, value: params.value });
+        break;
+
+      case 'emitSignal':
+        // Nouveau: émission de signal compatible avec ConditionHandler
+        this.emit('modSignal', {
+          name: modName,
+          nodeId: params.nodeId,
+          outputId: params.outputId,
+          state: params.state,
+        });
+        break;
+
+      case 'registerConditionNode':
+        // Nouveau: enregistrement d'un node de condition par un mod
+        this.emit('modRegisterConditionNode', {
+          name: modName,
+          config: params.config,
+          runtime: params.runtime,
+        });
+        break;
+
+      case 'registerActionNode':
+        // Nouveau: enregistrement d'un node d'action par un mod
+        this.emit('modRegisterActionNode', {
+          name: modName,
+          config: params.config,
+          runtime: params.runtime,
+        });
+        break;
+
+      case 'conditionStateChange':
+        // Nouveau: changement d'état de condition
+        this.emit('modConditionStateChange', {
+          name: modName,
+          nodeId: params.nodeId,
+          state: params.state,
+          mode: params.mode,
+        });
         break;
 
       case 'error':

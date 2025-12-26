@@ -1,0 +1,126 @@
+{
+  "manifest_version": 1,
+  "name": "example-condition-node",
+  "version": "1.0.0",
+  "display_name": "Example Condition Nodes",
+  "description": "Demonstrates how to create condition nodes using the new ConditionHandler API",
+  "author": {
+    "name": "LUCA Community",
+    "email": "mods@luca-app.example",
+    "url": "https://github.com/CROUDZ/LUCA"
+  },
+  "main": "main.mjs",
+  "api_version": "2.0.0",
+  "permissions": ["storage.read", "storage.write", "device.sensors"],
+  "node_types": [
+    {
+      "type": "battery-condition",
+      "label": "Battery Level",
+      "category": "Conditions",
+      "description": "Triggers when battery level is above/below a threshold",
+      "nodeKind": "condition",
+      "inputs": [
+        {
+          "id": "signal",
+          "label": "Signal",
+          "type": "signal",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "id": "output",
+          "label": "Output",
+          "type": "signal"
+        }
+      ],
+      "config": {
+        "threshold": 50,
+        "comparison": "above",
+        "timerDuration": 0,
+        "switchMode": false
+      },
+      "color": "#4CAF50",
+      "icon": "battery-charging-full",
+      "iconFamily": "material"
+    },
+    {
+      "type": "time-range-condition",
+      "label": "Time Range",
+      "category": "Conditions",
+      "description": "Triggers when current time is within a specified range",
+      "nodeKind": "condition",
+      "inputs": [
+        {
+          "id": "signal",
+          "label": "Signal",
+          "type": "signal",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "id": "output",
+          "label": "Output",
+          "type": "signal"
+        }
+      ],
+      "config": {
+        "startHour": 9,
+        "startMinute": 0,
+        "endHour": 17,
+        "endMinute": 0,
+        "timerDuration": 0,
+        "switchMode": false
+      },
+      "color": "#FF9800",
+      "icon": "schedule",
+      "iconFamily": "material"
+    },
+    {
+      "type": "random-condition",
+      "label": "Random Chance",
+      "category": "Conditions",
+      "description": "Triggers randomly based on a probability percentage",
+      "nodeKind": "condition",
+      "inputs": [
+        {
+          "id": "signal",
+          "label": "Signal",
+          "type": "signal",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "id": "output",
+          "label": "Output",
+          "type": "signal"
+        }
+      ],
+      "config": {
+        "probability": 50,
+        "timerDuration": 0,
+        "switchMode": false
+      },
+      "color": "#9C27B0",
+      "icon": "casino",
+      "iconFamily": "material"
+    }
+  ],
+  "compatibility": {
+    "luca_min": "2.0.0",
+    "platforms": ["android", "ios", "web"]
+  },
+  "integrity": {
+    "hash": "placeholder-hash",
+    "signature": "placeholder-signature",
+    "key_id": "dev-key"
+  },
+  "metadata": {
+    "repository": "https://github.com/CROUDZ/LUCA",
+    "license": "MIT",
+    "keywords": ["condition", "battery", "time", "random"],
+    "icon": "condition.png"
+  }
+}

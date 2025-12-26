@@ -90,7 +90,7 @@ export interface NodeDefinition {
 
   // Configuration par défaut
   defaultSettings?: Record<string, any>;
-  
+
   // Champs de configuration pour l'éditeur de settings (optionnel)
   settingsFields?: NodeSettingsField[];
 

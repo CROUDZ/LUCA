@@ -64,7 +64,6 @@
   function activateNode(nodeId) {
     const nodeEl = document.getElementById('node-' + nodeId);
     if (!nodeEl) {
-      console.log('[SignalViz] Node element not found:', nodeId);
       return;
     }
 
@@ -85,8 +84,6 @@
 
     // Activer le flux continu sur les connexions sortantes
     startContinuousFlow(nodeId);
-
-    console.log('[SignalViz] Node activated:', nodeId);
   }
 
   /**
@@ -94,12 +91,17 @@
    */
   function deactivateNode(nodeId) {
     const nodeEl = document.getElementById('node-' + nodeId);
-    
+
     // Retirer de la liste des signaux actifs
     activeSignals.delete(nodeId);
-    
+
     if (nodeEl) {
-      nodeEl.classList.remove('signal-active', 'signal-receiving', 'signal-propagating', 'signal-blocked');
+      nodeEl.classList.remove(
+        'signal-active',
+        'signal-receiving',
+        'signal-propagating',
+        'signal-blocked'
+      );
 
       // Retirer l'indicateur
       const indicator = nodeEl.querySelector('.node-signal-indicator');
@@ -110,8 +112,6 @@
 
     // Arrêter le flux continu depuis ce nœud
     stopContinuousFlow(nodeId);
-
-    console.log('[SignalViz] Node deactivated:', nodeId);
   }
 
   /**
@@ -120,7 +120,7 @@
   function startContinuousFlow(nodeId) {
     const outgoing = findOutgoingConnections(nodeId);
     if (outgoing.length === 0) return;
-    
+
     if (!continuousFlows.has(nodeId)) {
       continuousFlows.set(nodeId, new Set());
     }
@@ -219,13 +219,12 @@
   }
 
   /**
- * Anime une connexion quand un signal passe
- */
+   * Anime une connexion quand un signal passe
+   */
   function animateConnection(fromNodeId, toNodeId, duration = 800) {
     // Utiliser notre nouvelle fonction pour trouver la connexion
     const conn = findConnectionElement(fromNodeId, toNodeId);
     if (!conn) {
-      console.log('[SignalViz] Connection not found between', fromNodeId, '->', toNodeId);
       return;
     }
 
@@ -299,15 +298,12 @@
     document.querySelectorAll('.connection-signal-particle').forEach((p) => p.remove());
 
     activeSignals.clear();
-    console.log('[SignalViz] All visuals reset');
   }
 
   /**
    * Handler pour les messages de React Native
    */
   function handleSignalMessage(msg) {
-    console.log('[SignalViz] Received message:', msg.type, msg.payload);
-    
     switch (msg.type) {
       case 'SIGNAL_START':
         // Signal démarré sur un nœud - activer ce nœud
@@ -329,7 +325,7 @@
           const fromId = msg.payload.fromNodeId;
           const toId = msg.payload.toNodeId;
           const state = msg.payload.state;
-          
+
           if (state === 'ON') {
             // Signal ON : activer les deux nœuds et animer la connexion
             activateNode(fromId);
@@ -375,7 +371,7 @@
           deactivateNode(msg.payload.nodeId);
         }
         break;
-        
+
       case 'RESET_ALL':
         // Réinitialiser toutes les visualisations (arrêt du programme)
         resetAllVisuals();
@@ -397,6 +393,4 @@
     handleSignalMessage,
     getActiveSignals: () => new Set(activeSignals),
   };
-
-  console.log('[SignalViz] Module loaded');
 })();

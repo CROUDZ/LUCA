@@ -4,14 +4,14 @@
  */
 
 import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { AppTheme } from './theme';
-import { hexToRgba, getThemeColors } from './colorUtils';
+import type { AppTheme } from '../theme';
+import { hexToRgba, getStyleColors } from '../theme';
 
 /**
  * Crée les styles de boutons communs
  */
 export const createButtonStyles = (theme: AppTheme) => {
-  const { translucentSurface, subtleBorder } = getThemeColors(theme);
+  const { translucentSurface, subtleBorder } = getStyleColors(theme);
 
   return StyleSheet.create({
     // Bouton de base
@@ -83,7 +83,7 @@ export const createButtonStyles = (theme: AppTheme) => {
  * Crée les styles de container communs
  */
 export const createContainerStyles = (theme: AppTheme) => {
-  const { translucentSurface, subtleBorder } = getThemeColors(theme);
+  const { translucentSurface, subtleBorder } = getStyleColors(theme);
 
   return StyleSheet.create({
     // Card basique

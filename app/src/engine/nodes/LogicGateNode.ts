@@ -206,22 +206,48 @@ const LogicGateNode: NodeDefinition = {
             if (signal.state === 'OFF' && signal.explicitOff) {
               clearNodeState(context.nodeId);
               // eslint-disable-next-line dot-notation
-              const node = signalSystem['graph'].nodes.get(context.nodeId);
-              const targets = node ? node.outputs.filter(Boolean) : [];
+
+              // Forcer la node locale à OFF et propager vers ses sorties afin
+              // d'assurer la remise à OFF correcte même si des connections
+              // actives externes existent.
+              try {
+                await signalSystem.setNodeState(
+                  context.nodeId,
+                  'OFF',
+                  { ...signal.data, logicResult: false, finalResult: false, stopped: true },
+                  undefined,
+                  { forcePropagation: true }
+                );
+              } catch (err) {
+                logger.error(
+                  `[LogicGate Node ${context.nodeId}] Failed to force OFF propagation:`,
+                  err
+                );
+              }
+
+              // On bloque la propagation ici car on a déjà forcé la propagation via setNodeState
               return {
-                propagate: targets.length > 0,
+                propagate: false,
                 state: 'OFF',
                 data: { ...signal.data, logicResult: false, finalResult: false, stopped: true },
-                targetOutputs: targets,
               };
             }
-            
+
             // Ignorer les OFF des pulses - on garde l'état pour évaluer la logique
             if (signal.state === 'OFF') {
               return { propagate: false, data: signal.data };
             }
 
             const gateType = normalizeGateType(settings.gateType);
+
+            // S'assurer que l'état existe même si quelqu'un l'a réinitialisé via helpers
+            if (!nodeInputStates.has(context.nodeId)) {
+              nodeInputStates.set(context.nodeId, new Map());
+            }
+            if (!nodeSourceKeyMap.has(context.nodeId)) {
+              nodeSourceKeyMap.set(context.nodeId, new Map());
+            }
+
             const inputStates = nodeInputStates.get(context.nodeId)!;
             const invertSignal = settings.invertSignal ?? false;
             const resolvedInputCount = resolveInputCountForGate(

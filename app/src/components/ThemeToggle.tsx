@@ -1,7 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useAppTheme } from '../styles/theme';
+import { useTheme } from '../theme';
 
 /**
  * Simple toggle button to switch between dark and light theme.
@@ -12,7 +12,7 @@ interface ThemeToggleProps {
 }
 
 const ThemeToggle: React.FC<ThemeToggleProps> = ({ compact = false }) => {
-  const { theme, toggle } = useAppTheme();
+  const { theme, toggle } = useTheme();
 
   if (compact) {
     return (

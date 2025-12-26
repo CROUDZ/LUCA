@@ -18,7 +18,6 @@ import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
-  NodeMeta,
 } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
 import { buildNodeCardHTML } from './templates/nodeCard';
@@ -38,14 +37,6 @@ const formatDelayDisplay = (delayMs: number): string => {
     ? totalSeconds
     : Number(totalSeconds.toFixed(2));
   return `${secondsValue}s`;
-};
-
-const formatSecondsInputValue = (delayMs: number): string => {
-  // When delay is 0, we prefer to show an empty input rather than "0".
-  if (!delayMs || Number(delayMs) === 0) return '';
-  const seconds = delayMs / 1000;
-  const raw = Number.isInteger(seconds) ? `${seconds}` : `${seconds}`;
-  return raw.replace('.', ',');
 };
 
 const DELAY_NODE_ACCENT = '#FF9800';
@@ -109,15 +100,11 @@ const DelayNode: NodeDefinition = {
         signalSystem.registerHandler(
           context.nodeId,
           async (signal: Signal): Promise<SignalPropagation> => {
-            logger.debug(`[Delay Node ${context.nodeId}] Délai en cours...`);
-
             if (signal.state === 'OFF') {
-              logger.debug(`[Delay Node ${context.nodeId}] Signal OFF reçu, bypass du délai`);
               return { propagate: true, state: 'OFF', data: signal.data };
             }
 
             try {
-              // Déterminer le délai
               let delayMs: number;
 
               if (context.inputs.delay_ms !== undefined) {
@@ -130,77 +117,53 @@ const DelayNode: NodeDefinition = {
                 delayMs = settings.delayMs || 1000;
               }
 
-              // S'assurer que le délai est positif
               delayMs = Math.max(0, delayMs);
-
-              logger.debug(`[Delay Node ${context.nodeId}] Attente de ${delayMs}ms`);
-
-              // Attendre
               await new Promise((resolve) => setTimeout(resolve, delayMs));
-
-              logger.debug(`[Delay Node ${context.nodeId}] Délai terminé, propagation`);
 
               return {
                 propagate: true,
-                data: {
-                  ...signal.data,
-                  delayApplied: delayMs,
-                },
+                data: { ...signal.data, delayApplied: delayMs },
               };
             } catch (error) {
-              logger.error(`[Delay Node ${context.nodeId}] Erreur:`, error);
+              logger.error(`[Delay Node ${context.nodeId}] Error:`, error);
               return { propagate: false };
             }
           }
         );
       }
 
-      return {
-        outputs: {},
-        success: true,
-      };
+      return { outputs: {}, success: true };
     } catch (error) {
-      return {
-        outputs: {},
-        success: false,
-        error: String(error),
-      };
+      return { outputs: {}, success: false, error: String(error) };
     }
   },
 
   // ============================================================================
   // HTML PERSONNALISÉ
   // ============================================================================
-  generateHTML: (settings: Record<string, any>, nodeMeta?: NodeMeta) => {
+  generateHTML: (settings: Record<string, any>) => {
     const delayMs = Number.isFinite(Number(settings.delayMs)) ? Number(settings.delayMs) : 1000;
     const safeDelay = Math.max(0, delayMs);
     const displayDelay = formatDelayDisplay(safeDelay);
-    const inputValue = formatSecondsInputValue(safeDelay);
-    const valueAttribute = inputValue ? `value="${inputValue}"` : '';
 
-    const body = `
-      <div class="delay-control">
-        <label class="delay-label">Délai (s)</label>
-        <div class="delay-input-wrapper">
-          <input
-            type="text"
-            inputmode="decimal"
-            class="delay-input"
-            ${valueAttribute}
-            placeholder="1,5"
-          />
-          <span class="delay-unit">sec</span>
-        </div>
-      </div>
-    `;
+    // Use the new inputs system (number input for milliseconds)
+    const inputs = [
+      {
+        type: 'number' as const,
+        name: 'delay_ms',
+        label: 'Délai (ms)',
+        value: safeDelay,
+        min: 0,
+        step: 100,
+      },
+    ];
 
     return buildNodeCardHTML({
       title: 'Delay',
       subtitle: displayDelay,
       iconName: 'schedule',
-      category: nodeMeta?.category || 'Control',
-      accentColor: DELAY_NODE_ACCENT,
-      body,
+      category: 'Control',
+      inputs,
     });
   },
 };

@@ -101,7 +101,7 @@ const ColorScreenNode: NodeDefinition = {
             // Signal OFF : fermer l'écran
             if (signal.state === 'OFF') {
               logger.info(`[ColorScreen Node ${context.nodeId}] Signal OFF - fermeture de l'écran`);
-              
+
               try {
                 signalSystem?.emitEvent('colorscreen.hide', { nodeId: context.nodeId });
               } catch {
@@ -112,7 +112,7 @@ const ColorScreenNode: NodeDefinition = {
               } catch {
                 // ignore
               }
-              
+
               return {
                 propagate: true,
                 data: { ...(signal.data ?? {}), colorScreenActive: false },
@@ -122,8 +122,10 @@ const ColorScreenNode: NodeDefinition = {
             // Signal ON : afficher l'écran
             try {
               const color = settings.color || '#FF0000';
-              
-              logger.info(`[ColorScreen Node ${context.nodeId}] Signal ON - affichage couleur: ${color}`);
+
+              logger.info(
+                `[ColorScreen Node ${context.nodeId}] Signal ON - affichage couleur: ${color}`
+              );
 
               // Afficher l'écran de couleur
               try {
@@ -174,7 +176,7 @@ const ColorScreenNode: NodeDefinition = {
     const color = settings.color || '#FF0000';
     const accentColor = COLOR_SCREEN_NODE_ACCENT;
     const category = nodeMeta?.category || 'Action';
-    
+
     // Utiliser buildNodeCardHTML avec un body personnalisé pour le color picker
     return buildNodeCardHTML({
       title: 'Color Screen',
@@ -193,14 +195,14 @@ const ColorScreenNode: NodeDefinition = {
               type="color" 
               class="color-screen-picker" 
               value="${color}"
-              style="width: 50px; height: 32px; border: 2px solid ${accentColor}; border-radius: 6px; cursor: pointer;"
+              style="flex: 0 0 50px; width: 50px; height: 32px; box-sizing: border-box; border: 2px solid ${accentColor}; border-radius: 6px; cursor: pointer;"
             />
             <input 
               type="text" 
               class="color-screen-input" 
               value="${color}"
               placeholder="#FF0000"
-              style="flex: 1; padding: 6px 10px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(255,255,255,0.05); color: white; font-family: monospace; font-size: 13px;"
+              style="flex: 1; min-width: 0; padding: 6px 10px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: transparent; color: inherit; font-family: monospace; font-size: 13px;"
             />
           </div>
         </div>

@@ -27,10 +27,12 @@ const Animated = {
   Value: AnimatedValue,
   View,
   timing: (_value, _config) => ({ start: (cb) => cb && cb() }),
-  parallel: (anims) => ({ start: (cb) => {
-    anims?.forEach?.((a) => a?.start?.());
-    cb && cb();
-  } }),
+  parallel: (anims) => ({
+    start: (cb) => {
+      anims?.forEach?.((a) => a?.start?.());
+      cb && cb();
+    },
+  }),
   add: () => new AnimatedValue(0),
 };
 
@@ -93,10 +95,10 @@ module.exports = {
   Text,
   TouchableOpacity,
   Image,
-    Platform: {
-      OS: 'android',
-      select: (obj) => (obj ? obj['android'] || obj.default : undefined),
-    },
+  Platform: {
+    OS: 'android',
+    select: (obj) => (obj ? obj['android'] || obj.default : undefined),
+  },
   // Minimal StyleSheet implementation
   StyleSheet: {
     create: (obj) => obj,

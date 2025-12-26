@@ -4,7 +4,7 @@
  * Ce composant affiche une couleur en plein écran, masquant complètement
  * l'interface utilisateur incluant les barres natives (header/footer).
  *
- * Utilise StatusBar pour masquer les éléments système et occupe tout l'écran.
+ * Utilise le mode immersif natif pour masquer complètement les barres système.
  */
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
@@ -15,9 +15,13 @@ import {
   StatusBar,
   DeviceEventEmitter,
   BackHandler,
+  NativeModules,
+  Platform,
 } from 'react-native';
 import { logger } from '../utils/logger';
 import { getSignalSystem } from '../engine/SignalSystem';
+
+const { ImmersiveModeModule } = NativeModules;
 
 interface ColorScreenData {
   nodeId: number;
@@ -31,6 +35,29 @@ export default function ColorScreenOverlay() {
 
   useEffect(() => {
     visibleRef.current = visible;
+  }, [visible]);
+
+  // Gestion du mode immersif (masquer status bar et navigation bar)
+  useEffect(() => {
+    if (Platform.OS === 'android' && ImmersiveModeModule) {
+      if (visible) {
+        // Activer le mode immersif quand l'écran s'affiche
+        ImmersiveModeModule.enableImmersiveMode()
+          .then((r: boolean) => {
+            if (r) logger.info('[ColorScreenOverlay] Mode immersif activé');
+            else logger.warn('[ColorScreenOverlay] Mode immersif non disponible');
+          })
+          .catch((e: Error) => logger.warn('[ColorScreenOverlay] Erreur mode immersif:', e));
+      } else {
+        // Désactiver le mode immersif quand l'écran se ferme
+        ImmersiveModeModule.disableImmersiveMode()
+          .then((r: boolean) => {
+            if (r) logger.info('[ColorScreenOverlay] Mode immersif désactivé');
+            else logger.warn('[ColorScreenOverlay] Mode immersif non disponible');
+          })
+          .catch((e: Error) => logger.warn('[ColorScreenOverlay] Erreur mode immersif:', e));
+      }
+    }
   }, [visible]);
 
   // Gestion de l'affichage de l'écran
@@ -140,11 +167,13 @@ export default function ColorScreenOverlay() {
       animationType="fade"
       transparent={false}
       statusBarTranslucent
+      // @ts-ignore - navigationBarTranslucent est disponible sur Android
+      navigationBarTranslucent
       onRequestClose={() => {
         // Ne rien faire - l'écran ne peut être fermé que par le système
       }}
     >
-      <StatusBar hidden={true} />
+      <StatusBar hidden={true} translucent backgroundColor="transparent" />
       <View style={[styles.container, { backgroundColor: color }]} />
     </Modal>
   );
@@ -155,5 +184,10 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 });

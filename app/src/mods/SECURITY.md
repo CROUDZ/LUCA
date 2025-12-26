@@ -186,16 +186,20 @@ if (mod.restartCount < CONFIG.maxRestarts) {
 ### Ce que le système NE protège PAS contre:
 
 1. **Bugs dans Node.js lui-même**
+
    - Si une vulnérabilité existe dans V8 ou Node.js, un mod peut potentiellement l'exploiter
 
 2. **Attaques side-channel**
+
    - Timing attacks
    - Mesure de consommation mémoire
 
 3. **Code natif**
+
    - Si un mod bundle un addon natif (bien que interdit par validation)
 
 4. **Social engineering**
+
    - Un mod peut afficher des UI trompeuses
    - Doit être vérifié par review manuelle
 

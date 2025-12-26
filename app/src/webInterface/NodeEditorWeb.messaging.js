@@ -18,6 +18,9 @@ function setupMessageListener() {
       }
 
       switch (msg.type) {
+        case 'SET_THEME':
+          window.DrawflowEditor.setTheme(msg.payload?.theme || 'dark');
+          break;
         case 'LOAD_GRAPH':
           if (msg.payload?.drawflow) {
             window.DrawflowEditor.editor.import(msg.payload);

@@ -11,8 +11,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../types/navigation.types';
-import { useAppTheme } from '../styles/theme';
-import createSettingsStyles from './SettingsScreenStyles';
+import { useTheme } from '../theme';
 import { settingsManager, type AppSettings } from '../utils/settingsManager';
 import { backgroundService } from '../utils/backgroundService';
 import { logger } from '../utils/logger';
@@ -24,7 +23,7 @@ interface SettingsScreenProps {
 }
 
 const SettingsScreen: React.FC<SettingsScreenProps> = React.memo(({ navigation }) => {
-  const { theme, preference, setPreference } = useAppTheme();
+  const { theme, preference, setPreference } = useTheme();
   const styles = useMemo(() => createSettingsStyles(theme), [theme]);
 
   const [settings, setSettings] = useState<AppSettings>(settingsManager.getSettings());
@@ -60,11 +59,19 @@ const SettingsScreen: React.FC<SettingsScreenProps> = React.memo(({ navigation }
   ];
 
   return (
-    <View style={styles.container}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: theme.colors.background,
+      }}
+    >
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={{
+            padding: 8,
+            marginRight: 12,
+          }}
           onPress={() => navigation?.goBack()}
           activeOpacity={0.7}
         >
@@ -73,9 +80,14 @@ const SettingsScreen: React.FC<SettingsScreenProps> = React.memo(({ navigation }
         <Text style={styles.headerTitle}>Paramètres</Text>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView
+        style={{
+          flex: 1,
+          padding: 16,
+        }}
+      >
         {/* Section Exécution */}
-        <View style={styles.section}>
+        <View style={{ marginBottom: 24 }}>
           <Text style={styles.sectionTitle}>Exécution</Text>
 
           <View style={styles.settingCard}>
@@ -169,5 +181,99 @@ const SettingsScreen: React.FC<SettingsScreenProps> = React.memo(({ navigation }
 });
 
 SettingsScreen.displayName = 'SettingsScreen';
+
+import { StyleSheet } from 'react-native';
+import type { AppTheme } from '../theme';
+import { hexToRgba } from '../theme';
+
+const createSettingsStyles = (theme: AppTheme) => {
+  return StyleSheet.create({
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.backgroundSecondary,
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    sectionTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.colors.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 12,
+      paddingHorizontal: 4,
+    },
+    settingCard: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    settingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 8,
+    },
+    settingInfo: {
+      flex: 1,
+      marginRight: 16,
+    },
+    settingLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.colors.text,
+      marginBottom: 4,
+    },
+    settingDescription: {
+      fontSize: 13,
+      color: theme.colors.textSecondary,
+      lineHeight: 18,
+    },
+    switch: {
+      transform: [{ scaleX: 1.1 }, { scaleY: 1.1 }],
+    },
+    optionSelected: {
+      backgroundColor: theme.colors.backgroundSecondary,
+      borderRadius: 6,
+    },
+    infoBox: {
+      backgroundColor: hexToRgba(theme.colors.info, 0.12),
+      borderRadius: 8,
+      padding: 12,
+      marginTop: 16,
+      borderWidth: 1,
+      borderColor: hexToRgba(theme.colors.info, 0.3),
+    },
+    infoText: {
+      fontSize: 13,
+      color: theme.colors.textSecondary,
+      lineHeight: 18,
+    },
+    warningBox: {
+      backgroundColor: hexToRgba(theme.colors.warning, 0.12),
+      borderRadius: 8,
+      padding: 12,
+      marginTop: 8,
+      borderWidth: 1,
+      borderColor: hexToRgba(theme.colors.warning, 0.3),
+    },
+    warningText: {
+      fontSize: 13,
+      color: theme.colors.warning,
+      lineHeight: 18,
+    },
+  });
+};
 
 export default SettingsScreen;

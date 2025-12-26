@@ -4,7 +4,12 @@
 
 function isNodeControlInteraction(target) {
   if (!target) return false;
-  return Boolean(target.closest('.condition-invert-control') || target.closest('.delay-control'));
+  return Boolean(
+    target.closest('.condition-invert-control') ||
+    target.closest('.delay-control') ||
+    target.closest('.voice-keyword-control') ||
+    target.closest('.notification-control')
+  );
 }
 
 document.addEventListener(
@@ -324,6 +329,225 @@ function handleDelayInputChange(target, isFinal = false) {
   );
 });
 
+// ============================================
+// CONTRÔLE MOT-CLÉ VOCAL (Voice Keyword)
+// ============================================
+
+function handleVoiceKeywordChange(target, isFinal = false) {
+  const node = target.closest('.drawflow-node');
+  if (!node) return;
+
+  const nodeId = node.id.replace('node-', '');
+  const nodeData = window.DrawflowEditor.editor.drawflow.drawflow.Home.data[nodeId];
+  if (!nodeData) return;
+
+  if (!nodeData.data) nodeData.data = {};
+  if (!nodeData.data.settings) nodeData.data.settings = {};
+
+  const raw = (target.value || '').toString();
+  const keyword = raw.trim();
+
+  nodeData.data.settings.keyword = keyword;
+
+  // Mettre à jour le subtitle: on appelle la fonction existante puis on ajoute le mot-clé
+  updateConditionSubtitle(node, nodeData.data.settings);
+
+  const subtitle = node.querySelector('.node-subtitle');
+  if (subtitle) {
+    const short = keyword.length > 22 ? `${keyword.substring(0, 22)}…` : keyword;
+    subtitle.textContent = `${subtitle.textContent} • "${short}"`;
+  }
+
+  // Mettre à jour la puce (chip) du node pour afficher le mot-clé
+  const chips = node.querySelectorAll('.node-card__chips .node-chip');
+  if (chips && chips.length) {
+    // On met à jour la première puce qui correspond au mot-clé
+    chips[0].textContent = `"${keyword}"`;
+  }
+
+  window.DrawflowEditor.exportGraph();
+
+  if (window.ReactNativeWebView) {
+    window.ReactNativeWebView.postMessage(
+      JSON.stringify({
+        type: 'NODE_SETTING_CHANGED',
+        payload: { nodeId, nodeType: nodeData.data?.type, settings: nodeData.data.settings },
+      })
+    );
+  }
+
+  if (isFinal && navigator.vibrate) navigator.vibrate(15);
+  // When change is final, remove focus so mobile keyboards close
+  if (isFinal && typeof target.blur === 'function') {
+    try {
+      target.blur();
+    } catch (err) {
+      /* ignore */
+    }
+  }
+}
+
+['input', 'change'].forEach((eventName) => {
+  document.addEventListener(
+    eventName,
+    (e) => {
+      if (e.target.classList.contains('voice-keyword-input')) {
+        e.stopPropagation();
+        handleVoiceKeywordChange(e.target, eventName === 'change');
+      }
+      // Notification inputs
+      if (
+        e.target.classList.contains('notification-title-input') ||
+        e.target.classList.contains('notification-message-input')
+      ) {
+        e.stopPropagation();
+        handleNotificationFieldChange(e.target, eventName === 'change');
+      }
+      if (e.target.classList.contains('notification-type-select')) {
+        e.stopPropagation();
+        handleNotificationTypeChange(e.target, eventName === 'change');
+      }
+    },
+    true
+  );
+});
+
+document.addEventListener(
+  'blur',
+  (e) => {
+    if (e.target.classList.contains('voice-keyword-input')) {
+      handleVoiceKeywordChange(e.target, true);
+    }
+    if (
+      e.target.classList.contains('notification-title-input') ||
+      e.target.classList.contains('notification-message-input')
+    ) {
+      handleNotificationFieldChange(e.target, true);
+    }
+    if (e.target.classList.contains('notification-type-select')) {
+      handleNotificationTypeChange(e.target, true);
+    }
+  },
+  true
+);
+
+// Fermer le clavier sur 'Enter' pour les inputs de mot-clé
+document.addEventListener(
+  'keydown',
+  (e) => {
+    const target = e.target;
+    if (!target || !target.classList) return;
+    if (
+      target.classList.contains('voice-keyword-input') ||
+      target.classList.contains('notification-title-input') ||
+      target.classList.contains('notification-message-input')
+    ) {
+      if (e.key === 'Enter' || e.keyCode === 13) {
+        e.preventDefault();
+        try {
+          target.blur();
+        } catch (err) {
+          /* ignore */
+        }
+      }
+    }
+  },
+  true
+);
+
+// ============================================
+// GESTION NOTIFICATION FIELDS
+// ============================================
+
+function handleNotificationFieldChange(target, isFinal = false) {
+  const node = target.closest('.drawflow-node');
+  if (!node) return;
+
+  const nodeId = node.id.replace('node-', '');
+  const nodeData = window.DrawflowEditor.editor.drawflow.drawflow.Home.data[nodeId];
+  if (!nodeData) return;
+
+  if (!nodeData.data) nodeData.data = {};
+  if (!nodeData.data.settings) nodeData.data.settings = {};
+
+  if (target.classList.contains('notification-title-input')) {
+    const raw = (target.value || '').toString();
+    nodeData.data.settings.title = raw;
+
+    const subtitle = node.querySelector('.node-subtitle');
+    if (subtitle) {
+      const short = raw.length > 22 ? `${raw.substring(0, 22)}…` : raw || 'Notification';
+      subtitle.textContent = short;
+    }
+  }
+
+  if (target.classList.contains('notification-message-input')) {
+    const raw = (target.value || '').toString();
+    nodeData.data.settings.message = raw;
+
+    // update description
+    const desc = node.querySelector('.node-card__description');
+    if (desc) {
+      const short = raw.length > 22 ? `${raw.substring(0, 22)}…` : raw;
+      desc.textContent = `Message: ${short}`;
+    }
+  }
+
+  window.DrawflowEditor.exportGraph();
+
+  if (window.ReactNativeWebView) {
+    window.ReactNativeWebView.postMessage(
+      JSON.stringify({
+        type: 'NODE_SETTING_CHANGED',
+        payload: { nodeId, nodeType: nodeData.data?.type, settings: nodeData.data.settings },
+      })
+    );
+  }
+
+  if (isFinal && navigator.vibrate) navigator.vibrate(15);
+
+  if (isFinal && typeof target.blur === 'function') {
+    try {
+      target.blur();
+    } catch (err) {
+      /* ignore */
+    }
+  }
+}
+
+function handleNotificationTypeChange(target, isFinal = false) {
+  const node = target.closest('.drawflow-node');
+  if (!node) return;
+
+  const nodeId = node.id.replace('node-', '');
+  const nodeData = window.DrawflowEditor.editor.drawflow.drawflow.Home.data[nodeId];
+  if (!nodeData) return;
+
+  if (!nodeData.data) nodeData.data = {};
+  if (!nodeData.data.settings) nodeData.data.settings = {};
+
+  const val = (target.value || 'alert').toString();
+  nodeData.data.settings.notificationType = val;
+
+  // Update chip label and tone
+  const chips = node.querySelectorAll('.node-card__chips .node-chip');
+  if (chips && chips.length) {
+    chips[0].textContent = val.toUpperCase();
+  }
+
+  window.DrawflowEditor.exportGraph();
+  if (window.ReactNativeWebView) {
+    window.ReactNativeWebView.postMessage(
+      JSON.stringify({
+        type: 'NODE_SETTING_CHANGED',
+        payload: { nodeId, nodeType: nodeData.data?.type, settings: nodeData.data.settings },
+      })
+    );
+  }
+
+  if (isFinal && navigator.vibrate) navigator.vibrate(15);
+}
+
 // Expose helper for tests/tools
 window.DrawflowEditor = window.DrawflowEditor || {};
 window.DrawflowEditor.handleDelayInputChange = handleDelayInputChange;
@@ -455,7 +679,7 @@ function handleColorScreenInputChange(target) {
   if (!nodeData.data.settings) nodeData.data.settings = {};
 
   let color = target.value || '#FF0000';
-  
+
   // Validate hex color
   if (!/^#[0-9A-Fa-f]{6}$/.test(color)) {
     // If invalid, try to fix it

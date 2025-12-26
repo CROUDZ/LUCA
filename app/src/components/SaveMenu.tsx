@@ -12,7 +12,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { formatDate } from '../utils/dateUtils';
 import { Save } from '../types';
 import createStyles from './SaveMenuStyles';
-import { useAppTheme } from '../styles/theme';
+import { useTheme } from '../theme';
 
 interface SaveMenuProps {
   visible: boolean;
@@ -44,7 +44,7 @@ const SaveMenu: React.FC<SaveMenuProps> = React.memo(
     onLoadSave,
     onDeleteSave,
   }) => {
-    const { theme } = useAppTheme();
+    const { theme } = useTheme();
     const styles = createStyles(theme);
 
     return (

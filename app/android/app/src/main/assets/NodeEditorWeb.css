@@ -36,6 +36,147 @@ body {
     rgba(var(--luca-background-deep-rgb, 11, 13, 31), 0.98)
   );
 }
+
+/* ============================================
+   LIGHT THEME - Complete Overrides
+   ============================================ */
+
+/* Light theme background for drawflow - subtle gradient with dot pattern */
+:root.light-theme #drawflow {
+  background:
+    radial-gradient(circle at 25% 25%, rgba(90, 42, 245, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(46, 208, 255, 0.03) 0%, transparent 50%),
+    linear-gradient(180deg, #f8faff 0%, #f0f4ff 100%);
+}
+
+/* Light theme body */
+:root.light-theme body {
+  background: #f8faff;
+  color: #1a1c3a;
+}
+
+/* Light theme node card backgrounds */
+:root.light-theme .node-card,
+:root.light-theme .drawflow .drawflow-node .node-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fafbff 100%);
+  border: 1px solid rgba(180, 190, 220, 0.5);
+  box-shadow:
+    0 4px 20px rgba(90, 100, 160, 0.1),
+    0 1px 4px rgba(90, 100, 160, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Light theme node border */
+:root.light-theme .drawflow .drawflow-node {
+  border-color: transparent;
+  box-shadow:
+    0 8px 32px rgba(90, 100, 160, 0.12),
+    0 2px 8px rgba(90, 100, 160, 0.08);
+}
+
+:root.light-theme .drawflow .drawflow-node:hover {
+  border-color: rgba(90, 42, 245, 0.3) !important;
+  box-shadow:
+    0 12px 40px rgba(90, 42, 245, 0.15),
+    0 4px 12px rgba(90, 100, 160, 0.1) !important;
+}
+
+:root.light-theme .drawflow .drawflow-node.selected,
+:root.light-theme .drawflow .drawflow-node.selected:hover {
+  border-color: rgba(90, 42, 245, 0.5) !important;
+  box-shadow:
+    0 16px 48px rgba(90, 42, 245, 0.2),
+    0 4px 16px rgba(90, 100, 160, 0.12) !important;
+}
+
+/* Light theme node titles */
+:root.light-theme .node-card__title,
+:root.light-theme .drawflow .drawflow-node .title,
+:root.light-theme .node-title {
+  color: #1a1c3a;
+}
+
+/* Light theme subtitle/description */
+:root.light-theme .node-card__subtitle,
+:root.light-theme .node-card__description,
+:root.light-theme .drawflow .drawflow-node .content,
+:root.light-theme .drawflow .drawflow-node .node-subtitle,
+:root.light-theme .node-subtitle {
+  color: #5a5f8a;
+}
+
+/* Ensure color picker text is readable in light theme */
+:root.light-theme .node-card__body .color-screen-input {
+  color: #1a1c3a;
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Light theme title icon */
+:root.light-theme .node-card__title-icon {
+  color: #5a2af5;
+}
+
+/* Light theme badge */
+:root.light-theme .node-card__badge {
+  background: rgba(90, 42, 245, 0.1);
+  border-color: rgba(90, 42, 245, 0.25);
+  color: #5a2af5;
+}
+
+/* Light theme anchor box-shadow */
+:root.light-theme .drawflow .drawflow-node .input,
+:root.light-theme .drawflow .drawflow-node .output {
+  background: rgba(180, 190, 220, 0.4);
+  border-color: rgba(140, 150, 190, 0.8);
+  box-shadow:
+    0 0 0 4px #f8faff,
+    0 0 8px rgba(90, 42, 245, 0.15);
+}
+
+:root.light-theme .drawflow .drawflow-node .input:hover,
+:root.light-theme .drawflow .drawflow-node .output:hover {
+  background: rgba(90, 42, 245, 0.25);
+  border-color: rgba(90, 42, 245, 0.7);
+  box-shadow:
+    0 0 0 4px #f8faff,
+    0 0 12px rgba(90, 42, 245, 0.3);
+}
+
+:root.light-theme .drawflow .drawflow-node .input.connected,
+:root.light-theme .drawflow .drawflow-node .output.connected {
+  background: rgba(90, 42, 245, 0.3);
+  border-color: rgba(90, 42, 245, 0.85);
+  box-shadow:
+    0 0 0 4px #f8faff,
+    0 0 12px rgba(90, 42, 245, 0.35);
+}
+
+/* Light theme connections */
+:root.light-theme .drawflow .connection .main-path {
+  stroke: rgba(90, 42, 245, 0.6);
+  filter: drop-shadow(0 0 4px rgba(90, 42, 245, 0.2));
+}
+
+:root.light-theme .drawflow .connection .main-path:hover {
+  stroke: rgba(90, 42, 245, 0.85);
+  filter: drop-shadow(0 0 8px rgba(90, 42, 245, 0.35));
+}
+
+:root.light-theme .drawflow .connection .point {
+  fill: rgba(180, 190, 220, 0.5);
+  stroke: rgba(140, 150, 190, 0.8);
+  box-shadow:
+    0 0 0 4px #f8faff,
+    0 0 6px rgba(90, 42, 245, 0.15);
+}
+
+:root.light-theme .drawflow .connection .point:hover,
+:root.light-theme .drawflow .connection .point.selected {
+  fill: rgba(90, 42, 245, 0.4);
+  stroke: rgba(90, 42, 245, 0.85);
+}
+
 .drawflow .parent-drawflow {
   cursor: grab;
 }
@@ -601,6 +742,136 @@ body.creating-connection-from-input .drawflow .drawflow-node:hover {
   font-weight: 500;
 }
 
+/* =============================
+   Node card inputs (text, number, switch)
+   ============================= */
+.node-card__inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 6px;
+}
+
+.node-card__input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.node-card__input-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--editor-text-primary, #f4f6ff);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  min-width: 96px;
+  flex-shrink: 0;
+}
+
+.node-card__input--text input,
+.node-card__input--number input {
+  width: 100%;
+  background: rgba(var(--luca-background-muted-rgb), 0.6);
+  border: 1px solid rgba(var(--editor-brand-soft-rgb), 0.4);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--editor-text-primary, #f4f6ff);
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  transition:
+    box-shadow 0.12s,
+    border-color 0.12s;
+}
+
+.node-card__input--number input {
+  max-width: 140px;
+  text-align: left; /* keep numeric input content left-aligned for consistency */
+  -moz-appearance: textfield;
+}
+
+.node-card__input--number input::-webkit-outer-spin-button,
+.node-card__input--number input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.node-card__input--text input::placeholder,
+.node-card__input--number input::placeholder {
+  color: var(--editor-text-secondary, #9ca3af);
+  font-weight: 500;
+}
+
+.node-card__input--text input:focus,
+.node-card__input--number input:focus {
+  box-shadow: 0 0 0 3px rgba(var(--editor-brand-soft-rgb), 0.12);
+  border-color: var(--node-accent, rgba(var(--editor-brand-rgb), 0.85));
+}
+
+.node-card__input--switch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Simple toggle replacement for checkbox inputs inside switch control */
+.node-card__input--switch input[type='checkbox'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 44px;
+  height: 24px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.06);
+  position: relative;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition:
+    background 0.18s,
+    border-color 0.18s;
+}
+
+.node-card__input--switch input[type='checkbox']::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.18s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.node-card__input--switch input[type='checkbox']:checked {
+  background: #4caf50;
+  border-color: rgba(76, 175, 80, 0.6);
+}
+
+.node-card__input--switch input[type='checkbox']:checked::after {
+  transform: translateX(20px);
+}
+
+.node-switch__label {
+  font-size: 13px;
+  color: var(--editor-text-primary, #f4f6ff);
+  font-weight: 600;
+}
+
+@media (max-width: 520px) {
+  .node-card__input {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .node-card__input-label {
+    min-width: 0;
+    text-align: left;
+  }
+}
+
 .flashlight-node {
   background: rgba(var(--node-warning-rgb, 245, 165, 36), 0.08);
   border-radius: 12px;
@@ -617,6 +888,77 @@ body.creating-connection-from-input .drawflow .drawflow-node:hover {
 
 .auto-emit-status {
   display: inline-flex;
+  /* Voice Keyword control */
+  .voice-keyword-control {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .voice-keyword-control .keyword-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--editor-text-primary, #e5e7eb);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .voice-keyword-input {
+    width: 100%;
+    background: rgba(var(--luca-background-muted-rgb), 0.6);
+    border: 1px solid rgba(var(--editor-brand-soft-rgb), 0.4);
+    border-radius: 10px;
+    color: var(--editor-text-primary, #f4f6ff);
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    outline: none;
+  }
+
+  /* Notification control */
+  .notification-control {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .notification-field {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .notification-label {
+    width: 56px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--editor-text-primary, #e5e7eb);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .notification-title-input,
+  .notification-message-input {
+    width: 100%;
+    background: rgba(var(--luca-background-muted-rgb), 0.6);
+    border: 1px solid rgba(var(--editor-brand-soft-rgb), 0.4);
+    border-radius: 10px;
+    color: var(--editor-text-primary, #f4f6ff);
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    outline: none;
+  }
+
+  .notification-type-select {
+    background: transparent;
+    border: 1px solid rgba(var(--editor-brand-soft-rgb), 0.4);
+    border-radius: 8px;
+    padding: 6px 8px;
+    color: var(--editor-text-primary, #f4f6ff);
+    font-weight: 600;
+  }
   align-items: center;
   gap: 6px;
   font-size: 11px;
@@ -663,6 +1005,52 @@ body.creating-connection-from-input .drawflow .drawflow-node:hover {
 .auto-emit-status.disabled .status-dot {
   background: var(--node-error, #f87171);
   box-shadow: 0 0 6px rgba(var(--node-error-rgb, 255, 107, 129), 0.6);
+}
+
+/* Light theme auto-emit status */
+:root.light-theme .auto-emit-status {
+  color: #5a5f8a;
+}
+
+:root.light-theme .auto-emit-status .status-dot {
+  background: #94a3b8;
+  box-shadow: 0 0 4px rgba(148, 163, 184, 0.4);
+}
+
+:root.light-theme .auto-emit-status.active {
+  color: #0d7a65;
+}
+
+:root.light-theme .auto-emit-status.active .status-dot {
+  background: #1fc8a9;
+  box-shadow: 0 0 8px rgba(31, 200, 169, 0.5);
+}
+
+:root.light-theme .auto-emit-status.blocked {
+  color: #9a6510;
+}
+
+:root.light-theme .auto-emit-status.blocked .status-dot {
+  background: #f5a524;
+  box-shadow: 0 0 6px rgba(245, 165, 36, 0.5);
+}
+
+:root.light-theme .auto-emit-status.disabled {
+  color: #c53050;
+}
+
+:root.light-theme .auto-emit-status.disabled .status-dot {
+  background: #ff6b81;
+  box-shadow: 0 0 6px rgba(255, 107, 129, 0.4);
+}
+
+/* Light theme flashlight node */
+:root.light-theme .flashlight-node {
+  background: rgba(245, 165, 36, 0.08);
+}
+
+:root.light-theme .flashlight-node.inverted {
+  border-color: rgba(245, 165, 36, 0.4);
 }
 
 /* Responsive adjustments */
@@ -1073,7 +1461,7 @@ body.creating-connection-from-input .drawflow .drawflow-node:hover {
 
 .toggle-slider:before {
   position: absolute;
-  content: "";
+  content: '';
   height: 18px;
   width: 18px;
   left: 3px;
@@ -1107,7 +1495,9 @@ body.creating-connection-from-input .drawflow .drawflow-node:hover {
   font-size: 14px;
   font-weight: 500;
   text-align: center;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   -webkit-appearance: none;
   -moz-appearance: textfield;
 }
@@ -1156,4 +1546,188 @@ body.creating-connection-from-input .drawflow .drawflow-node:hover {
   background: rgba(76, 175, 80, 0.25);
   color: #81c784;
   border: 1px solid rgba(76, 175, 80, 0.4);
+}
+
+/* ==========================================================================
+   LIGHT THEME OVERRIDES - Additional controls
+   ========================================================================== */
+
+/* Light theme condition settings */
+:root.light-theme .condition-settings {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+:root.light-theme .setting-row + .setting-row {
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+:root.light-theme .setting-text {
+  color: var(--luca-text-on-light);
+}
+
+:root.light-theme .setting-hint {
+  color: #5a5f8a;
+}
+
+/* Light theme toggle switch */
+:root.light-theme .toggle-slider {
+  background-color: rgba(180, 190, 220, 0.5);
+}
+
+:root.light-theme .toggle-slider:before {
+  background-color: white;
+  box-shadow: 0 2px 6px rgba(90, 100, 160, 0.2);
+}
+
+/* Light theme timer input */
+:root.light-theme .timer-duration-input {
+  border: 1px solid rgba(180, 190, 220, 0.6);
+  background: #ffffff;
+  color: #1a1c3a;
+}
+
+:root.light-theme .timer-duration-input:focus {
+  border-color: #5a2af5;
+  box-shadow: 0 0 0 3px rgba(90, 42, 245, 0.15);
+}
+
+:root.light-theme .timer-duration-input::placeholder {
+  color: #8a8fb0;
+}
+
+/* Light theme delay input */
+:root.light-theme .delay-input-wrapper {
+  background: #ffffff;
+  border: 1px solid rgba(180, 190, 220, 0.6);
+}
+
+:root.light-theme .delay-input {
+  color: #1a1c3a;
+}
+
+:root.light-theme .delay-unit,
+:root.light-theme .delay-label {
+  color: #5a5f8a;
+}
+
+/* Light theme logic gate select */
+:root.light-theme .logic-gate-select-wrapper {
+  background: #ffffff;
+  border: 1px solid rgba(180, 190, 220, 0.6);
+}
+
+:root.light-theme .logic-gate-select {
+  color: #1a1c3a;
+}
+
+:root.light-theme .logic-gate-helper {
+  color: #5a5f8a;
+}
+
+/* Light theme node info */
+:root.light-theme .node-info-item {
+  background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+  border: 1px solid rgba(180, 190, 220, 0.4);
+}
+
+:root.light-theme .node-info-label {
+  color: #6a6f9a;
+}
+
+:root.light-theme .node-info-value {
+  color: #1a1c3a;
+}
+
+/* Light theme node chips */
+:root.light-theme .node-chip {
+  background: rgba(90, 42, 245, 0.08);
+  border-color: rgba(90, 42, 245, 0.2);
+  color: #3a2090;
+}
+
+:root.light-theme .node-chip--success {
+  background: rgba(31, 200, 169, 0.12);
+  border-color: rgba(31, 200, 169, 0.35);
+  color: #0d7a65;
+}
+
+:root.light-theme .node-chip--warning {
+  background: rgba(245, 165, 36, 0.12);
+  border-color: rgba(245, 165, 36, 0.35);
+  color: #9a6510;
+}
+
+:root.light-theme .node-chip--danger {
+  background: rgba(255, 107, 129, 0.12);
+  border-color: rgba(255, 107, 129, 0.35);
+  color: #c53050;
+}
+
+:root.light-theme .node-chip--info {
+  background: rgba(87, 178, 255, 0.12);
+  border-color: rgba(87, 178, 255, 0.35);
+  color: #1a70b0;
+}
+
+/* Light theme node footer */
+:root.light-theme .node-card__footer {
+  border-top: 1px dashed rgba(180, 190, 220, 0.5);
+  color: #6a6f9a;
+}
+
+/* Light theme node dividers */
+:root.light-theme .node-card__body {
+  border-top: 1px solid rgba(180, 190, 220, 0.4);
+}
+
+/* Light theme mode badges */
+:root.light-theme .mode-badge.switch {
+  background: rgba(156, 39, 176, 0.12);
+  color: #7b1fa2;
+  border-color: rgba(156, 39, 176, 0.3);
+}
+
+:root.light-theme .mode-badge.timer {
+  background: rgba(255, 152, 0, 0.12);
+  color: #e65100;
+  border-color: rgba(255, 152, 0, 0.3);
+}
+
+:root.light-theme .mode-badge.continuous {
+  background: rgba(76, 175, 80, 0.12);
+  color: #2e7d32;
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+/* Light theme signal flowing connections */
+:root.light-theme .drawflow .connection.signal-flowing path {
+  stroke: #2e7d32 !important;
+  filter: drop-shadow(0 0 6px rgba(76, 175, 80, 0.5));
+}
+
+/* Light theme node active states */
+:root.light-theme .drawflow .drawflow-node.signal-active .node-card {
+  border-color: #2e7d32 !important;
+  box-shadow:
+    0 0 20px rgba(76, 175, 80, 0.25),
+    0 0 40px rgba(76, 175, 80, 0.1) !important;
+}
+
+:root.light-theme .drawflow .drawflow-node.signal-receiving .node-card {
+  border-color: #f9a825 !important;
+  box-shadow:
+    0 0 25px rgba(249, 168, 37, 0.3),
+    0 0 50px rgba(249, 168, 37, 0.15) !important;
+}
+
+:root.light-theme .drawflow .drawflow-node.signal-propagating .node-card {
+  border-color: #1976d2 !important;
+  box-shadow:
+    0 0 20px rgba(25, 118, 210, 0.25),
+    0 0 40px rgba(25, 118, 210, 0.1) !important;
+}
+
+:root.light-theme .drawflow .drawflow-node.signal-blocked .node-card {
+  border-color: #d32f2f !important;
+  box-shadow: 0 0 15px rgba(211, 47, 47, 0.25) !important;
 }

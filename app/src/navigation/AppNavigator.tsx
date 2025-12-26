@@ -13,12 +13,14 @@ import NodeEditorScreen from '../screens/NodeEditorScreen';
 import NodePickerScreen from '../screens/NodePickerScreen';
 import ModLibraryScreen from '../screens/ModLibraryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
-import { useAppTheme } from '../styles/theme';
+import InstructionsScreen from '../screens/InstructionsScreen';
+import ShortcutsScreen from '../screens/ShortcutsScreen';
+import { useTheme } from '../theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator: React.FC = () => {
-  const { theme } = useAppTheme();
+  const { theme } = useTheme();
 
   const navigationTheme = useMemo<NavigationTheme>(() => {
     const baseTheme = theme.mode === 'dark' ? NavigationDarkTheme : NavigationDefaultTheme;
@@ -83,6 +85,22 @@ const AppNavigator: React.FC = () => {
           component={SettingsScreen}
           options={{
             title: 'Settings',
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="Shortcuts"
+          component={ShortcutsScreen}
+          options={{
+            title: 'Raccourcis',
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="Instructions"
+          component={InstructionsScreen}
+          options={{
+            title: 'Instructions',
             animation: 'slide_from_right',
           }}
         />

@@ -2,11 +2,10 @@
  * Application principale - Éditeur de nœuds visuels LUCA
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AppThemeProvider } from './src/styles/theme';
+import { ThemeProvider } from './src/theme';
 import AppNavigator from './src/navigation/AppNavigator';
-import { nodeRegistry } from './src/engine/NodeRegistry';
 import { logger } from './src/utils/logger';
 import { modStorage } from './src/utils/modStorage';
 import { backgroundService } from './src/utils/backgroundService';
@@ -15,49 +14,28 @@ import {
   stopMonitoringNativeTorch,
 } from './src/engine/nodes/FlashLightConditionNode';
 import ColorScreenOverlay from './src/components/ColorScreenOverlay';
-
-// Chargement de toutes les nodes
 import './src/engine/nodes';
 import SplashScreen from './src/components/SplashScreen';
-import { SHOW_SPLASH_DEV } from './src/config/splashDev';
-
-// Utilitaires de debug (en DEV uniquement)
-if (__DEV__) {
-  import('./src/utils/debugSignalSystem');
-}
 
 function App() {
-  const [isAppReady, setIsAppReady] = useState(SHOW_SPLASH_DEV ? true : false);
-  const [isSplashFinished, setIsSplashFinished] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const initRef = useRef(false);
 
   useEffect(() => {
-    // Initialiser le stockage des mods et charger les mods installés
-    const initMods = async () => {
-      await modStorage.initialize();
-      const installedCount = modStorage.getInstalledCount();
-      logger.debug(`📦 App: ${installedCount} mods loaded`);
+    if (initRef.current) return;
+    initRef.current = true;
+
+    const init = async () => {
+      try {
+        await modStorage.initialize();
+        backgroundService.start();
+        startMonitoringNativeTorch();
+      } catch (err) {
+        logger.error('Init failed:', err);
+      }
     };
 
-    initMods()
-      .catch((err) => logger.error('Failed to init mods:', err))
-      .finally(() => {
-        // L'app est prête, mais on attend que le splash soit fini
-        setIsAppReady(true);
-      });
-
-    // Log des nodes chargées au démarrage
-    const stats = nodeRegistry.getStats();
-    logger.debug(`🚀 App: ${stats.total} nodes loaded across ${stats.categories} categories`);
-
-    // Assurer l'exécution continue en arrière-plan
-    try {
-      backgroundService.start();
-    } catch (err) {
-      logger.error('Failed to start background service:', err);
-    }
-
-    // Démarrer le monitoring de la torche (pour détecter les changements via l'OS)
-    startMonitoringNativeTorch();
+    init();
 
     return () => {
       backgroundService.stop();
@@ -65,27 +43,24 @@ function App() {
     };
   }, []);
 
-  // En mode dev splash, on affiche le SplashScreen seul pour itération rapide.
-  if (SHOW_SPLASH_DEV && !isSplashFinished) {
+  const handleSplashFinish = useCallback(() => setIsReady(true), []);
+
+  if (!isReady) {
     return (
       <SafeAreaProvider>
-        <AppThemeProvider>
-          <SplashScreen onFinish={() => setIsSplashFinished(true)} />
-        </AppThemeProvider>
+        <ThemeProvider>
+          <SplashScreen onFinish={handleSplashFinish} />
+        </ThemeProvider>
       </SafeAreaProvider>
     );
   }
 
-  // On affiche l'app seulement quand TOUT est prêt : app + splash terminé
-  const showApp = isAppReady && isSplashFinished;
-
   return (
     <SafeAreaProvider>
-      <AppThemeProvider>
-        {!showApp && <SplashScreen onFinish={() => setIsSplashFinished(true)} />}
-        {showApp && <AppNavigator />}
+      <ThemeProvider>
+        <AppNavigator />
         <ColorScreenOverlay />
-      </AppThemeProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

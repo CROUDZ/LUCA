@@ -18,7 +18,6 @@ import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
-  NodeMeta,
 } from '../../types/node.types';
 import { getSignalSystem } from '../SignalSystem';
 import { logger } from '../../utils/logger';
@@ -42,14 +41,8 @@ export function triggerNode(
   data?: any,
   options?: { mode?: TriggerMode; state?: 'start' | 'stop' }
 ): void {
-  logger.info(`[Trigger] Déclenchement manuel de la node ${nodeId}`);
-
   const signalSystem = getSignalSystem();
-  if (!signalSystem) {
-    logger.error('[Trigger] Signal system not initialized');
-    return;
-  }
-
+  if (!signalSystem) return;
   executeTrigger(nodeId, data, options, signalSystem);
 }
 
@@ -67,48 +60,42 @@ function executeTrigger(
   const payload = data ?? entry?.defaultData;
 
   if (mode === 'continuous') {
-    // Mode continu : toggle entre ON et OFF
-    // Pour les triggers, toujours forcer la propagation pour démarrer un nouveau cycle
     if (options?.state === 'start') {
-      signalSystem.activateNode(nodeId, payload, undefined, { forcePropagation: true }).catch((err: any) => logger.error('[Trigger] Activation failed', err));
+      signalSystem
+        .activateNode(nodeId, payload, undefined, { forcePropagation: true })
+        .catch(() => {});
     } else if (options?.state === 'stop') {
-      signalSystem.deactivateNode(nodeId, payload, undefined, { forcePropagation: true }).catch((err: any) => logger.error('[Trigger] Deactivation failed', err));
+      signalSystem
+        .deactivateNode(nodeId, payload, undefined, { forcePropagation: true })
+        .catch(() => {});
     } else {
-      // Toggle avec force propagation pour démarrer un nouveau cycle
-      signalSystem.toggleNode(nodeId, payload, undefined, { forcePropagation: true }).catch((err: any) => logger.error('[Trigger] Toggle failed', err));
+      signalSystem
+        .toggleNode(nodeId, payload, undefined, { forcePropagation: true })
+        .catch(() => {});
     }
     return;
   }
-
-  // Mode pulse : ON puis OFF rapide
-  signalSystem.pulseNode(nodeId, payload).catch((err: any) => logger.error('[Trigger] Pulse failed', err));
+  signalSystem.pulseNode(nodeId, payload).catch(() => {});
 }
 
 /**
  * Fonction helper pour déclencher toutes les nodes trigger
  */
 export function triggerAll(data?: any): void {
-  logger.info('[Trigger] Déclenchement de toutes les nodes trigger');
-
   const signalSystem = getSignalSystem();
-  if (!signalSystem) {
-    logger.error('[Trigger] Signal system not initialized');
-    return;
-  }
+  if (!signalSystem) return;
 
   for (const [nodeId, entry] of triggerNodes.entries()) {
     const payload = data ?? entry.defaultData;
     if (entry.mode === 'continuous') {
       signalSystem
         .toggleNode(nodeId, payload, undefined, { forcePropagation: true })
-        .catch((err) => logger.error('[Trigger] Toggle failed', err));
+        .catch(() => {});
       continue;
     }
-    signalSystem.pulseNode(nodeId, payload).catch((err) => logger.error('[Trigger] Pulse failed', err));
+    signalSystem.pulseNode(nodeId, payload).catch(() => {});
   }
 }
-
-const TRIGGER_NODE_ACCENT = '#2196F3';
 
 const TriggerNode: NodeDefinition = {
   // ============================================================================
@@ -124,7 +111,6 @@ const TriggerNode: NodeDefinition = {
   // ============================================================================
   icon: 'play-circle',
   iconFamily: 'material',
-  color: TRIGGER_NODE_ACCENT,
 
   // ============================================================================
   // INPUTS/OUTPUTS - Pas d'input, uniquement output
@@ -149,6 +135,8 @@ const TriggerNode: NodeDefinition = {
     triggerData: {}, // Données à inclure dans le signal
     continuousMode: true, // Mode interrupteur (start/stop signal continu)
   },
+
+  maxInstances: 1,
 
   // ============================================================================
   // EXÉCUTION
@@ -206,15 +194,13 @@ const TriggerNode: NodeDefinition = {
   // ============================================================================
   // HTML (pour l'affichage dans le graphe)
   // ============================================================================
-  generateHTML: (_settings: Record<string, any>, nodeMeta?: NodeMeta): string => {
+  generateHTML: (_settings: Record<string, any>): string => {
     return buildNodeCardHTML({
       title: 'Trigger',
       subtitle: 'Point de départ',
       iconName: 'play_circle',
-      category: nodeMeta?.category || 'Control',
-      accentColor: TRIGGER_NODE_ACCENT,
+      category: 'Control',
       description: 'Démarrez le programme avec le bouton PLAY en bas',
-      chips: [{ label: '▶ Start', tone: 'info' }],
     });
   },
 };

@@ -53,13 +53,6 @@ const NotificationNode: NodeDefinition = {
       description: "Signal d'entrée",
       required: false,
     },
-    {
-      name: 'message',
-      type: 'string',
-      label: 'Message',
-      description: 'Message à afficher',
-      required: false,
-    },
   ],
 
   outputs: [
@@ -172,13 +165,38 @@ const NotificationNode: NodeDefinition = {
   // HTML PERSONNALISÉ
   // ============================================================================
   generateHTML: (settings: Record<string, any>, nodeMeta?: NodeMeta) => {
-    const message = settings.message || 'Notification';
+    const title = settings.title || 'Notification';
+    const shortTitle = title.length > 22 ? `${title.substring(0, 22)}…` : title;
+    const message = settings.message || 'Message de notification';
     const shortMessage = message.length > 22 ? `${message.substring(0, 22)}…` : message;
     const notificationType = settings.notificationType || 'alert';
 
+    const body = `
+      <div class="notification-control">
+        <label class="notification-field">
+          <span class="notification-label">Titre</span>
+          <input type="text" class="notification-title-input" value="${title}" placeholder="Titre" />
+        </label>
+        <label class="notification-field">
+          <span class="notification-label">Message</span>
+          <input type="text" class="notification-message-input" value="${message}" placeholder="Message" />
+        </label>
+        <label class="notification-field notification-type-field">
+          <span class="notification-label">Type</span>
+          <select class="notification-type-select">
+            <option value="alert" ${notificationType === 'alert' ? 'selected' : ''}>Alert</option>
+            <option value="console" ${
+              notificationType === 'console' ? 'selected' : ''
+            }>Console</option>
+            <option value="toast" ${notificationType === 'toast' ? 'selected' : ''}>Toast</option>
+          </select>
+        </label>
+      </div>
+    `;
+
     return buildNodeCardHTML({
       title: 'Notification',
-      subtitle: shortMessage,
+      subtitle: shortTitle,
       iconName: 'notifications',
       category: nodeMeta?.category || 'Action',
       accentColor: NOTIFICATION_NODE_ACCENT,
@@ -188,7 +206,8 @@ const NotificationNode: NodeDefinition = {
           tone: notificationType === 'alert' ? 'warning' : 'info',
         },
       ],
-      description: 'Affiche un message natif ou console selon le mode choisi.',
+      description: `Message: ${shortMessage}`,
+      body,
     });
   },
 };

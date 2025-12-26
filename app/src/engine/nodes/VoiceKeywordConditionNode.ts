@@ -281,6 +281,8 @@ const VoiceKeywordConditionNode: NodeDefinition = {
     const caseSensitive = settings?.caseSensitive ?? false;
     const exactMatch = settings?.exactMatch ?? false;
 
+    const shortKeyword = keyword.length > 22 ? `${keyword.substring(0, 22)}…` : keyword;
+
     const chips: Array<{
       label: string;
       tone?: 'default' | 'success' | 'warning' | 'danger' | 'info';
@@ -299,15 +301,17 @@ const VoiceKeywordConditionNode: NodeDefinition = {
     const body = `
       <div class="voice-keyword-node${invertSignal ? ' inverted' : ''}">
         <div class="keyword-display">
-          <span class="keyword-label">Mot-clé:</span>
-          <span class="keyword-value">"${keyword}"</span>
+          <label class="voice-keyword-control">
+            <span class="keyword-label">Mot-clé</span>
+            <input type="text" class="voice-keyword-input" value="${keyword}" placeholder="LUCA" />
+          </label>
         </div>
       </div>
     `;
 
     return buildNodeCardHTML({
       title: 'Voice Keyword',
-      subtitle: invertSignal ? 'Inversé' : 'Direct',
+      subtitle: invertSignal ? `Inversé • "${shortKeyword}"` : `Direct • "${shortKeyword}"`,
       description: `Détecte le mot-clé "${keyword}"`,
       iconName: 'mic',
       category: nodeMeta?.category || 'Condition',

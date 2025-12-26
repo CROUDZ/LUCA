@@ -22,6 +22,10 @@ export type WebViewMessageType =
   | 'NODE_REMOVED'
   | 'NODES_LIST'
   | 'NODE_SETTING_CHANGED'
+  | 'SET_THEME'
+  | 'THEME_APPLIED'
+  | 'DISMISS_KEYBOARD_ACK'
+  | 'DISMISS_KEYBOARD'
   // Signal visualization messages
   | 'SIGNAL_START'
   | 'SIGNAL_STOP'
