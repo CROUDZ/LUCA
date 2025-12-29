@@ -93,51 +93,95 @@ const DelayNode: NodeDefinition = {
   execute: async (context: NodeExecutionContext): Promise<NodeExecutionResult> => {
     try {
       const settings = context.settings || {};
-      console.log(context);
       const signalSystem = getSignalSystem();
 
+      // Pending delayed propagations par sourceNodeId
+      const pendingDelays: Map<number, Array<{ timeoutId: ReturnType<typeof setTimeout> }>> = new Map();
+      // Sources qui ont déclenché une activation de cette node (pour pouvoir désactiver si la source s'arrête)
+      const activeTriggerSources = new Set<number>();
+
       if (signalSystem) {
-        signalSystem.registerHandler(
-          context.nodeId,
-          async (signal: Signal): Promise<SignalPropagation> => {
-            if (signal.state === 'OFF') {
-              return { propagate: true, state: 'OFF', data: signal.data };
-            }
+        signalSystem.registerHandler(context.nodeId, async (signal: Signal) => {
 
-            try {
-              let delayMs: number;
-
-              // Priorité 1: Valeur de l'input (si modifiée par l'utilisateur)
-              if (context.inputs.delay_ms !== undefined) {
-                delayMs = Number(context.inputs.delay_ms);
-              } 
-              // Priorité 2: Variable dynamique
-              else if (settings.useVariableDelay && settings.delayVariableName) {
-                delayMs = Number(
-                  signalSystem.getVariable(settings.delayVariableName, settings.delayMs)
-                );
-              } 
-              // Priorité 3: Valeur par défaut des settings
-              else {
-                delayMs = settings.delayMs || 1000;
+          // Si on reçoit un OFF, annuler tous les délais en attente venant de cette source
+          if (signal.state === 'OFF') {
+            const pending = pendingDelays.get(signal.sourceNodeId);
+            if (pending && pending.length) {
+              for (const p of pending) {
+                try {
+                  clearTimeout(p.timeoutId);
+                } catch (e) {
+                  // ignore
+                }
               }
-
-              delayMs = Math.max(0, delayMs);
-              
-              console.log(`[Delay Node ${context.nodeId}] Applying delay: ${delayMs}ms`);
-              
-              await new Promise((resolve) => setTimeout(resolve, delayMs));
-
-              return {
-                propagate: true,
-                data: { ...signal.data, delayApplied: delayMs },
-              };
-            } catch (error) {
-              console.error(`[Delay Node ${context.nodeId}] Error:`, error);
-              return { propagate: false };
+              pendingDelays.delete(signal.sourceNodeId);
             }
+
+            // Si cette source avait activé cette node, la désactiver
+            if (activeTriggerSources.has(signal.sourceNodeId)) {
+              try {
+                await signalSystem.deactivateNode(context.nodeId);
+              } catch (e) {
+                // ignore
+              }
+              activeTriggerSources.delete(signal.sourceNodeId);
+            }
+
+            return { propagate: true, state: 'OFF', data: signal.data };
           }
-        );
+
+          try {
+            let delayMs: number;
+
+            // Priorité 1: Valeur de l'input (si modifiée par l'utilisateur)
+            if (context.inputs.delay_ms !== undefined) {
+              delayMs = Number(context.inputs.delay_ms);
+            }
+            // Priorité 2: Variable dynamique
+            else if (settings.useVariableDelay && settings.delayVariableName) {
+              delayMs = Number(
+                signalSystem.getVariable(settings.delayVariableName, settings.delayMs)
+              );
+            }
+            // Priorité 3: Valeur par défaut des settings
+            else {
+              delayMs = settings.delayMs || 1000;
+            }
+
+            delayMs = Math.max(0, delayMs);
+
+            // planifier l'activation sans bloquer
+
+            // Planifier l'activation différée sans bloquer la propagation source
+            const timeoutId = setTimeout(async () => {
+              // Si la source n'est plus ON, on annule
+              const sourceState = signalSystem.getNodeState(signal.sourceNodeId);
+              if (sourceState !== 'ON') return;
+
+              // Activer cette node (cela propagera ensuite vers les sorties)
+              try {
+                // Marquer que cette activation vient de cette source pour permettre le OFF
+                activeTriggerSources.add(signal.sourceNodeId);
+                await signalSystem.activateNode(context.nodeId, { ...signal.data, delayApplied: delayMs }, signal.context, {
+                  forcePropagation: true,
+                });
+              } catch (e) {
+                console.error(`[Delay Node ${context.nodeId}] Error activating delayed node:`, e);
+              }
+            }, delayMs);
+
+            // Stocker le timeout pour pouvoir l'annuler
+            const arr = pendingDelays.get(signal.sourceNodeId) ?? [];
+            arr.push({ timeoutId });
+            pendingDelays.set(signal.sourceNodeId, arr);
+
+            // Ne pas propager immédiatement
+            return { propagate: false };
+          } catch (error) {
+            console.error(`[Delay Node ${context.nodeId}] Error:`, error);
+            return { propagate: false };
+          }
+        });
       }
 
       return { outputs: {}, success: true };

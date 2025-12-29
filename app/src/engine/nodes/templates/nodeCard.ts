@@ -158,6 +158,10 @@ function renderInputs(inputs?: NodeCardInput[], nodeId?: string): string {
         try {
           window.ReactNativeWebView.postMessage(JSON.stringify({type:'DISMISS_KEYBOARD'}));
         } catch(e) {}
+        // Also post again inside a setTimeout to ensure webview receives the message in all environments
+        setTimeout(function(){
+          try { window.ReactNativeWebView.postMessage(JSON.stringify({type:'DISMISS_KEYBOARD'})); } catch(e) {}
+        }, 0);
         return false;
       `;
 
@@ -173,6 +177,7 @@ function renderInputs(inputs?: NodeCardInput[], nodeId?: string): string {
               inputmode="decimal"
               name="${name}"${value}${min}${max}${step}
               onchange="${createChangeHandler(input.name, 'number')}"
+              oninput="${createChangeHandler(input.name, 'number')}"
               onkeypress="if(event.key==='Enter'||event.keyCode===13){${dismissKeyboard}}"
             />
           </label>`;

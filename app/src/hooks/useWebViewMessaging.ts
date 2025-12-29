@@ -6,7 +6,7 @@ import { useRef, useState, useCallback } from 'react';
 import { Keyboard } from 'react-native';
 import type { WebView } from 'react-native-webview';
 import type { WebViewMessageEvent } from 'react-native-webview';
-import type { WebViewMessage, DrawflowExport } from '../types';
+import type { WebViewMessage, DrawflowExport, DrawflowNodeData } from '../types';
 import { ErrorCode } from '../types';
 import { logError, createAppError } from '../utils/errorHandler';
 import { nodeRegistry } from '../engine/NodeRegistry';
@@ -150,16 +150,63 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
   );
 
   /**
+   * Rebuild node HTML from registry to ensure latest templates (e.g., input handlers)
+   */
+  const rebuildGraphHtml = useCallback((graphData: DrawflowExport): DrawflowExport => {
+    if (!graphData?.drawflow?.Home?.data) return graphData;
+
+    const cloned: DrawflowExport = JSON.parse(JSON.stringify(graphData));
+    const moduleData = cloned.drawflow.Home.data as Record<string, DrawflowNodeData>;
+
+    Object.entries(moduleData).forEach(([idStr, nodeData]) => {
+      const nodeType = nodeData?.data?.type;
+      if (!nodeType) return;
+
+      const def = nodeRegistry.getNode(nodeType);
+      if (!def) return;
+
+      const meta = {
+        id: idStr,
+        name: def.name,
+        category: def.category,
+        description: def.description,
+        icon: def.icon,
+        iconFamily: def.iconFamily,
+        color: def.color,
+      } as const;
+
+      const settings = nodeData.data || {};
+
+      try {
+        nodeData.html = def.generateHTML
+          ? def.generateHTML(settings, meta)
+          : buildNodeCardHTML({
+              title: def.name,
+              subtitle: def.description,
+              iconName: def.icon,
+              category: def.category,
+              accentColor: def.color,
+            });
+      } catch (err) {
+        console.warn('Failed to rebuild node HTML', { nodeType, nodeId: idStr, err });
+      }
+    });
+
+    return cloned;
+  }, []);
+
+  /**
    * Charger un graphe dans la WebView
    */
   const loadGraph = useCallback(
     (graphData: DrawflowExport) => {
+      const dataWithHtml = rebuildGraphHtml(graphData);
       return sendMessage({
         type: 'LOAD_GRAPH',
-        payload: graphData,
+        payload: dataWithHtml,
       });
     },
-    [sendMessage]
+    [rebuildGraphHtml, sendMessage]
   );
 
   /**
