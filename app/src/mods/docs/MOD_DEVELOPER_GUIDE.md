@@ -595,7 +595,7 @@ export async function run({ inputs }, api) {
 
 ### Q: Comment débugger mon mod ?
 
-**R:** Utilisez `api.log.debug()` pour logger. Les logs apparaissent dans la console LUCA et peuvent être exportés.
+**R:** Utilisez `api.log.debug()` pour console. Les logs apparaissent dans la console LUCA et peuvent être exportés.
 
 ### Q: Puis-je utiliser des packages npm ?
 

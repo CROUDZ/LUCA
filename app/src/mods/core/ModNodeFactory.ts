@@ -11,7 +11,6 @@ import { registerNode } from '../../engine/NodeRegistry';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../../engine/SignalSystem';
 import { registerConditionNode, type ConditionNodeConfig } from '../../engine/ConditionHandler';
 import { buildNodeCardHTML } from '../../engine/nodes/templates/nodeCard';
-import { logger } from '../../utils/logger';
 import type {
   NodeDefinition,
   NodeExecutionContext,
@@ -277,16 +276,16 @@ export class ModNodeFactory {
 
       log: {
         debug: (message: string, data?: any) => {
-          logger.debug(`[Mod:${this.modName}] ${message}`, data);
+          console.log(`[Mod:${this.modName}] ${message}`, data);
         },
         info: (message: string, data?: any) => {
-          logger.info(`[Mod:${this.modName}] ${message}`, data);
+          console.log(`[Mod:${this.modName}] ${message}`, data);
         },
         warn: (message: string, data?: any) => {
-          logger.warn(`[Mod:${this.modName}] ${message}`, data);
+          console.warn(`[Mod:${this.modName}] ${message}`, data);
         },
         error: (message: string, data?: any) => {
-          logger.error(`[Mod:${this.modName}] ${message}`, data);
+          console.error(`[Mod:${this.modName}] ${message}`, data);
         },
       },
 
@@ -549,7 +548,7 @@ export class ModNodeFactory {
     // Note: Les nodes restent enregistrés dans le NodeRegistry
     // car on ne peut pas les "dé-enregistrer" facilement
 
-    logger.info(`[ModNodeFactory] Mod ${this.modName} cleaned up`);
+    console.log(`[ModNodeFactory] Mod ${this.modName} cleaned up`);
   }
 
   /**

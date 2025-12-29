@@ -1,5 +1,5 @@
 import { Platform, PermissionsAndroid, Alert, Linking } from 'react-native';
-import { logger } from './logger';
+
 import { getSignalSystem } from '../engine/SignalSystem';
 
 export interface PermissionResult {
@@ -13,7 +13,7 @@ async function emitPermissionEvent(eventName: string, payload: Record<string, an
     const ss = getSignalSystem();
     if (ss) ss.emitEvent(eventName, { ...payload, timestamp: Date.now() });
   } catch (err) {
-    logger.warn('[Permissions] Could not emit permission event', err);
+    console.warn('[Permissions] Could not emit permission event', err);
   }
 }
 
@@ -27,7 +27,7 @@ export async function requestAndroidPermission(
 ): Promise<PermissionResult> {
   try {
     if (!PermissionsAndroid || typeof PermissionsAndroid.request !== 'function') {
-      logger.warn(
+      console.warn(
         '[Permissions] PermissionsAndroid API missing – assuming granted in this environment'
       );
       await emitPermissionEvent('permission.granted', { permission, platform: Platform?.OS });
@@ -60,7 +60,7 @@ export async function requestAndroidPermission(
     await emitPermissionEvent('permission.denied', { permission });
     return { granted: false, status: 'denied' };
   } catch (err) {
-    logger.warn('[Permissions] requestAndroidPermission error', err);
+    console.warn('[Permissions] requestAndroidPermission error', err);
     await emitPermissionEvent('permission.error', {
       permission,
       error: err instanceof Error ? err.message : String(err),
@@ -72,13 +72,13 @@ export async function requestAndroidPermission(
 export async function checkAndroidPermission(permission: string): Promise<boolean> {
   try {
     if (!PermissionsAndroid || typeof PermissionsAndroid.check !== 'function') {
-      logger.debug('[Permissions] PermissionsAndroid.check unavailable – assuming granted');
+      console.log('[Permissions] PermissionsAndroid.check unavailable – assuming granted');
       return true;
     }
     const granted = await PermissionsAndroid.check(permission as any);
     return !!granted;
   } catch (err) {
-    logger.warn('[Permissions] checkAndroidPermission failed', err);
+    console.warn('[Permissions] checkAndroidPermission failed', err);
     return false;
   }
 }
@@ -113,16 +113,16 @@ export async function ensureCameraPermission(): Promise<boolean> {
         try {
           Linking?.openSettings?.();
         } catch (e) {
-          logger.warn('[Permissions] Linking.openSettings failed', e);
+          console.warn('[Permissions] Linking.openSettings failed', e);
         }
       } catch (e) {
-        logger.warn('[Permissions] Could not show NEVER_ASK alert', e);
+        console.warn('[Permissions] Could not show NEVER_ASK alert', e);
       }
     }
 
     return false;
   } catch (err) {
-    logger.warn('[Permissions] ensureCameraPermission unexpected error', err);
+    console.warn('[Permissions] ensureCameraPermission unexpected error', err);
     return false;
   }
 }
@@ -133,7 +133,7 @@ export async function hasCameraPermission(): Promise<boolean> {
     const cameraPerm = PermissionsAndroid.PERMISSIONS?.CAMERA ?? 'android.permission.CAMERA';
     return await checkAndroidPermission(cameraPerm);
   } catch (err) {
-    logger.warn('[Permissions] hasCameraPermission failed', err);
+    console.warn('[Permissions] hasCameraPermission failed', err);
     return false;
   }
 }
@@ -168,16 +168,16 @@ export async function ensureVibrationPermission(): Promise<boolean> {
         try {
           Linking?.openSettings?.();
         } catch (e) {
-          logger.warn('[Permissions] Linking.openSettings failed (vibration)', e);
+          console.warn('[Permissions] Linking.openSettings failed (vibration)', e);
         }
       } catch (e) {
-        logger.warn('[Permissions] Could not show NEVER_ASK alert (vibration)', e);
+        console.warn('[Permissions] Could not show NEVER_ASK alert (vibration)', e);
       }
     }
 
     return false;
   } catch (err) {
-    logger.warn('[Permissions] ensureVibrationPermission unexpected error', err);
+    console.warn('[Permissions] ensureVibrationPermission unexpected error', err);
     return false;
   }
 }
@@ -190,7 +190,7 @@ export async function hasVibrationPermission(): Promise<boolean> {
       'android.permission.VIBRATE';
     return await checkAndroidPermission(vibrationPerm);
   } catch (err) {
-    logger.warn('[Permissions] hasVibrationPermission failed', err);
+    console.warn('[Permissions] hasVibrationPermission failed', err);
     return false;
   }
 }
@@ -226,16 +226,16 @@ export async function ensureMicrophonePermission(): Promise<boolean> {
         try {
           Linking?.openSettings?.();
         } catch (e) {
-          logger.warn('[Permissions] Linking.openSettings failed (micro)', e);
+          console.warn('[Permissions] Linking.openSettings failed (micro)', e);
         }
       } catch (e) {
-        logger.warn('[Permissions] Could not show NEVER_ASK alert (micro)', e);
+        console.warn('[Permissions] Could not show NEVER_ASK alert (micro)', e);
       }
     }
 
     return false;
   } catch (err) {
-    logger.warn('[Permissions] ensureMicrophonePermission unexpected error', err);
+    console.warn('[Permissions] ensureMicrophonePermission unexpected error', err);
     return false;
   }
 }
@@ -248,7 +248,7 @@ export async function hasMicrophonePermission(): Promise<boolean> {
       'android.permission.RECORD_AUDIO';
     return await checkAndroidPermission(micPerm);
   } catch (err) {
-    logger.warn('[Permissions] hasMicrophonePermission failed', err);
+    console.warn('[Permissions] hasMicrophonePermission failed', err);
     return false;
   }
 }

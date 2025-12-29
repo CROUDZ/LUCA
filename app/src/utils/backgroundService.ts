@@ -1,6 +1,4 @@
 import { NativeModules, Platform, DeviceEventEmitter } from 'react-native';
-import { logger } from './logger';
-
 const nativeService = (NativeModules as any)?.BackgroundService;
 
 export type TriggerStateListener = (isRunning: boolean) => void;
@@ -15,16 +13,16 @@ class BackgroundServiceManager {
   start(): void {
     if (Platform.OS !== 'android') return;
     if (!nativeService?.start) {
-      logger.warn('[BackgroundService] Native module not available');
+      console.warn('[BackgroundService] Native module not available');
       return;
     }
     try {
       nativeService.start(this.notificationControlsEnabled);
       this.started = true;
       this.setupEventListener();
-      logger.info('[BackgroundService] Foreground service started');
+      console.log('[BackgroundService] Foreground service started');
     } catch (error) {
-      logger.warn('[BackgroundService] Failed to start service', error);
+      console.warn('[BackgroundService] Failed to start service', error);
     }
   }
 
@@ -35,9 +33,9 @@ class BackgroundServiceManager {
       this.removeEventListener();
       nativeService.stop();
       this.started = false;
-      logger.info('[BackgroundService] Service stopped');
+      console.log('[BackgroundService] Service stopped');
     } catch (error) {
-      logger.warn('[BackgroundService] Failed to stop service', error);
+      console.warn('[BackgroundService] Failed to stop service', error);
     }
   }
 
@@ -51,9 +49,9 @@ class BackgroundServiceManager {
     if (!nativeService?.updateNotificationControls) return;
     try {
       nativeService.updateNotificationControls(enabled);
-      logger.info(`[BackgroundService] Notification controls ${enabled ? 'enabled' : 'disabled'}`);
+      console.log(`[BackgroundService] Notification controls ${enabled ? 'enabled' : 'disabled'}`);
     } catch (error) {
-      logger.warn('[BackgroundService] Failed to update notification controls', error);
+      console.warn('[BackgroundService] Failed to update notification controls', error);
     }
   }
 
@@ -64,7 +62,7 @@ class BackgroundServiceManager {
     try {
       nativeService.updateTriggerState(isRunning);
     } catch (error) {
-      logger.warn('[BackgroundService] Failed to update trigger state', error);
+      console.warn('[BackgroundService] Failed to update trigger state', error);
     }
   }
 
@@ -91,13 +89,13 @@ class BackgroundServiceManager {
             try {
               listener(newState);
             } catch (e) {
-              logger.warn('[BackgroundService] Trigger listener error', e);
+              console.warn('[BackgroundService] Trigger listener error', e);
             }
           });
         }
       );
     } catch (error) {
-      logger.warn('[BackgroundService] Failed to setup event listener', error);
+      console.warn('[BackgroundService] Failed to setup event listener', error);
     }
   }
 

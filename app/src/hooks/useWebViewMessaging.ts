@@ -6,7 +6,6 @@ import { useRef, useState, useCallback } from 'react';
 import { Keyboard } from 'react-native';
 import type { WebView } from 'react-native-webview';
 import type { WebViewMessageEvent } from 'react-native-webview';
-import { logger } from '../utils/logger';
 import type { WebViewMessage, DrawflowExport } from '../types';
 import { ErrorCode } from '../types';
 import { logError, createAppError } from '../utils/errorHandler';
@@ -19,6 +18,7 @@ interface UseWebViewMessagingOptions {
   onImported?: () => void;
   onRequestImport?: () => void;
   onNodeSettingsChanged?: (payload: any) => void;
+  onNodeInputChanged?: (payload: any) => void;
   onThemeApplied?: (theme: 'light' | 'dark') => void;
 }
 
@@ -50,7 +50,7 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
 
       try {
         webRef.current.postMessage(JSON.stringify(message));
-        logger.debug('📤 Sent to WebView:', message.type);
+        console.log('📤 Sent to WebView:', message.type);
         return true;
       } catch (error) {
         logError(
@@ -70,7 +70,7 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
     (event: WebViewMessageEvent) => {
       try {
         const message: WebViewMessage = JSON.parse(event.nativeEvent.data);
-        logger.debug('📨 Message from WebView:', message.type);
+        console.log('📨 Message from WebView:', message.type);
 
         switch (message.type) {
           case 'READY':
@@ -103,38 +103,39 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
           case 'NODE_SETTING_CHANGED':
             options.onNodeSettingsChanged?.(message.payload);
             break;
+          case 'INPUT_VALUE_CHANGED':
+            options.onNodeInputChanged?.(message.payload);
+            break;
           case 'THEME_APPLIED':
             options.onThemeApplied?.(message.payload?.theme);
             break;
 
           case 'DISMISS_KEYBOARD':
-            // Message from WebView: request to dismiss native keyboard.
-            // Use a short delay to improve reliability across Android WebView timing.
             try {
               setTimeout(() => {
                 try {
                   Keyboard.dismiss();
                 } catch (e) {
-                  logger.warn('Failed to dismiss keyboard on first attempt:', e);
+                  console.warn('Failed to dismiss keyboard on first attempt:', e);
                 }
                 // Second attempt after a bit more delay for extra safety
                 setTimeout(() => {
                   try {
                     Keyboard.dismiss();
-                    logger.debug('📨 DISMISS_KEYBOARD: Keyboard.dismiss() called');
+                    console.log('📨 DISMISS_KEYBOARD: Keyboard.dismiss() called');
                   } catch (e) {
-                    logger.warn('Failed to dismiss keyboard on second attempt:', e);
+                    console.warn('Failed to dismiss keyboard on second attempt:', e);
                   }
                 }, 120);
               }, 60);
             } catch (err) {
-              logger.warn('Failed to schedule keyboard dismiss:', err);
+              console.warn('Failed to schedule keyboard dismiss:', err);
             }
             break;
             break;
 
           default:
-            logger.warn('⚠️ Unknown message type:', message.type);
+            console.warn('⚠️ Unknown message type:', message.type);
         }
       } catch (error) {
         const appError = createAppError(
@@ -201,7 +202,7 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
             : fallbackHtml,
         };
 
-        logger.debug('📦 Node data prepared:', nodeData);
+        console.log('📦 Node data prepared:', nodeData);
       }
 
       return sendMessage({

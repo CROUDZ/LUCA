@@ -28,7 +28,6 @@ import type {
   NodeMeta,
 } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
-import { logger } from '../../utils/logger';
 import { buildNodeCardHTML } from './templates/nodeCard';
 import {
   getVoiceRecognitionManager,
@@ -54,7 +53,7 @@ function cleanupListener(nodeId: number): void {
     try {
       config.unsubscribe();
     } catch (error) {
-      logger.warn(`[VoiceKeyword] Error cleaning up listener for node ${nodeId}`, error);
+      console.warn(`[VoiceKeyword] Error cleaning up listener for node ${nodeId}`, error);
     }
   }
   activeListeners.delete(nodeId);
@@ -74,7 +73,7 @@ async function handleVoiceResult(
     exactMatch: config.exactMatch,
   });
 
-  logger.debug(
+  console.log(
     `[VoiceKeyword Node ${nodeId}] Transcript: "${result.transcript}" | Keyword: "${config.keyword}" | Matches: ${matches}`
   );
 
@@ -82,7 +81,7 @@ async function handleVoiceResult(
   const conditionMet = config.invert ? !matches : matches;
 
   if (conditionMet && result.isFinal) {
-    logger.info(
+    console.log(
       `[VoiceKeyword Node ${nodeId}] Keyword "${config.keyword}" detected! Emitting signal.`
     );
 
@@ -121,7 +120,7 @@ async function startListeningForNode(nodeId: number, config: VoiceKeywordConfig)
     }
   }
 
-  logger.info(`[VoiceKeyword Node ${nodeId}] Started listening for keyword "${config.keyword}"`);
+  console.log(`[VoiceKeyword Node ${nodeId}] Started listening for keyword "${config.keyword}"`);
   return true;
 }
 
@@ -133,7 +132,7 @@ async function stopListeningForNode(nodeId: number): Promise<void> {
   if (activeListeners.size === 0) {
     const manager = getVoiceRecognitionManager();
     await manager.stopListening();
-    logger.info('[VoiceKeyword] All listeners removed, stopped voice recognition');
+    console.log('[VoiceKeyword] All listeners removed, stopped voice recognition');
   }
 }
 
@@ -208,7 +207,7 @@ const VoiceKeywordConditionNode: NodeDefinition = {
 
       // Enregistrer le handler pour ce node
       ss.registerHandler(context.nodeId, async (signal: Signal): Promise<SignalPropagation> => {
-        logger.debug(
+        console.log(
           `[VoiceKeyword Node ${context.nodeId}] Received signal: state=${signal.state}`
         );
 
@@ -220,7 +219,7 @@ const VoiceKeywordConditionNode: NodeDefinition = {
             unsubscribe: null,
           });
           if (!started) {
-            logger.warn(`[VoiceKeyword Node ${context.nodeId}] Failed to start listening`);
+            console.warn(`[VoiceKeyword Node ${context.nodeId}] Failed to start listening`);
           }
           // Ne pas propager le signal de démarrage, attendre la détection du mot-clé
           return { propagate: false, data: signal.data };

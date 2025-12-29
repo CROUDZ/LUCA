@@ -3,7 +3,6 @@
  */
 
 import { Alert } from 'react-native';
-import { logger } from './logger';
 import type { AppError, ErrorCode } from '../types';
 import { ERROR_MESSAGES } from '../config/constants';
 
@@ -26,9 +25,9 @@ export function logError(error: AppError | Error, context?: string): void {
   const prefix = context ? `[${context}]` : '';
 
   if ('code' in error) {
-    logger.error(`❌ ${prefix} AppError [${error.code}]:`, error.message, error.details || '');
+    console.error(`❌ ${prefix} AppError [${error.code}]:`, error.message, error.details || '');
   } else {
-    logger.error(`❌ ${prefix} Error:`, error.message, error.stack || '');
+    console.error(`❌ ${prefix} Error:`, error.message, error.stack || '');
   }
 }
 

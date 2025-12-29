@@ -20,7 +20,6 @@ import type {
   NodeExecutionResult,
 } from '../../types/node.types';
 import { getSignalSystem } from '../SignalSystem';
-import { logger } from '../../utils/logger';
 import { buildNodeCardHTML } from './templates/nodeCard';
 
 // Map pour stocker les références et le mode des nodes trigger
@@ -157,7 +156,7 @@ const TriggerNode: NodeDefinition = {
 
       // Auto-déclenchement si activé
       if (autoTrigger) {
-        logger.debug(
+        console.log(
           `[Trigger Node ${context.nodeId}] Auto-déclenchement dans ${autoTriggerDelay}ms`
         );
         setTimeout(() => {

@@ -9,7 +9,6 @@
  */
 
 import { registerNode } from '../NodeRegistry';
-import { logger } from '../../utils/logger';
 import type {
   NodeDefinition,
   NodeExecutionContext,
@@ -96,11 +95,11 @@ const ColorScreenNode: NodeDefinition = {
         signalSystem.registerHandler(
           context.nodeId,
           async (signal: Signal): Promise<SignalPropagation> => {
-            logger.debug(`[ColorScreen Node ${context.nodeId}] Signal reçu: ${signal.state}`);
+            console.log(`[ColorScreen Node ${context.nodeId}] Signal reçu: ${signal.state}`);
 
             // Signal OFF : fermer l'écran
             if (signal.state === 'OFF') {
-              logger.info(`[ColorScreen Node ${context.nodeId}] Signal OFF - fermeture de l'écran`);
+              console.log(`[ColorScreen Node ${context.nodeId}] Signal OFF - fermeture de l'écran`);
 
               try {
                 signalSystem?.emitEvent('colorscreen.hide', { nodeId: context.nodeId });
@@ -123,7 +122,7 @@ const ColorScreenNode: NodeDefinition = {
             try {
               const color = settings.color || '#FF0000';
 
-              logger.info(
+              console.log(
                 `[ColorScreen Node ${context.nodeId}] Signal ON - affichage couleur: ${color}`
               );
 
@@ -149,7 +148,7 @@ const ColorScreenNode: NodeDefinition = {
                 },
               };
             } catch (error) {
-              logger.error(`[ColorScreen Node ${context.nodeId}] Erreur:`, error);
+              console.error(`[ColorScreen Node ${context.nodeId}] Erreur:`, error);
               return { propagate: false };
             }
           }

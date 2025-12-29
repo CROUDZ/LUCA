@@ -5,7 +5,6 @@ import type {
   NodeExecutionResult,
 } from '../../types/node.types';
 import { getSignalSystem, type Signal } from '../SignalSystem';
-import { logger } from '../../utils/logger';
 import {
   adjustSystemVolume,
   getVolumeInfo,
@@ -72,7 +71,7 @@ function createVolumeActionNode(options: {
 
         try {
           const volumeInfo = await adjustSystemVolume(options.direction, steps, showUI);
-          logger.info(
+          console.log(
             `[VolumeActionNode] Adjusted volume (${options.direction}) ` +
               `${volumeInfo ? `→ ${volumeInfo.volume}/${volumeInfo.maxVolume}` : '(no data)'}`
           );
@@ -85,12 +84,12 @@ function createVolumeActionNode(options: {
             },
           };
         } catch (error) {
-          logger.error(`[VolumeActionNode] Failed to adjust volume (${options.direction})`, error);
+          console.error(`[VolumeActionNode] Failed to adjust volume (${options.direction})`, error);
           return { propagate: false, data: signal.data };
         }
       });
 
-      logger.info(
+      console.log(
         `[VolumeActionNode] Handler registered for node ${context.nodeId} (direction=${options.direction}, steps=${steps}, showUI=${showUI})`
       );
 

@@ -14,7 +14,6 @@ import { nodeInstanceTracker } from '../engine/NodeInstanceTracker';
 import { useTheme } from '../theme';
 import type { RootStackParamList } from '../types/navigation.types';
 import { emitNodeAdded } from '../utils/NodePickerEvents';
-import { logger } from '../utils/logger';
 
 type NodePickerScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'NodePicker'>;
 
@@ -37,10 +36,10 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
     const allNodes = nodeRegistry.getAllNodes();
 
     // Keep minimal debug logs — emit only in development
-    logger.debug('📦 NodePickerScreen: Loaded categories:', cats);
-    logger.debug('📊 NodeRegistry stats:', stats);
-    logger.debug('📝 All registered nodes:', allNodes.map((n) => `${n.id} (${n.name})`).join(', '));
-    logger.debug('🔍 Total nodes registered:', allNodes.length);
+    console.log('📦 NodePickerScreen: Loaded categories:', cats);
+    console.log('📊 NodeRegistry stats:', stats);
+    console.log('📝 All registered nodes:', allNodes.map((n) => `${n.id} (${n.name})`).join(', '));
+    console.log('🔍 Total nodes registered:', allNodes.length);
 
     setCategories(cats);
   }, []);
@@ -81,10 +80,10 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
    */
   const handleAddNode = useCallback(
     (nodeType: string) => {
-      logger.debug('🔍 handleAddNode called for:', nodeType);
+      console.log('🔍 handleAddNode called for:', nodeType);
 
       const checkResult = nodeRegistry.canAddNode(nodeType);
-      logger.debug('✅ canAddNode result:', checkResult);
+      console.log('✅ canAddNode result:', checkResult);
 
       if (!checkResult.canAdd) {
         // Afficher une alerte si la limite est atteinte

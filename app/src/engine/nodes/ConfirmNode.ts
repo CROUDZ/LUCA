@@ -6,7 +6,6 @@
  */
 
 import { registerNode } from '../NodeRegistry';
-import { logger } from '../../utils/logger';
 import type {
   NodeDefinition,
   NodeExecutionContext,
@@ -33,7 +32,7 @@ async function waitForActiveAppState(
       return true;
     }
 
-    logger.debug(
+    console.log(
       `[Confirm Node ${nodeId}] AppState=${currentState} → attente d'une activité active avant d'afficher l'alerte`
     );
 
@@ -52,7 +51,7 @@ async function waitForActiveAppState(
       };
 
       const timer = setTimeout(() => {
-        logger.warn(
+        console.warn(
           `[Confirm Node ${nodeId}] Aucune activité active après ${timeoutMs}ms, annulation de l'alerte`
         );
         finish(false);
@@ -68,7 +67,7 @@ async function waitForActiveAppState(
       subscription = AppState.addEventListener('change', handleChange);
     });
   } catch (error) {
-    logger.warn(
+    console.warn(
       `[Confirm Node ${nodeId}] Impossible de vérifier AppState, tentative d'afficher l'alerte quand même`,
       error
     );
@@ -126,7 +125,7 @@ async function promptConfirmation({
           { cancelable: true }
         );
       } catch (err) {
-        logger.warn(`[Confirm Node ${nodeId}] Alert not available`, err);
+        console.warn(`[Confirm Node ${nodeId}] Alert not available`, err);
         resolve({ propagate: false, data: signal.data });
       }
     };
@@ -196,7 +195,7 @@ const ConfirmNode: NodeDefinition = {
                   : undefined;
 
               if (autoConfirm) {
-                logger.debug(`[Confirm Node ${context.nodeId}] autoConfirm=true -> propagation`);
+                console.log(`[Confirm Node ${context.nodeId}] autoConfirm=true -> propagation`);
                 return { propagate: true, state: 'ON', data: { ...signal.data, confirmed: true } };
               }
 
@@ -209,7 +208,7 @@ const ConfirmNode: NodeDefinition = {
                 waitTimeoutMs: activityWaitTimeoutMs,
               });
             } catch (error) {
-              logger.error(`[Confirm Node ${context.nodeId}] Error:`, error);
+              console.error(`[Confirm Node ${context.nodeId}] Error:`, error);
               return { propagate: false };
             }
           }

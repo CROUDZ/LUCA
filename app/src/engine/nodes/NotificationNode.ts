@@ -20,7 +20,6 @@ import type {
   NodeMeta,
 } from '../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
-import { logger } from '../../utils/logger';
 import { Alert } from 'react-native';
 import { buildNodeCardHTML } from './templates/nodeCard';
 
@@ -88,7 +87,7 @@ const NotificationNode: NodeDefinition = {
         signalSystem.registerHandler(
           context.nodeId,
           async (signal: Signal): Promise<SignalPropagation> => {
-            logger.debug(`[Notification Node ${context.nodeId}] Affichage notification`);
+            console.log(`[Notification Node ${context.nodeId}] Affichage notification`);
 
             if (signal.state === 'OFF') {
               return {
@@ -121,15 +120,15 @@ const NotificationNode: NodeDefinition = {
                   Alert.alert(title, message);
                   break;
                 case 'console':
-                  logger.info(`[NOTIFICATION] ${title}: ${message}`);
+                  console.log(`[NOTIFICATION] ${title}: ${message}`);
                   break;
                 case 'toast':
                   // Pour l'instant, utiliser console
                   // TODO: Implémenter avec react-native-toast-message
-                  logger.info(`[TOAST] ${message}`);
+                  console.log(`[TOAST] ${message}`);
                   break;
                 default:
-                  logger.info(`[NOTIFICATION] ${message}`);
+                  console.log(`[NOTIFICATION] ${message}`);
               }
 
               return {
@@ -141,7 +140,7 @@ const NotificationNode: NodeDefinition = {
                 },
               };
             } catch (error) {
-              logger.error(`[Notification Node ${context.nodeId}] Erreur:`, error);
+              console.error(`[Notification Node ${context.nodeId}] Erreur:`, error);
               return { propagate: false };
             }
           }

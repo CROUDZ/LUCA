@@ -17,7 +17,6 @@
 
 import { registerNode } from './NodeRegistry';
 import { getSignalSystem, type Signal, type SignalPropagation } from './SignalSystem';
-import { logger } from '../utils/logger';
 import { buildNodeCardHTML } from './nodes/templates/nodeCard';
 import type {
   NodeDefinition,
@@ -136,7 +135,7 @@ export async function activateOutput(
 
   const additionalData = callbacks.getSignalData?.() ?? {};
 
-  logger.info(
+  console.log(
     `[ConditionHandler] Node ${nodeId} OUTPUT ON (timer=${timerDuration}s, switch=${switchMode})`
   );
 
@@ -185,7 +184,7 @@ export async function deactivateOutput(
 
   const additionalData = callbacks.getSignalData?.() ?? {};
 
-  logger.info(`[ConditionHandler] Node ${nodeId} OUTPUT OFF`);
+  console.log(`[ConditionHandler] Node ${nodeId} OUTPUT OFF`);
 
   await ss.setNodeState(
     nodeId,
@@ -231,7 +230,7 @@ export async function onConditionMet(
 
   const { switchMode = false } = settings;
 
-  logger.info(`[ConditionHandler] Node ${nodeId} condition MET, switchMode=${switchMode}`);
+  console.log(`[ConditionHandler] Node ${nodeId} condition MET, switchMode=${switchMode}`);
 
   if (switchMode) {
     // Mode switch : basculer l'état à chaque fois que la condition devient vraie
@@ -264,7 +263,7 @@ export async function onConditionUnmet(
 
   // En mode continu (pas de timer), désactiver quand la condition devient fausse
   if (timerDuration === 0 && state.isOutputActive && state.hasActiveSignal) {
-    logger.info(
+    console.log(
       `[ConditionHandler] Node ${nodeId} condition UNMET, deactivating (continuous mode)`
     );
     await deactivateOutput(nodeId, callbacks);
@@ -284,14 +283,14 @@ export function createConditionSignalHandler(
   return async (signal: Signal): Promise<SignalPropagation> => {
     const state = conditionStates.get(nodeId);
     if (!state) {
-      logger.error(`[ConditionHandler] No state for node ${nodeId}`);
+      console.error(`[ConditionHandler] No state for node ${nodeId}`);
       return { propagate: false };
     }
 
     const ss = getSignalSystem();
     const { invertSignal = false, switchMode = false, timerDuration = 0 } = settings;
 
-    logger.info(`[ConditionHandler] Node ${nodeId} received signal: state=${signal.state}`);
+    console.log(`[ConditionHandler] Node ${nodeId} received signal: state=${signal.state}`);
 
     // ========== Signal OFF ==========
     if (signal.state === 'OFF') {
@@ -327,7 +326,7 @@ export function createConditionSignalHandler(
     const condition = invertSignal ? !rawCondition : rawCondition;
     const additionalData = callbacks.getSignalData?.() ?? {};
 
-    logger.info(
+    console.log(
       `[ConditionHandler] Node ${nodeId} signal ON, condition=${condition} (raw=${rawCondition}, invert=${invertSignal})`
     );
 
@@ -356,7 +355,7 @@ export function createConditionSignalHandler(
     }
 
     // Condition non remplie : émettre un événement signal.blocked pour le visuel
-    logger.info(`[ConditionHandler] Node ${nodeId} signal ON pending, waiting for condition`);
+    console.log(`[ConditionHandler] Node ${nodeId} signal ON pending, waiting for condition`);
 
     ss?.emitEvent('signal.blocked', {
       nodeId,
@@ -398,7 +397,7 @@ export function subscribeToConditionChanges(
     const rawCondition = callbacks.getConditionFromEvent(data);
     const condition = invertSignal ? !rawCondition : rawCondition;
 
-    logger.info(
+    console.log(
       `[ConditionHandler] Node ${nodeId} event ${eventName}: raw=${rawCondition}, condition=${condition}`
     );
 

@@ -18,7 +18,6 @@ import {
   NativeModules,
   Platform,
 } from 'react-native';
-import { logger } from '../utils/logger';
 import { getSignalSystem } from '../engine/SignalSystem';
 
 const { ImmersiveModeModule } = NativeModules;
@@ -44,32 +43,32 @@ export default function ColorScreenOverlay() {
         // Activer le mode immersif quand l'écran s'affiche
         ImmersiveModeModule.enableImmersiveMode()
           .then((r: boolean) => {
-            if (r) logger.info('[ColorScreenOverlay] Mode immersif activé');
-            else logger.warn('[ColorScreenOverlay] Mode immersif non disponible');
+            if (r) console.log('[ColorScreenOverlay] Mode immersif activé');
+            else console.warn('[ColorScreenOverlay] Mode immersif non disponible');
           })
-          .catch((e: Error) => logger.warn('[ColorScreenOverlay] Erreur mode immersif:', e));
+          .catch((e: Error) => console.warn('[ColorScreenOverlay] Erreur mode immersif:', e));
       } else {
         // Désactiver le mode immersif quand l'écran se ferme
         ImmersiveModeModule.disableImmersiveMode()
           .then((r: boolean) => {
-            if (r) logger.info('[ColorScreenOverlay] Mode immersif désactivé');
-            else logger.warn('[ColorScreenOverlay] Mode immersif non disponible');
+            if (r) console.log('[ColorScreenOverlay] Mode immersif désactivé');
+            else console.warn('[ColorScreenOverlay] Mode immersif non disponible');
           })
-          .catch((e: Error) => logger.warn('[ColorScreenOverlay] Erreur mode immersif:', e));
+          .catch((e: Error) => console.warn('[ColorScreenOverlay] Erreur mode immersif:', e));
       }
     }
   }, [visible]);
 
   // Gestion de l'affichage de l'écran
   const handleShow = useCallback((data: ColorScreenData) => {
-    logger.info(`[ColorScreenOverlay] Affichage couleur: ${data.color}`);
+    console.log(`[ColorScreenOverlay] Affichage couleur: ${data.color}`);
     setColor(data.color);
     setVisible(true);
   }, []);
 
   // Gestion de la fermeture de l'écran
   const handleHide = useCallback((data: { nodeId: number }) => {
-    logger.info(`[ColorScreenOverlay] Fermeture écran (node ${data.nodeId})`);
+    console.log(`[ColorScreenOverlay] Fermeture écran (node ${data.nodeId})`);
     setVisible(false);
   }, []);
 
@@ -103,9 +102,9 @@ export default function ColorScreenOverlay() {
       try {
         ssUnsubShow = ss.subscribeToEvent('colorscreen.show', 0, handleShow);
         ssUnsubHide = ss.subscribeToEvent('colorscreen.hide', 0, handleHide);
-        logger.info('[ColorScreenOverlay] Subscribed to SignalSystem events');
+        console.log('[ColorScreenOverlay] Subscribed to SignalSystem events');
       } catch (e) {
-        logger.warn('[ColorScreenOverlay] Failed to subscribe to SignalSystem', e);
+        console.warn('[ColorScreenOverlay] Failed to subscribe to SignalSystem', e);
       }
     };
 

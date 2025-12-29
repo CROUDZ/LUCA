@@ -52,7 +52,7 @@ export interface NodeExecutionContext {
   inputsCount?: number;
   // Settings de la node
   settings: Record<string, any>;
-  // Fonction pour logger
+  // Fonction pour console
   log?: (message: string) => void;
 }
 

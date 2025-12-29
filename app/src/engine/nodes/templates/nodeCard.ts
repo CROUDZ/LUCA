@@ -1,11 +1,6 @@
 /* eslint-disable no-bitwise */
-import { basePalette } from '../../../styles/global';
-
-const DEFAULT_ACCENT = basePalette.primarySoft || basePalette.primary;
 
 // Mapping des catégories vers une couleur d'accent par défaut.
-// Ces valeurs devraient correspondre aux données de la base de données /
-// au registre des nodes. Les clés sont comparées en lowercase.
 const CATEGORY_ACCENT_MAP: Record<string, string> = {
   control: '#2196F3', // Control -> bleu
   action: '#4CAF50', // Action -> vert
@@ -29,6 +24,7 @@ export interface NodeCardHTMLParams {
   footer?: string;
   chips?: NodeCardChip[];
   inputs?: NodeCardInput[];
+  nodeId?: string; // ID du node pour identifier les messages
 }
 
 export type NodeCardInputType = 'text' | 'number' | 'switch';
@@ -56,7 +52,7 @@ const hexRegex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
 function normalizeHex(value?: string): string {
   if (!value || !hexRegex.test(value)) {
-    return DEFAULT_ACCENT;
+    return '#6200EE'; // Couleur d'accent par défaut
   }
   if (value.length === 4) {
     return (
@@ -111,7 +107,7 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-function renderInputs(inputs?: NodeCardInput[]): string {
+function renderInputs(inputs?: NodeCardInput[], nodeId?: string): string {
   if (!inputs || inputs.length === 0) return '';
 
   const html = inputs
@@ -120,6 +116,50 @@ function renderInputs(inputs?: NodeCardInput[]): string {
       const label = input.label
         ? `<span class="node-card__input-label">${escapeHtml(String(input.label))}</span>`
         : '';
+
+      // Handler pour envoyer la valeur au React Native
+      const createChangeHandler = (inputName: string, inputType: NodeCardInputType) => {
+        return `
+          (function(e){
+            var value = e.target.${inputType === 'switch' ? 'checked' : 'value'};
+            var rawId = '${nodeId || ''}';
+            var derivedId = '';
+            if (!rawId || rawId === '${undefined}') {
+              var nodeEl = e.target.closest('.drawflow-node');
+              if (nodeEl && typeof nodeEl.id === 'string') {
+                derivedId = nodeEl.id.replace('node-', '');
+              }
+            }
+            var finalId = rawId && rawId !== '${undefined}' ? rawId : derivedId;
+            if (!finalId) {
+              console.warn('Missing nodeId for input change:', '${inputName}');
+              return;
+            }
+            try {
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'INPUT_VALUE_CHANGED',
+                payload: {
+                  nodeId: finalId,
+                  inputName: '${inputName}',
+                  inputType: '${inputType}',
+                  value: value
+                }
+              }));
+            } catch(err) {
+              console.error('Failed to send input value:', err);
+            }
+          })(event)
+        `;
+      };
+
+      const dismissKeyboard = `
+        event.preventDefault();
+        event.target.blur();
+        try {
+          window.ReactNativeWebView.postMessage(JSON.stringify({type:'DISMISS_KEYBOARD'}));
+        } catch(e) {}
+        return false;
+      `;
 
       if (input.type === 'number') {
         const value = typeof input.value === 'number' ? ` value="${input.value}"` : '';
@@ -132,7 +172,8 @@ function renderInputs(inputs?: NodeCardInput[]): string {
               type="number" 
               inputmode="decimal"
               name="${name}"${value}${min}${max}${step}
-              onkeypress="if(event.key==='Enter'||event.keyCode===13){event.preventDefault();event.target.blur();return false;}"
+              onchange="${createChangeHandler(input.name, 'number')}"
+              onkeypress="if(event.key==='Enter'||event.keyCode===13){${dismissKeyboard}}"
             />
           </label>`;
       }
@@ -144,6 +185,7 @@ function renderInputs(inputs?: NodeCardInput[]): string {
             <input 
               type="checkbox"
               name="${name}"${checked}
+              onchange="${createChangeHandler(input.name, 'switch')}"
             />
             <span class="node-switch__label">${label}</span>
           </label>`;
@@ -164,7 +206,8 @@ function renderInputs(inputs?: NodeCardInput[]): string {
           <input 
             type="text" 
             name="${name}"${value}${placeholder}
-            onkeypress="if(event.key==='Enter'||event.keyCode===13){event.preventDefault();event.target.blur();return false;}"
+            onchange="${createChangeHandler(input.name, 'text')}"
+            onkeypress="if(event.key==='Enter'||event.keyCode===13){${dismissKeyboard}}"
           />
         </label>`;
     })
@@ -196,7 +239,7 @@ export function buildNodeCardHTML(params: NodeCardHTMLParams): string {
     ? `<span class="node-card__badge">${params.category}</span>`
     : '';
   const chips = renderChips(params.chips);
-  const inputs = renderInputs(params.inputs);
+  const inputs = renderInputs(params.inputs, params.nodeId);
 
   return `
     <div class="node-card" style="--node-accent:${accent};--node-accent-soft:${accentSoft};--node-accent-strong:${accentStrong};--node-border:${accentBorder};--node-glow:${accentGlow};">

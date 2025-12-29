@@ -4,7 +4,6 @@
 
 import type { NodeDefinition } from '../types/node.types';
 import { nodeInstanceTracker } from './NodeInstanceTracker';
-import { logger } from '../utils/logger';
 
 class NodeRegistry {
   private nodes: Map<string, NodeDefinition> = new Map();
@@ -15,7 +14,7 @@ class NodeRegistry {
    */
   register(definition: NodeDefinition): void {
     if (this.nodes.has(definition.id)) {
-      logger.warn(`⚠️ Node "${definition.id}" already registered, overwriting...`);
+      console.warn(`⚠️ Node "${definition.id}" already registered, overwriting...`);
     }
 
     this.nodes.set(definition.id, definition);
@@ -24,7 +23,7 @@ class NodeRegistry {
       this.categories.add(definition.category);
     }
 
-    logger.debug(`✅ Registered node: ${definition.id} (${definition.name})`);
+    console.log(`✅ Registered node: ${definition.id} (${definition.name})`);
   }
 
   /**
@@ -105,7 +104,7 @@ class NodeRegistry {
     // Utiliser le tracker pour obtenir le compte actuel
     const currentCount = nodeInstanceTracker.getCount(nodeTypeId);
 
-    logger.debug(`🔍 canAddNode check for "${nodeTypeId}":`, {
+    console.log(`🔍 canAddNode check for "${nodeTypeId}":`, {
       currentCount,
       maxInstances: nodeDefinition.maxInstances,
     });
@@ -158,7 +157,7 @@ export function registerNode(definition: NodeDefinition): void {
  * Cette fonction doit être appelée au démarrage de l'app
  */
 export function loadAllNodes(): void {
-  logger.debug('📦 Loading all nodes...');
+  console.log('📦 Loading all nodes...');
 
   // Import automatique de tous les fichiers dans le dossier nodes/
   // Note: React Native nécessite des imports explicites, on ne peut pas faire de require.context
@@ -170,15 +169,15 @@ export function loadAllNodes(): void {
     require('./nodes/index');
 
     const stats = nodeRegistry.getStats();
-    logger.debug(`✅ Loaded ${stats.total} nodes across ${stats.categories} categories`);
-    logger.debug('📊 Nodes by category:', stats.byCategory);
+    console.log(`✅ Loaded ${stats.total} nodes across ${stats.categories} categories`);
+    console.log('📊 Nodes by category:', stats.byCategory);
 
     // Afficher toutes les nodes chargées
     const allNodes = nodeRegistry.getAllNodes();
-    logger.debug('📝 Nodes loaded:', allNodes.map((n) => n.id).join(', '));
+    console.log('📝 Nodes loaded:', allNodes.map((n) => n.id).join(', '));
   } catch (error) {
-    logger.error('❌ Error loading nodes:', error);
-    logger.error('Error details:', error);
+    console.error('❌ Error loading nodes:', error);
+    console.error('Error details:', error);
   }
 }
 

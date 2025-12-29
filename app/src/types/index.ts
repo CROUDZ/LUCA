@@ -22,6 +22,7 @@ export type WebViewMessageType =
   | 'NODE_REMOVED'
   | 'NODES_LIST'
   | 'NODE_SETTING_CHANGED'
+  | 'INPUT_VALUE_CHANGED'
   | 'SET_THEME'
   | 'THEME_APPLIED'
   | 'DISMISS_KEYBOARD_ACK'

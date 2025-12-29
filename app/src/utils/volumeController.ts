@@ -4,7 +4,6 @@ import {
   Platform,
   type EmitterSubscription,
 } from 'react-native';
-import { logger } from './logger';
 
 export type VolumeDirection = 'up' | 'down';
 export type VolumeButtonAction = 'press' | 'release';
@@ -114,7 +113,7 @@ function handleNativeButtonEvent(payload: any) {
     try {
       listener(event);
     } catch (error) {
-      logger.warn('[VolumeService] Listener failed', error);
+      console.warn('[VolumeService] Listener failed', error);
     }
   });
 }
@@ -130,7 +129,7 @@ function ensureNativeListeners() {
   if (buttonSubscription) return;
   if (Platform.OS !== 'android') {
     if (!warnedMissingModule) {
-      logger.warn('[VolumeService] VolumeModule not available on this platform');
+      console.warn('[VolumeService] VolumeModule not available on this platform');
       warnedMissingModule = true;
     }
     return;
@@ -138,7 +137,7 @@ function ensureNativeListeners() {
 
   if (!getVolumeNativeModule()) {
     if (!warnedMissingModule) {
-      logger.warn('[VolumeService] VolumeModule not registered; hardware events unavailable');
+      console.warn('[VolumeService] VolumeModule not registered; hardware events unavailable');
       warnedMissingModule = true;
     }
     return;
@@ -179,7 +178,7 @@ export async function adjustSystemVolume(
   const vn = getVolumeNativeModule();
   if (!vn?.adjustVolume) {
     if (!warnedMissingModule) {
-      logger.warn('[VolumeService] adjustVolume unavailable: VolumeModule missing');
+      console.warn('[VolumeService] adjustVolume unavailable: VolumeModule missing');
       warnedMissingModule = true;
     }
     return null;
@@ -192,7 +191,7 @@ export async function adjustSystemVolume(
     if (normalized) lastVolumeInfo = normalized;
     return normalized;
   } catch (error) {
-    logger.error('[VolumeService] Failed to adjust volume', error);
+    console.error('[VolumeService] Failed to adjust volume', error);
     throw error;
   }
 }
@@ -204,7 +203,7 @@ export async function setSystemVolume(
   const vn = getVolumeNativeModule();
   if (!vn?.setVolume) {
     if (!warnedMissingModule) {
-      logger.warn('[VolumeService] setVolume unavailable: VolumeModule missing');
+      console.warn('[VolumeService] setVolume unavailable: VolumeModule missing');
       warnedMissingModule = true;
     }
     return null;
@@ -217,7 +216,7 @@ export async function setSystemVolume(
     if (normalized) lastVolumeInfo = normalized;
     return normalized;
   } catch (error) {
-    logger.error('[VolumeService] Failed to set volume', error);
+    console.error('[VolumeService] Failed to set volume', error);
     throw error;
   }
 }
@@ -231,7 +230,7 @@ export async function getVolumeInfo(): Promise<VolumeInfo | null> {
       if (normalized) lastVolumeInfo = normalized;
       return normalized;
     } catch (error) {
-      logger.warn('[VolumeService] getVolumeInfo failed', error);
+      console.warn('[VolumeService] getVolumeInfo failed', error);
     }
   }
   return lastVolumeInfo;

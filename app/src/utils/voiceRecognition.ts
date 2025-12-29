@@ -6,7 +6,7 @@
  */
 
 import { NativeModules, NativeEventEmitter, DeviceEventEmitter } from 'react-native';
-import { logger } from './logger';
+
 import permissions from './permissions';
 
 // Types pour les événements de reconnaissance vocale
@@ -71,14 +71,14 @@ class VoiceRecognitionManager {
         );
         this.subscriptions.push(stateSub);
 
-        logger.info('[VoiceRecognition] Native module initialized');
+        console.log('[VoiceRecognition] Native module initialized');
       } else {
-        logger.warn('[VoiceRecognition] Native module not available');
+        console.warn('[VoiceRecognition] Native module not available');
         // Fallback: utiliser DeviceEventEmitter
         this.setupDeviceEventEmitterFallback();
       }
     } catch (error) {
-      logger.warn('[VoiceRecognition] Failed to initialize native module', error);
+      console.warn('[VoiceRecognition] Failed to initialize native module', error);
       this.setupDeviceEventEmitterFallback();
     }
   }
@@ -104,10 +104,10 @@ class VoiceRecognitionManager {
         );
         this.subscriptions.push(stateSub);
 
-        logger.debug('[VoiceRecognition] Using DeviceEventEmitter fallback');
+        console.log('[VoiceRecognition] Using DeviceEventEmitter fallback');
       }
     } catch (error) {
-      logger.warn('[VoiceRecognition] DeviceEventEmitter fallback failed', error);
+      console.warn('[VoiceRecognition] DeviceEventEmitter fallback failed', error);
     }
   }
 
@@ -119,13 +119,13 @@ class VoiceRecognitionManager {
       timestamp: Date.now(),
     };
 
-    logger.debug(`[VoiceRecognition] Result: "${result.transcript}" (final: ${result.isFinal})`);
+    console.log(`[VoiceRecognition] Result: "${result.transcript}" (final: ${result.isFinal})`);
 
     this.resultHandlers.forEach((handler) => {
       try {
         handler(result);
       } catch (error) {
-        logger.warn('[VoiceRecognition] Result handler error', error);
+        console.warn('[VoiceRecognition] Result handler error', error);
       }
     });
   }
@@ -137,14 +137,14 @@ class VoiceRecognitionManager {
       timestamp: Date.now(),
     };
 
-    logger.warn(`[VoiceRecognition] Error: ${error.code} - ${error.message}`);
+    console.warn(`[VoiceRecognition] Error: ${error.code} - ${error.message}`);
     this.setState('error');
 
     this.errorHandlers.forEach((handler) => {
       try {
         handler(error);
       } catch (err) {
-        logger.warn('[VoiceRecognition] Error handler error', err);
+        console.warn('[VoiceRecognition] Error handler error', err);
       }
     });
   }
@@ -165,7 +165,7 @@ class VoiceRecognitionManager {
         try {
           handler(newState);
         } catch (error) {
-          logger.warn('[VoiceRecognition] State handler error', error);
+          console.warn('[VoiceRecognition] State handler error', error);
         }
       });
     }
@@ -176,14 +176,14 @@ class VoiceRecognitionManager {
    */
   async startListening(): Promise<boolean> {
     if (this.isListening) {
-      logger.debug('[VoiceRecognition] Already listening');
+      console.log('[VoiceRecognition] Already listening');
       return true;
     }
 
     // Vérifier la permission du micro
     const hasPermission = await permissions.ensureMicrophonePermission();
     if (!hasPermission) {
-      logger.warn('[VoiceRecognition] Microphone permission denied');
+      console.warn('[VoiceRecognition] Microphone permission denied');
       this.handleError({
         code: 'PERMISSION_DENIED',
         message: 'Microphone permission is required for voice recognition',
@@ -201,16 +201,16 @@ class VoiceRecognitionManager {
           partialResults: true,
         });
         this.setState('listening');
-        logger.info('[VoiceRecognition] Started listening');
+        console.log('[VoiceRecognition] Started listening');
         return true;
       } else {
         // Mode simulation pour les tests/développement
-        logger.warn('[VoiceRecognition] Native module not available, using simulation mode');
+        console.warn('[VoiceRecognition] Native module not available, using simulation mode');
         this.setState('listening');
         return true;
       }
     } catch (error) {
-      logger.error('[VoiceRecognition] Failed to start listening', error);
+      console.error('[VoiceRecognition] Failed to start listening', error);
       this.handleError({
         code: 'START_FAILED',
         message: error instanceof Error ? error.message : 'Failed to start voice recognition',
@@ -235,9 +235,9 @@ class VoiceRecognitionManager {
       }
 
       this.setState('idle');
-      logger.info('[VoiceRecognition] Stopped listening');
+      console.log('[VoiceRecognition] Stopped listening');
     } catch (error) {
-      logger.warn('[VoiceRecognition] Error stopping voice recognition', error);
+      console.warn('[VoiceRecognition] Error stopping voice recognition', error);
       this.setState('idle');
     }
   }

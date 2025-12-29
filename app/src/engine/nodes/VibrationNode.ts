@@ -13,7 +13,6 @@
  */
 
 import { registerNode } from '../NodeRegistry';
-import { logger } from '../../utils/logger';
 import type {
   NodeDefinition,
   NodeExecutionContext,
@@ -95,7 +94,7 @@ const VibrationNode: NodeDefinition = {
         signalSystem.registerHandler(
           context.nodeId,
           async (signal: Signal): Promise<SignalPropagation> => {
-            logger.debug(`[Vibration Node ${context.nodeId}] Déclenchement vibration`);
+            console.log(`[Vibration Node ${context.nodeId}] Déclenchement vibration`);
 
             if (signal.state === 'OFF') {
               return {
@@ -108,14 +107,14 @@ const VibrationNode: NodeDefinition = {
             try {
               const hasPermission = await ensureVibrationPermission();
               if (!hasPermission) {
-                logger.warn(`[Vibration Node ${context.nodeId}] Permission Vibration refusée`);
+                console.warn(`[Vibration Node ${context.nodeId}] Permission Vibration refusée`);
                 try {
                   signalSystem.emitEvent('vibration.permission.denied', {
                     nodeId: context.nodeId,
                     timestamp: Date.now(),
                   });
                 } catch (emitErr) {
-                  logger.warn(
+                  console.warn(
                     `[Vibration Node ${context.nodeId}] Impossible d'émettre l'évènement permission`,
                     emitErr
                   );
@@ -176,7 +175,7 @@ const VibrationNode: NodeDefinition = {
                 },
               };
             } catch (error) {
-              logger.error(`[Vibration Node ${context.nodeId}] Erreur:`, error);
+              console.error(`[Vibration Node ${context.nodeId}] Erreur:`, error);
               return { propagate: false };
             }
           }

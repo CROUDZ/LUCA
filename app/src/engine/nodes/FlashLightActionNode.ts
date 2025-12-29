@@ -9,7 +9,6 @@ import type {
   NodeExecutionResult,
   NodeMeta,
 } from '../../types/node.types';
-import { logger } from '../../utils/logger';
 import {
   setFlashlightState,
   getFlashlightState,
@@ -115,7 +114,7 @@ const FlashLightActionNode: NodeDefinition = {
             },
           };
         } catch (err) {
-          logger.error(`[FlashLightAction ${context.nodeId}] Error:`, err);
+          console.error(`[FlashLightAction ${context.nodeId}] Error:`, err);
           return { propagate: false, data: signal.data };
         }
       });

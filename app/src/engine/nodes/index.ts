@@ -36,9 +36,7 @@ import './FlashLightActionNode';
 import './VolumeActionNodes';
 import './ColorScreenNode';
 
-import { logger } from '../../utils/logger';
-
-logger.debug('✅ All nodes loaded');
+console.log('✅ All nodes loaded');
 
 // ============================================================================
 // EXPORTS DES NODES

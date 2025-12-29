@@ -13,7 +13,6 @@
  */
 
 import { registerNode } from '../NodeRegistry';
-import { logger } from '../../utils/logger';
 import type {
   NodeDefinition,
   NodeExecutionContext,
@@ -200,7 +199,7 @@ const LogicGateNode: NodeDefinition = {
         signalSystem.registerHandler(
           context.nodeId,
           async (signal: Signal): Promise<SignalPropagation> => {
-            logger.debug(`[LogicGate Node ${context.nodeId}] Signal reçu`);
+            console.log(`[LogicGate Node ${context.nodeId}] Signal reçu`);
 
             // Si le signal est un OFF explicite (pas un pulse), réinitialiser
             if (signal.state === 'OFF' && signal.explicitOff) {
@@ -219,7 +218,7 @@ const LogicGateNode: NodeDefinition = {
                   { forcePropagation: true }
                 );
               } catch (err) {
-                logger.error(
+                console.error(
                   `[LogicGate Node ${context.nodeId}] Failed to force OFF propagation:`,
                   err
                 );
@@ -270,7 +269,7 @@ const LogicGateNode: NodeDefinition = {
 
               inputStates.set(inputKey, inputValue);
 
-              logger.debug(
+              console.log(
                 `[LogicGate Node ${context.nodeId}] État des entrées:`,
                 Object.fromEntries(inputStates)
               );
@@ -280,7 +279,7 @@ const LogicGateNode: NodeDefinition = {
                 const inputA = inputStates.get('input_a') || false;
                 const result = !inputA;
 
-                logger.debug(`[LogicGate Node ${context.nodeId}] NOT ${inputA} = ${result}`);
+                console.log(`[LogicGate Node ${context.nodeId}] NOT ${inputA} = ${result}`);
 
                 if (settings.resetAfterEval) {
                   clearNodeState(context.nodeId);
@@ -304,7 +303,7 @@ const LogicGateNode: NodeDefinition = {
               const allInputsReceived = inputKeys.every((key) => inputStates.has(key));
 
               if (!allInputsReceived) {
-                logger.debug(`[LogicGate Node ${context.nodeId}] Attente des autres entrées...`);
+                console.log(`[LogicGate Node ${context.nodeId}] Attente des autres entrées...`);
                 // Ne pas propager, attendre les autres entrées
                 return { propagate: false };
               }
@@ -337,7 +336,7 @@ const LogicGateNode: NodeDefinition = {
                   result = false;
               }
 
-              logger.debug(
+              console.log(
                 `[LogicGate Node ${context.nodeId}] ${gateType}(${values.join(', ')}) = ${result}`
               );
 
@@ -362,7 +361,7 @@ const LogicGateNode: NodeDefinition = {
                 },
               };
             } catch (error) {
-              logger.error(`[LogicGate Node ${context.nodeId}] Erreur:`, error);
+              console.error(`[LogicGate Node ${context.nodeId}] Erreur:`, error);
               if (settings.resetAfterEval) {
                 clearNodeState(context.nodeId);
               }

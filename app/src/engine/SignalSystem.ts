@@ -14,7 +14,6 @@
  */
 
 import type { Graph } from '../types';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // Types
@@ -213,7 +212,7 @@ export class SignalSystem {
       try {
         Promise.resolve(sub.handler(data));
       } catch (error) {
-        logger.error(`[SignalSystem] Event error ${eventName}:`, error);
+        console.error(`[SignalSystem] Event error ${eventName}:`, error);
       }
     }
   }
@@ -302,7 +301,7 @@ export class SignalSystem {
     if (shouldCheckData) {
       const currentData = this.getNodeData(sourceNodeId);
       if (data && currentData && JSON.stringify(data) === JSON.stringify(currentData)) {
-        logger.debug(
+        console.log(
           `[SignalSystem] Node ${sourceNodeId} déjà dans l'état ${newState} avec mêmes données, propagation ignorée`
         );
         return currentState;
@@ -604,7 +603,7 @@ export class SignalSystem {
                 });
               }
             } catch (error) {
-              logger.error(`[SignalSystem] Error in node ${outputNodeId}:`, error);
+              console.error(`[SignalSystem] Error in node ${outputNodeId}:`, error);
               this.stats.failedSignals++;
               this.emitEvent('signal.blocked', {
                 nodeId: outputNodeId,
@@ -675,7 +674,7 @@ export class SignalSystem {
     this.stats.averageExecutionTime = 0;
     this.stats.lastEmittedEvent = null;
 
-    logger.info('[SignalSystem] Système réinitialisé');
+    console.log('[SignalSystem] Système réinitialisé');
   }
 
   /**
@@ -715,7 +714,7 @@ let globalSignalSystem: SignalSystem | null = null;
 
 export function initializeSignalSystem(graph: Graph): SignalSystem {
   globalSignalSystem = new SignalSystem(graph);
-  logger.info('[SignalSystem] Système initialisé');
+  console.log('[SignalSystem] Système initialisé');
   return globalSignalSystem;
 }
 
@@ -728,5 +727,5 @@ export function resetSignalSystem(): void {
     globalSignalSystem.reset();
   }
   globalSignalSystem = null;
-  logger.info('[SignalSystem] Système global réinitialisé');
+  console.log('[SignalSystem] Système global réinitialisé');
 }

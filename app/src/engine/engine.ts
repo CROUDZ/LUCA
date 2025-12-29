@@ -13,7 +13,6 @@ import type {
   EvaluationResult,
 } from '../types';
 import { nodeRegistry } from './NodeRegistry';
-import { logger } from '../utils/logger';
 
 /**
  * Parse un export Drawflow JSON vers un modèle de graphe
@@ -260,7 +259,7 @@ export async function executeGraph(graph: Graph): Promise<EvaluationResult> {
           ...(node.data?.settings || node.data || {}),
         },
         log: (message: string) => {
-          logger.debug(`[Node ${nodeId}] ${message}`);
+          console.log(`[Node ${nodeId}] ${message}`);
         },
       };
 
@@ -288,7 +287,7 @@ export async function executeGraph(graph: Graph): Promise<EvaluationResult> {
     } catch (error) {
       result.errors.set(nodeId, error as Error);
       result.success = false;
-      logger.error(`Error executing node ${nodeId}:`, error);
+      console.error(`Error executing node ${nodeId}:`, error);
     }
   }
 

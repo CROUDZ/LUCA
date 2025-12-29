@@ -13,7 +13,6 @@
  */
 
 import { registerNode } from '../NodeRegistry';
-import { logger } from '../../utils/logger';
 import type {
   NodeDefinition,
   NodeExecutionContext,
@@ -94,6 +93,7 @@ const DelayNode: NodeDefinition = {
   execute: async (context: NodeExecutionContext): Promise<NodeExecutionResult> => {
     try {
       const settings = context.settings || {};
+      console.log(context);
       const signalSystem = getSignalSystem();
 
       if (signalSystem) {
@@ -107,17 +107,25 @@ const DelayNode: NodeDefinition = {
             try {
               let delayMs: number;
 
+              // Priorité 1: Valeur de l'input (si modifiée par l'utilisateur)
               if (context.inputs.delay_ms !== undefined) {
                 delayMs = Number(context.inputs.delay_ms);
-              } else if (settings.useVariableDelay && settings.delayVariableName) {
+              } 
+              // Priorité 2: Variable dynamique
+              else if (settings.useVariableDelay && settings.delayVariableName) {
                 delayMs = Number(
                   signalSystem.getVariable(settings.delayVariableName, settings.delayMs)
                 );
-              } else {
+              } 
+              // Priorité 3: Valeur par défaut des settings
+              else {
                 delayMs = settings.delayMs || 1000;
               }
 
               delayMs = Math.max(0, delayMs);
+              
+              console.log(`[Delay Node ${context.nodeId}] Applying delay: ${delayMs}ms`);
+              
               await new Promise((resolve) => setTimeout(resolve, delayMs));
 
               return {
@@ -125,7 +133,7 @@ const DelayNode: NodeDefinition = {
                 data: { ...signal.data, delayApplied: delayMs },
               };
             } catch (error) {
-              logger.error(`[Delay Node ${context.nodeId}] Error:`, error);
+              console.error(`[Delay Node ${context.nodeId}] Error:`, error);
               return { propagate: false };
             }
           }
@@ -141,29 +149,37 @@ const DelayNode: NodeDefinition = {
   // ============================================================================
   // HTML PERSONNALISÉ
   // ============================================================================
-  generateHTML: (settings: Record<string, any>) => {
+  generateHTML: (settings: Record<string, any>, nodeMeta?: Record<string, any>) => {
     const delayMs = Number.isFinite(Number(settings.delayMs)) ? Number(settings.delayMs) : 1000;
     const safeDelay = Math.max(0, delayMs);
     const displayDelay = formatDelayDisplay(safeDelay);
-
-    // Use the new inputs system (number input for milliseconds)
-    const inputs = [
-      {
-        type: 'number' as const,
-        name: 'delay_ms',
-        label: 'Délai (ms)',
-        value: safeDelay,
-        min: 0,
-        step: 100,
-      },
-    ];
 
     return buildNodeCardHTML({
       title: 'Delay',
       subtitle: displayDelay,
       iconName: 'schedule',
       category: 'Control',
-      inputs,
+      accentColor: DELAY_NODE_ACCENT,
+      nodeId: nodeMeta?.id || 'delay-node', // Utiliser l'ID du node pour identifier les messages
+      inputs: [
+        {
+          type: 'number',
+          name: 'delay_ms',
+          label: 'Délai (ms)',
+          value: safeDelay,
+          min: 0,
+          max: 60000, // Max 60 secondes
+          step: 100,
+        },
+      ],
+      chips: settings.useVariableDelay && settings.delayVariableName
+        ? [
+            {
+              label: `Variable: ${settings.delayVariableName}`,
+              tone: 'info',
+            },
+          ]
+        : undefined,
     });
   },
 };

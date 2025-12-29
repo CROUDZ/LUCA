@@ -7,7 +7,6 @@
 
 import { registerConditionNode } from '../ConditionHandler';
 import { getSignalSystem } from '../SignalSystem';
-import { logger } from '../../utils/logger';
 import {
   NativeModules,
   DeviceEventEmitter,
@@ -70,14 +69,14 @@ function emitPermissionFailure(
       ...extra,
     });
   } catch (e) {
-    logger.warn('[FlashLight] Failed to emit permission failure event', e);
+    console.warn('[FlashLight] Failed to emit permission failure event', e);
   }
 }
 
 function handleNativeTorchEvent(payload: unknown) {
   const enabled = normalizeTorchPayload(payload);
   syncFlashlightFromNative(enabled).catch((error: unknown) => {
-    logger.warn('[FlashLight] Failed to sync flashlight state from native event', error);
+    console.warn('[FlashLight] Failed to sync flashlight state from native event', error);
   });
 }
 
@@ -94,9 +93,9 @@ function ensureNativeTorchListeners() {
         'flashlight.system.changed',
         handleNativeTorchEvent
       );
-      logger.debug('[FlashLight] Listening to DeviceEventEmitter flashlight.system.changed');
+      console.log('[FlashLight] Listening to DeviceEventEmitter flashlight.system.changed');
     } catch (error) {
-      logger.debug('[FlashLight] DeviceEventEmitter unavailable for flashlight sync', error);
+      console.log('[FlashLight] DeviceEventEmitter unavailable for flashlight sync', error);
     }
   }
 
@@ -107,9 +106,9 @@ function ensureNativeTorchListeners() {
         'flashlight.system.changed',
         handleNativeTorchEvent
       );
-      logger.debug('[FlashLight] Listening to NativeEventEmitter flashlight.system.changed');
+      console.log('[FlashLight] Listening to NativeEventEmitter flashlight.system.changed');
     } catch (error) {
-      logger.debug('[FlashLight] NativeEventEmitter unable to attach for torch sync', error);
+      console.log('[FlashLight] NativeEventEmitter unable to attach for torch sync', error);
     }
   }
 }
@@ -132,7 +131,7 @@ export function stopMonitoringNativeTorch() {
       );
     }
   } catch (e) {
-    logger.debug('[FlashLight] Could not remove DeviceEventEmitter listener', e);
+    console.log('[FlashLight] Could not remove DeviceEventEmitter listener', e);
   }
 
   try {
@@ -140,7 +139,7 @@ export function stopMonitoringNativeTorch() {
       nativeTorchSubscription.remove();
     }
   } catch (e) {
-    logger.debug('[FlashLight] Could not remove NativeEventEmitter listener', e);
+    console.log('[FlashLight] Could not remove NativeEventEmitter listener', e);
   }
 
   deviceTorchSubscription = null;
@@ -160,7 +159,7 @@ export async function setFlashlightState(
     try {
       const ok = await permissions.ensureCameraPermission();
       if (!ok) {
-        logger.warn('[FlashLight] Permission not granted; skipping native toggle');
+        console.warn('[FlashLight] Permission not granted; skipping native toggle');
         emitPermissionFailure('permission_denied', 'setFlashlightState');
       } else {
         const nativeTorch = (NativeModules as any)?.TorchModule;
@@ -176,34 +175,34 @@ export async function setFlashlightState(
             if (res instanceof Promise) await res;
           } else {
             // No torch implementation available
-            logger.warn('[FlashLight] No native torch implementation available');
+            console.warn('[FlashLight] No native torch implementation available');
             emitPermissionFailure('no_torch_implementation', 'setFlashlightState');
           }
         }
       }
     } catch (e) {
-      logger.warn('[FlashLight] Error toggling native torch', e);
+      console.warn('[FlashLight] Error toggling native torch', e);
       emitPermissionFailure('toggle_error', 'setFlashlightState', { error: String(e) });
     }
   }
 
   try {
     const ss = getSignalSystem();
-    logger.info(`[FlashLight] setFlashlightState enabled=${enabled} skipNative=${skipNative}`);
+    console.log(`[FlashLight] setFlashlightState enabled=${enabled} skipNative=${skipNative}`);
     ss?.emitEvent('flashlight.changed', { enabled, timestamp: Date.now() });
   } catch (e) {
-    logger.warn('[FlashLight] Could not emit flashlight.changed', e);
+    console.warn('[FlashLight] Could not emit flashlight.changed', e);
   }
 }
 
 export async function syncFlashlightFromNative(enabled: boolean): Promise<void> {
   const normalized = Boolean(enabled);
   if (flashlightEnabled === normalized) {
-    logger.debug('[FlashLight] Native torch state already synced (enabled=%s)', normalized);
+    console.log('[FlashLight] Native torch state already synced (enabled=%s)', normalized);
     return;
   }
 
-  logger.info(`[FlashLight] Syncing flashlight state from native event: enabled=${normalized}`);
+  console.log(`[FlashLight] Syncing flashlight state from native event: enabled=${normalized}`);
   await setFlashlightState(normalized, true);
 }
 

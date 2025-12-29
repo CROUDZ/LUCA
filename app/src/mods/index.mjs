@@ -65,10 +65,10 @@ export async function initializeModSystem(options = {}) {
       const prefix = `[mod:${name}]`;
       switch (entry.level) {
         case 'debug':
-          console.debug(prefix, entry.message, entry.data || '');
+          console.log(prefix, entry.message, entry.data || '');
           break;
         case 'info':
-          console.info(prefix, entry.message, entry.data || '');
+          console.log(prefix, entry.message, entry.data || '');
           break;
         case 'warn':
           console.warn(prefix, entry.message, entry.data || '');

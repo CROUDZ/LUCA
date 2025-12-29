@@ -14,8 +14,6 @@ import type { RootStackParamList } from '../types/navigation.types';
 import { useTheme } from '../theme';
 import { settingsManager, type AppSettings } from '../utils/settingsManager';
 import { backgroundService } from '../utils/backgroundService';
-import { logger } from '../utils/logger';
-
 type SettingsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Settings'>;
 
 interface SettingsScreenProps {
@@ -42,14 +40,14 @@ const SettingsScreen: React.FC<SettingsScreenProps> = React.memo(({ navigation }
     } else {
       backgroundService.stop();
     }
-    logger.info(`[Settings] Background service ${value ? 'enabled' : 'disabled'}`);
+    console.log(`[Settings] Background service ${value ? 'enabled' : 'disabled'}`);
   }, []);
 
   const handleNotificationControlsToggle = useCallback(async (value: boolean) => {
     await settingsManager.updateSettings({ notificationControlsEnabled: value });
     // La notification sera mise à jour au prochain cycle du service
     backgroundService.updateNotificationControls(value);
-    logger.info(`[Settings] Notification controls ${value ? 'enabled' : 'disabled'}`);
+    console.log(`[Settings] Notification controls ${value ? 'enabled' : 'disabled'}`);
   }, []);
 
   const options: Array<{ key: 'system' | 'dark' | 'light'; label: string }> = [

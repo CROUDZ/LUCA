@@ -19,8 +19,7 @@ import SaveMenu from '../components/SaveMenu';
 import BottomControlsBar from '../components/BottomControlsBar';
 import TopControlsBar from '../components/TopControlsBar';
 import { nodeInstanceTracker } from '../engine/NodeInstanceTracker';
-import { subscribeNodeAdded } from '../utils/NodePickerEvents';
-import { logger } from '../utils/logger';
+import { subscribeNodeAdded } from '../utils/NodePickerEvents'
 import { signalVisualizationBridge } from '../utils/signalVisualizationBridge';
 import { parseDrawflowGraph } from '../engine/engine';
 import {
@@ -67,6 +66,8 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
   const flashlightEventUnsubRef = useRef<(() => void) | null>(null);
   const graphSyncResolvers = useRef<GraphSyncResolver[]>([]);
   const lastGraphHashRef = useRef<string | null>(null);
+  const nodeSettingsRef = useRef<Map<number, Record<string, any>>>(new Map());
+  const nodeInputsRef = useRef<Map<number, Record<string, any>>>(new Map());
   const isRebuildingRef = useRef(false);
 
   const resolveGraphSync = useCallback((result: GraphInitResult | null) => {
@@ -92,6 +93,10 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
   const rebuildSignalSystem = useCallback(
     async (graphData: DrawflowExport | null, force = false): Promise<GraphInitResult | null> => {
       if (!graphData) return null;
+
+      // Reset cached state so runtime inputs/settings stay in sync with the latest graph
+      nodeSettingsRef.current.clear();
+      nodeInputsRef.current.clear();
 
       // Éviter les appels concurrents
       if (isRebuildingRef.current) {
@@ -145,15 +150,17 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
               ...(nodeDef.defaultSettings || {}),
               ...(node.data?.settings || node.data || {}),
             };
+
+            nodeSettingsRef.current.set(node.id, settings);
             nodeDef.execute({
               nodeId: node.id,
               inputs: {},
               inputsCount: node.inputs.length,
               settings,
-              log: (msg: string) => logger.debug(`[Node ${node.id}] ${msg}`),
+              log: (msg: string) => console.log(`[Node ${node.id}] ${msg}`),
             });
           } catch (error) {
-            logger.error(`Error executing node ${node.id}:`, error);
+            console.error(`Error executing node ${node.id}:`, error);
           }
         });
 
@@ -199,7 +206,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
               Alert.alert('Success', `Save "${save.name}" created!`);
             }
           } catch (error) {
-            logger.error('Failed to create save', error);
+            console.error('Failed to create save', error);
             Alert.alert('Error', 'Failed to create save.');
           }
         }
@@ -222,7 +229,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
         }
       } catch (error) {
         rejectGraphSync(error instanceof Error ? error : new Error(String(error)));
-        logger.error('Failed to handle graph export', error);
+        console.error('Failed to handle graph export', error);
       }
     },
     [autoSave, createSave, rebuildSignalSystem, resolveGraphSync, rejectGraphSync]
@@ -248,15 +255,70 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
       if (!nodeDef) return;
 
       const resolvedSettings = { ...(nodeDef.defaultSettings || {}), ...(settings || {}) };
+      nodeSettingsRef.current.set(numericId, resolvedSettings);
+      const cachedInputs = nodeInputsRef.current.get(numericId) || {};
+      const inputsCount = ss?.graph.nodes.get(numericId)?.inputs.length ?? 0;
       nodeDef.execute({
         nodeId: numericId,
-        inputs: {},
-        inputsCount: 0,
+        inputs: cachedInputs,
+        inputsCount,
         settings: resolvedSettings,
-        log: (msg: string) => logger.debug(`[Node ${numericId}] ${msg}`),
+        log: (msg: string) => console.log(`[Node ${numericId}] ${msg}`),
       });
     } catch (err) {
-      logger.error('Failed to handle node setting change:', err);
+      console.error('Failed to handle node setting change:', err);
+    }
+  }, []);
+
+  const handleNodeInputChanged = useCallback((payload: any) => {
+    try {
+      const { nodeId, inputName, inputType, value, nodeType } = payload || {};
+      if (!nodeId || !inputName) return;
+
+      const numericId = Number(nodeId);
+      const parsedValue =
+        inputType === 'number'
+          ? Number(value)
+          : inputType === 'switch'
+          ? value === true || value === 'true'
+          : value;
+      const finalValue =
+        inputType === 'number' && !Number.isFinite(parsedValue) ? 0 : parsedValue;
+
+      const currentInputs = nodeInputsRef.current.get(numericId) || {};
+      const updatedInputs = { ...currentInputs, [inputName]: finalValue };
+      nodeInputsRef.current.set(numericId, updatedInputs);
+
+      const ss = getSignalSystem();
+      const graphNode = ss?.graph.nodes.get(numericId);
+      const definitionId = nodeType || graphNode?.type;
+      if (!definitionId) return;
+
+      const nodeDef = nodeRegistry.getNode(definitionId);
+      if (!nodeDef) return;
+
+      const resolvedSettings =
+        nodeSettingsRef.current.get(numericId) ||
+        {
+          ...(nodeDef.defaultSettings || {}),
+          ...((graphNode?.data?.settings as Record<string, any> | undefined) ||
+            graphNode?.data ||
+            {}),
+        };
+
+      if (ss) {
+        ss.unregisterHandler(numericId);
+      }
+
+      nodeDef.execute({
+        nodeId: numericId,
+        inputs: updatedInputs,
+        inputsCount: graphNode?.inputs.length ?? 0,
+        settings: resolvedSettings,
+        log: (msg: string) => console.log(`[Node ${numericId}] ${msg}`),
+      });
+    } catch (err) {
+      console.error('Failed to handle node input change:', err);
     }
   }, []);
 
@@ -277,12 +339,13 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
         if (save) {
           loadGraph(save.data);
           setCurrentGraph(save.data);
-          rebuildSignalSystem(save.data).catch((e) => logger.warn('Failed to rebuild graph', e));
+          rebuildSignalSystem(save.data).catch((e) => console.warn('Failed to rebuild graph', e));
         }
       }
     },
     onExport: handleGraphExport,
     onNodeSettingsChanged: handleNodeSettingsChanged,
+    onNodeInputChanged: handleNodeInputChanged,
     onThemeApplied: () => {},
   });
 
@@ -380,7 +443,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
 
     if (isReady) {
       loadGraph(save.data);
-      rebuildSignalSystem(save.data).catch((e) => logger.error('Failed to rebuild', e));
+      rebuildSignalSystem(save.data).catch((e) => console.error('Failed to rebuild', e));
     }
   }, [
     route?.params?.openSaveId,
@@ -447,7 +510,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
         nodeInstanceTracker.reset();
         loadGraph(save.data);
         setCurrentGraph(save.data);
-        rebuildSignalSystem(save.data).catch((e) => logger.error('Failed to rebuild', e));
+        rebuildSignalSystem(save.data).catch((e) => console.error('Failed to rebuild', e));
         setShowSaveMenu(false);
         Alert.alert('Loaded', `Loaded "${save.name}"`);
       }
@@ -569,7 +632,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
         startInLoadingState={false}
         originWhitelist={['*']}
         allowFileAccess={true}
-        onError={(e) => logger.error('WebView error:', e.nativeEvent)}
+        onError={(e) => console.error('WebView error:', e.nativeEvent)}
       />
 
       <BottomControlsBar

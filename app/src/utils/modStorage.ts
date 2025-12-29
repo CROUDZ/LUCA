@@ -5,7 +5,6 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { nodeRegistry } from '../engine/NodeRegistry';
-import { logger } from './logger';
 import { getSignalSystem, Signal, SignalPropagation } from '../engine/SignalSystem';
 
 const INSTALLED_MODS_KEY = '@luca_installed_mods';
@@ -41,11 +40,11 @@ class ModStorageService {
           this.installedMods.set(mod.name, mod);
           this.registerModNodes(mod);
         });
-        logger.debug(`📦 ModStorage: Loaded ${mods.length} installed mods`);
+        console.log(`📦 ModStorage: Loaded ${mods.length} installed mods`);
       }
       this.initialized = true;
     } catch (error) {
-      logger.error('❌ ModStorage: Failed to load installed mods:', error);
+      console.error('❌ ModStorage: Failed to load installed mods:', error);
     }
   }
 
@@ -54,15 +53,15 @@ class ModStorageService {
    */
   private registerModNodes(mod: InstalledMod): void {
     if (!mod.nodeTypes || typeof mod.nodeTypes !== 'object') {
-      logger.warn(`⚠️ Mod ${mod.name} has no nodeTypes or invalid nodeTypes`);
+      console.warn(`⚠️ Mod ${mod.name} has no nodeTypes or invalid nodeTypes`);
       return;
     }
 
-    logger.info(`📦 Registering nodes for mod: ${mod.displayName}`);
-    logger.debug(`📦 nodeTypes keys: ${Object.keys(mod.nodeTypes).join(', ')}`);
-    logger.debug(`📦 mainCode present: ${!!mod.mainCode}`);
+    console.log(`📦 Registering nodes for mod: ${mod.displayName}`);
+    console.log(`📦 nodeTypes keys: ${Object.keys(mod.nodeTypes).join(', ')}`);
+    console.log(`📦 mainCode present: ${!!mod.mainCode}`);
     if (mod.mainCode) {
-      logger.debug(`📦 mainCode length: ${mod.mainCode.length} chars`);
+      console.log(`📦 mainCode length: ${mod.mainCode.length} chars`);
     }
 
     Object.entries(mod.nodeTypes).forEach(([nodeId, nodeConfig]: [string, any]) => {
@@ -88,9 +87,9 @@ class ModStorageService {
         };
 
         nodeRegistry.register(nodeDefinition);
-        logger.info(`✅ Registered mod node: ${nodeId} from ${mod.displayName}`);
+        console.log(`✅ Registered mod node: ${nodeId} from ${mod.displayName}`);
       } catch (error) {
-        logger.error(`❌ Failed to register node ${nodeId} from ${mod.name}:`, error);
+        console.error(`❌ Failed to register node ${nodeId} from ${mod.name}:`, error);
       }
     });
   }
@@ -103,31 +102,31 @@ class ModStorageService {
     const self = this;
 
     return async (context: any) => {
-      logger.info(`🔧 [Mod ${mod.name}/${nodeId}] Execute called for nodeId: ${context.nodeId}`);
+      console.log(`🔧 [Mod ${mod.name}/${nodeId}] Execute called for nodeId: ${context.nodeId}`);
 
       const signalSystem = getSignalSystem();
 
       if (!signalSystem) {
-        logger.warn(`[Mod ${mod.name}] SignalSystem not initialized`);
+        console.warn(`[Mod ${mod.name}] SignalSystem not initialized`);
         return { outputs: {}, success: false, error: 'SignalSystem not initialized' };
       }
 
-      logger.info(`🔧 [Mod ${mod.name}/${nodeId}] Registering signal handler...`);
+      console.log(`🔧 [Mod ${mod.name}/${nodeId}] Registering signal handler...`);
 
       // Enregistrer le handler de signal pour cette node
       signalSystem.registerHandler(
         context.nodeId,
         async (signal: Signal): Promise<SignalPropagation> => {
-          logger.info(`🔔 [Mod ${mod.name}/${nodeId}] Signal reçu! NodeId: ${context.nodeId}`);
-          logger.debug(`🔔 Signal data:`, signal);
+          console.log(`🔔 [Mod ${mod.name}/${nodeId}] Signal reçu! NodeId: ${context.nodeId}`);
+          console.log(`🔔 Signal data:`, signal);
 
           try {
             // Exécuter le code du mod si disponible
             if (mod.mainCode) {
-              logger.info(`🚀 [Mod ${mod.name}/${nodeId}] Executing mod code...`);
+              console.log(`🚀 [Mod ${mod.name}/${nodeId}] Executing mod code...`);
               const result = await self.executeModCode(mod, nodeId, nodeConfig, signal, context);
 
-              logger.info(`✅ [Mod ${mod.name}/${nodeId}] Execution result:`, result);
+              console.log(`✅ [Mod ${mod.name}/${nodeId}] Execution result:`, result);
 
               // Propager le signal avec les outputs du mod
               return {
@@ -136,19 +135,19 @@ class ModStorageService {
               };
             } else {
               // Pas de code, juste propager
-              logger.warn(
+              console.warn(
                 `⚠️ [Mod ${mod.name}/${nodeId}] No mainCode available, just propagating signal`
               );
               return { propagate: true };
             }
           } catch (error) {
-            logger.error(`❌ [Mod ${mod.name}/${nodeId}] Execution error:`, error);
+            console.error(`❌ [Mod ${mod.name}/${nodeId}] Execution error:`, error);
             return { propagate: false };
           }
         }
       );
 
-      logger.info(`✅ [Mod ${mod.name}/${nodeId}] Handler registered for node ${context.nodeId}`);
+      console.log(`✅ [Mod ${mod.name}/${nodeId}] Handler registered for node ${context.nodeId}`);
 
       return {
         outputs: { signal_out: 'Mod node registered' },
@@ -168,22 +167,22 @@ class ModStorageService {
     context: any
   ): Promise<{ outputs: Record<string, any> } | null> {
     if (!mod.mainCode) {
-      logger.warn(`[executeModCode] No mainCode for mod ${mod.name}`);
+      console.warn(`[executeModCode] No mainCode for mod ${mod.name}`);
       return null;
     }
 
     // Utiliser le nom du node depuis la config si disponible, sinon l'ID
     const nodeType = nodeConfig.name || nodeTypeId;
-    logger.info(`[executeModCode] Executing code for ${mod.name}/${nodeType}`);
+    console.log(`[executeModCode] Executing code for ${mod.name}/${nodeType}`);
 
     try {
       // Créer un environnement sandbox pour le mod
       const api = {
         log: {
-          debug: (msg: string, data?: any) => logger.debug(`[Mod:${mod.name}] ${msg}`, data),
-          info: (msg: string, data?: any) => logger.info(`[Mod:${mod.name}] ${msg}`, data),
-          warn: (msg: string, data?: any) => logger.warn(`[Mod:${mod.name}] ${msg}`, data),
-          error: (msg: string, data?: any) => logger.error(`[Mod:${mod.name}] ${msg}`, data),
+          debug: (msg: string, data?: any) => console.log(`[Mod:${mod.name}] ${msg}`, data),
+          info: (msg: string, data?: any) => console.log(`[Mod:${mod.name}] ${msg}`, data),
+          warn: (msg: string, data?: any) => console.warn(`[Mod:${mod.name}] ${msg}`, data),
+          error: (msg: string, data?: any) => console.error(`[Mod:${mod.name}] ${msg}`, data),
         },
       };
 
@@ -199,9 +198,9 @@ class ModStorageService {
         ...(context.settings || {}),
       };
 
-      logger.debug(`[executeModCode] NodeType: ${nodeType}`);
-      logger.debug(`[executeModCode] Inputs:`, inputs);
-      logger.debug(`[executeModCode] Config:`, config);
+      console.log(`[executeModCode] NodeType: ${nodeType}`);
+      console.log(`[executeModCode] Inputs:`, inputs);
+      console.log(`[executeModCode] Config:`, config);
 
       // Transformer le code ES modules en code exécutable
       // Remplacer les exports par des assignations à un objet exports
@@ -222,7 +221,7 @@ class ModStorageService {
         'exports.$1 = function'
       );
 
-      logger.debug(
+      console.log(
         `[executeModCode] Transformed code (first 500 chars):`,
         transformedCode.substring(0, 500)
       );
@@ -236,20 +235,20 @@ class ModStorageService {
       `;
 
       // Exécuter le code avec Function (plus sûr que eval)
-      logger.info(`[executeModCode] Creating module factory...`);
+      console.log(`[executeModCode] Creating module factory...`);
       // eslint-disable-next-line no-new-func
       const moduleFactory = new Function(wrappedCode);
 
-      logger.info(`[executeModCode] Executing module factory...`);
+      console.log(`[executeModCode] Executing module factory...`);
       const moduleExports = moduleFactory();
 
-      logger.debug(`[executeModCode] Module exports:`, Object.keys(moduleExports));
+      console.log(`[executeModCode] Module exports:`, Object.keys(moduleExports));
 
       // Récupérer la fonction run
       const runFn = moduleExports.run;
 
       if (typeof runFn === 'function') {
-        logger.info(`[executeModCode] Calling run function with nodeType: ${nodeType}`);
+        console.log(`[executeModCode] Calling run function with nodeType: ${nodeType}`);
 
         // Déterminer le nodeType à passer
         // Si le mod a des nodeTypes définis, essayer de trouver le bon
@@ -258,14 +257,14 @@ class ModStorageService {
         // Si le nodeTypes du mod contient les types attendus, les utiliser
         if (moduleExports.nodeTypes && typeof moduleExports.nodeTypes === 'object') {
           const availableTypes = Object.keys(moduleExports.nodeTypes);
-          logger.debug(
+          console.log(
             `[executeModCode] Available nodeTypes in mod code: ${availableTypes.join(', ')}`
           );
 
           // Si le nodeType demandé n'est pas dans la liste, utiliser le premier disponible
           if (availableTypes.length > 0 && !availableTypes.includes(nodeType)) {
             effectiveNodeType = availableTypes[0];
-            logger.info(
+            console.log(
               `[executeModCode] NodeType '${nodeType}' not found, using '${effectiveNodeType}' instead`
             );
           }
@@ -283,14 +282,14 @@ class ModStorageService {
             api
           );
 
-          logger.info(`[executeModCode] Run function result:`, result);
+          console.log(`[executeModCode] Run function result:`, result);
           return result;
         } catch (runError: any) {
           // Si l'erreur est "Type de node inconnu", essayer avec le premier type disponible
           if (runError.message?.includes('Type de node inconnu') && moduleExports.nodeTypes) {
             const availableTypes = Object.keys(moduleExports.nodeTypes);
             if (availableTypes.length > 0 && availableTypes[0] !== effectiveNodeType) {
-              logger.warn(
+              console.warn(
                 `[executeModCode] Retrying with first available nodeType: ${availableTypes[0]}`
               );
               const retryResult = await runFn(
@@ -309,7 +308,7 @@ class ModStorageService {
         }
       } else {
         // Pas de fonction run, créer un résultat par défaut
-        logger.warn(`[Mod ${mod.name}] No 'run' function exported, using default behavior`);
+        console.warn(`[Mod ${mod.name}] No 'run' function exported, using default behavior`);
 
         // Loguer que le mod a été déclenché
         api.log.info(`Mod ${mod.name} triggered for node ${nodeType}`);
@@ -322,7 +321,7 @@ class ModStorageService {
         };
       }
     } catch (error) {
-      logger.error(`[Mod ${mod.name}] Error executing mod code:`, error);
+      console.error(`[Mod ${mod.name}] Error executing mod code:`, error);
       throw error;
     }
   }
@@ -357,7 +356,7 @@ class ModStorageService {
             defaultConfig: {},
           },
         };
-        logger.debug(`📦 ModStorage: Created default node for mod "${mod.displayName}"`);
+        console.log(`📦 ModStorage: Created default node for mod "${mod.displayName}"`);
       }
 
       const installedMod: InstalledMod = {
@@ -377,10 +376,10 @@ class ModStorageService {
       this.registerModNodes(installedMod);
       await this.saveToStorage();
 
-      logger.debug(`✅ ModStorage: Installed mod "${mod.displayName}"`);
+      console.log(`✅ ModStorage: Installed mod "${mod.displayName}"`);
       return true;
     } catch (error) {
-      logger.error(`❌ ModStorage: Failed to install mod "${mod.name}":`, error);
+      console.error(`❌ ModStorage: Failed to install mod "${mod.name}":`, error);
       return false;
     }
   }
@@ -398,10 +397,10 @@ class ModStorageService {
       this.installedMods.delete(modName);
       await this.saveToStorage();
 
-      logger.debug(`✅ ModStorage: Uninstalled mod "${modName}"`);
+      console.log(`✅ ModStorage: Uninstalled mod "${modName}"`);
       return true;
     } catch (error) {
-      logger.error(`❌ ModStorage: Failed to uninstall mod "${modName}":`, error);
+      console.error(`❌ ModStorage: Failed to uninstall mod "${modName}":`, error);
       return false;
     }
   }
@@ -442,7 +441,7 @@ class ModStorageService {
       const mods = Array.from(this.installedMods.values());
       await AsyncStorage.setItem(INSTALLED_MODS_KEY, JSON.stringify(mods));
     } catch (error) {
-      logger.error('❌ ModStorage: Failed to save to storage:', error);
+      console.error('❌ ModStorage: Failed to save to storage:', error);
     }
   }
 
@@ -480,10 +479,10 @@ class ModStorageService {
       this.registerModNodes(updatedMod);
       await this.saveToStorage();
 
-      logger.debug(`✅ ModStorage: Updated mod "${mod.displayName}"`);
+      console.log(`✅ ModStorage: Updated mod "${mod.displayName}"`);
       return true;
     } catch (error) {
-      logger.error(`❌ ModStorage: Failed to update mod "${mod.name}":`, error);
+      console.error(`❌ ModStorage: Failed to update mod "${mod.name}":`, error);
       return false;
     }
   }

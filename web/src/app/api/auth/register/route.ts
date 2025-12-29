@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     const origin = new URL(request.url).origin;
     const { verificationUrl } = await createEmailVerificationToken(normalizedEmail, origin);
 
-    console.info('Lien de vérification envoyé:', verificationUrl);
+    console.log('Lien de vérification envoyé:', verificationUrl);
 
     return NextResponse.json(
       {

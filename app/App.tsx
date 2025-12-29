@@ -6,7 +6,6 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from './src/theme';
 import AppNavigator from './src/navigation/AppNavigator';
-import { logger } from './src/utils/logger';
 import { modStorage } from './src/utils/modStorage';
 import { backgroundService } from './src/utils/backgroundService';
 import {
@@ -31,7 +30,7 @@ function App() {
         backgroundService.start();
         startMonitoringNativeTorch();
       } catch (err) {
-        logger.error('Init failed:', err);
+        console.error('Init failed:', err);
       }
     };
 

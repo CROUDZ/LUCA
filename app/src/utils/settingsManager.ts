@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { logger } from './logger';
+
 
 const SETTINGS_KEY = '@luca_app_settings';
 
@@ -26,9 +26,9 @@ class SettingsManager {
         this.settings = { ...defaultSettings, ...JSON.parse(stored) };
       }
       this.initialized = true;
-      logger.debug('[Settings] Initialized', this.settings);
+      console.log('[Settings] Initialized', this.settings);
     } catch (error) {
-      logger.warn('[Settings] Failed to load settings', error);
+      console.warn('[Settings] Failed to load settings', error);
       this.settings = { ...defaultSettings };
       this.initialized = true;
     }
@@ -42,10 +42,10 @@ class SettingsManager {
     this.settings = { ...this.settings, ...partial };
     try {
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
-      logger.debug('[Settings] Saved', this.settings);
+      console.log('[Settings] Saved', this.settings);
       this.notifyListeners();
     } catch (error) {
-      logger.warn('[Settings] Failed to save settings', error);
+      console.warn('[Settings] Failed to save settings', error);
     }
   }
 
@@ -62,7 +62,7 @@ class SettingsManager {
       try {
         listener(snapshot);
       } catch (e) {
-        logger.warn('[Settings] Listener error', e);
+        console.warn('[Settings] Listener error', e);
       }
     });
   }

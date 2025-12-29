@@ -13,7 +13,6 @@ import {
   type VolumeDirection,
   type VolumeButtonEvent,
 } from '../../utils/volumeController';
-import { logger } from '../../utils/logger';
 
 // ============================================================================
 // FACTORY POUR CRÉER UNE CONDITION VOLUME
@@ -57,7 +56,7 @@ function createVolumeConditionNode(options: {
           const pressed = event.action === 'press';
           const condition = settings.invertSignal ? !pressed : pressed;
 
-          logger.info(
+          console.log(
             `[VolumeConditionNode] Node ${nodeId} volume ${direction}: action=${event.action}, condition=${condition}`
           );
 
