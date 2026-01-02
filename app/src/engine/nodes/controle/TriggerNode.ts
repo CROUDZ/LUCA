@@ -13,14 +13,14 @@
  * - Émet un signal qui se propage dans le graphe
  */
 
-import { registerNode } from '../NodeRegistry';
+import { registerNode } from '../../NodeRegistry';
 import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
-} from '../../types/node.types';
-import { getSignalSystem } from '../SignalSystem';
-import { buildNodeCardHTML } from './templates/nodeCard';
+} from '../../../types/node.types';
+import { getSignalSystem } from '../../SignalSystem';
+import { buildNodeCardHTML } from '../nodeCard';
 
 // Map pour stocker les références et le mode des nodes trigger
 type TriggerMode = 'pulse' | 'continuous';

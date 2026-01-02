@@ -15,15 +15,15 @@
  * 3. Utiliser subscribeToConditionChanges() ou gérer manuellement avec onConditionMet/onConditionUnmet
  */
 
-import { registerNode } from './NodeRegistry';
-import { getSignalSystem, type Signal, type SignalPropagation } from './SignalSystem';
-import { buildNodeCardHTML } from './nodes/templates/nodeCard';
+import { registerNode } from '../NodeRegistry';
+import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
+import { buildNodeCardHTML } from './nodeCard';
 import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
   NodeMeta,
-} from '../types/node.types';
+} from '../../types/node.types';
 
 // ============================================================================
 // TYPES
@@ -38,9 +38,8 @@ export interface ConditionState {
 }
 
 export interface ConditionSettings {
-  invertSignal?: boolean; // Inverser la logique de la condition
-  switchMode?: boolean; // Mode switch (toggle à chaque changement)
-  timerDuration?: number; // Durée en secondes (0 = continu)
+  invertSignal: boolean; // Inverser la logique de la condition
+  timerDuration: number; // Durée en secondes (0 = continu)
 }
 
 export interface ConditionCallbacks {
@@ -129,15 +128,11 @@ export async function activateOutput(
   const ss = getSignalSystem();
   if (!ss) return;
 
-  const { switchMode = false, timerDuration = 0 } = settings;
+  const { timerDuration = 0 } = settings;
 
   state.isOutputActive = true;
 
   const additionalData = callbacks.getSignalData?.() ?? {};
-
-  console.log(
-    `[ConditionHandler] Node ${nodeId} OUTPUT ON (timer=${timerDuration}s, switch=${switchMode})`
-  );
 
   await ss.setNodeState(
     nodeId,
@@ -151,7 +146,7 @@ export async function activateOutput(
   );
 
   // Si mode timer (et pas mode switch), programmer l'arrêt
-  if (timerDuration > 0 && !switchMode) {
+  if (timerDuration > 0) {
     if (state.timerHandle) {
       clearTimeout(state.timerHandle);
     }
@@ -228,7 +223,7 @@ export async function onConditionMet(
   const state = conditionStates.get(nodeId);
   if (!state || !state.hasActiveSignal) return;
 
-  const { switchMode = false } = settings;
+  const switchMode = settings.timerDuration == 0;
 
   console.log(`[ConditionHandler] Node ${nodeId} condition MET, switchMode=${switchMode}`);
 
@@ -253,11 +248,11 @@ export async function onConditionUnmet(
   const state = conditionStates.get(nodeId);
   if (!state) return;
 
-  const { switchMode = false, timerDuration = 0 } = settings;
+  const timerDuration = settings.timerDuration;
 
   // En mode switch, on ne fait rien quand la condition devient fausse
   // Le toggle se fait uniquement quand la condition DEVIENT vraie
-  if (switchMode) {
+  if (timerDuration === 0) {
     return;
   }
 
@@ -288,7 +283,7 @@ export function createConditionSignalHandler(
     }
 
     const ss = getSignalSystem();
-    const { invertSignal = false, switchMode = false, timerDuration = 0 } = settings;
+    const { invertSignal = false, timerDuration = 0 } = settings;
 
     console.log(`[ConditionHandler] Node ${nodeId} received signal: state=${signal.state}`);
 
@@ -337,7 +332,7 @@ export function createConditionSignalHandler(
         state.isOutputActive = true;
 
         // Si mode timer (et pas switch), programmer l'arrêt
-        if (timerDuration > 0 && !switchMode) {
+        if (timerDuration > 0) {
           if (state.timerHandle) {
             clearTimeout(state.timerHandle);
           }
@@ -441,7 +436,7 @@ export interface ConditionNodeConfig {
   /** Description courte */
   description: string;
   /** Couleur de la node */
-  color: string;
+  color?: string;
   /** Nom de l'icône Material */
   icon: string;
   /** Famille d'icônes (default: 'material') */
@@ -499,6 +494,23 @@ export interface ConditionNodeConfig {
   additionalSettings?: Record<string, any>;
 
   /**
+   * Inputs additionnels à afficher dans la node
+   * Ces inputs seront ajoutés en plus des inputs standard (invert_signal, timer_duration)
+   */
+  inputs?: Array<{
+    type: 'switch' | 'number' | 'text' | 'color' | 'selector';
+    name: string;
+    label: string;
+    description?: string;
+    value?: any;
+    placeholder?: string;
+    min?: number;
+    max?: number;
+    step?: number;
+    options?: Array<{ label: string; value: string }>;
+  }>;
+
+  /**
    * Contenu HTML personnalisé pour le corps de la node
    * @param settings - Settings actuels
    */
@@ -527,8 +539,7 @@ export function createConditionNode(config: ConditionNodeConfig): NodeDefinition
     eventSubscription,
     externalSubscription,
     additionalSettings = {},
-    customBodyHTML,
-    getDescription,
+    inputs = [],
   } = config;
 
   return {
@@ -575,9 +586,8 @@ export function createConditionNode(config: ConditionNodeConfig): NodeDefinition
 
         const nodeId = context.nodeId;
         const settings: ConditionSettings = {
-          invertSignal: context.settings?.invertSignal ?? false,
-          switchMode: context.settings?.switchMode ?? false,
-          timerDuration: context.settings?.timerDuration ?? 0,
+          invertSignal: context.inputs.invert_signal ?? false,
+          timerDuration: context.inputs.timer_duration ?? 0,
         };
 
         // Initialiser l'état via le ConditionHandler
@@ -631,63 +641,33 @@ export function createConditionNode(config: ConditionNodeConfig): NodeDefinition
       return ss ? true : 'Signal system not initialized';
     },
 
-    generateHTML: (settings: Record<string, any>, nodeMeta?: NodeMeta): string => {
-      const invertSignal = settings?.invertSignal ?? false;
-      const switchMode = settings?.switchMode ?? false;
-      const timerDuration = settings?.timerDuration ?? 0;
+    generateHTML: (_: Record<string, any>, nodeMeta?: NodeMeta): string => {
+      // Inputs standard pour toutes les conditions
+      const standardInputs = [
+        {
+          type: 'switch' as const,
+          name: 'invert_signal',
+          label: 'Inverser le signal',
+          value: false,
+        },
+        {
+          type: 'number' as const,
+          name: 'timer_duration',
+          label: 'Durée du timer (secondes)',
+          value: 0,
+        },
+      ];
 
-      let subtitle = invertSignal ? 'Signal inversé' : 'Signal direct';
-      if (switchMode) {
-        subtitle += ' • Mode Switch';
-      } else if (timerDuration > 0) {
-        subtitle += ` • Timer ${timerDuration}s`;
-      } else {
-        subtitle += ' • Continu';
-      }
-
-      const descriptionText = getDescription?.(settings) ?? description;
-      const customBody = customBodyHTML?.(settings) ?? '';
-
-      const body = `
-        <div class="condition-node${invertSignal ? ' inverted' : ''}${
-        switchMode ? ' switch-mode' : ''
-      }">
-          ${customBody ? `<div class="condition-custom">${customBody}</div>` : ''}
-          
-          <!-- Contrôles de configuration -->
-          <div class="condition-settings">
-            <!-- Mode Switch -->
-            <div class="setting-row">
-              <label class="setting-label">
-                <span class="setting-text">Mode Switch</span>
-                <span class="setting-hint">Bascule ON/OFF à chaque détection</span>
-              </label>
-              <label class="toggle-switch">
-                <input type="checkbox" class="switch-mode-toggle" ${switchMode ? 'checked' : ''}>
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-            
-            <!-- Timer Duration (visible uniquement si pas en mode switch) -->
-            <div class="setting-row timer-setting" ${switchMode ? 'style="display:none;"' : ''}>
-              <label class="setting-label">
-                <span class="setting-text">Timer (secondes)</span>
-                <span class="setting-hint">0 = continu tant que condition vraie</span>
-              </label>
-              <input type="number" class="timer-duration-input" value="${timerDuration}" min="0" max="300" step="0.5" placeholder="0">
-            </div>
-          </div>
-        </div>
-      `;
+      // Fusionner les inputs additionnels avec les inputs standard
+      const allInputs = [...inputs, ...standardInputs];
 
       return buildNodeCardHTML({
         title: `${name} Condition`,
-        subtitle,
-        description: descriptionText,
         iconName: icon.replace(/-/g, '_'),
-        category: nodeMeta?.category || 'Condition',
-        accentColor: color,
-        body,
+        category: 'Condition',
+        description: '0 dans le timer = mode switch',
+        inputs: allInputs,
+        nodeId: nodeMeta?.id,
       });
     },
   };

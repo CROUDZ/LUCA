@@ -60,7 +60,9 @@ function createNodeTemplate(type, nodeData = {}) {
     data: nodeData.data || defaults.data,
     html:
       nodeData.html ||
-      `<div class="title"><span class="node-icon">${nodeData.icon || defaults.icon}</span> ${nodeData.name || defaults.name}</div><div class="content">${nodeData.description || defaults.description}</div>`,
+      `<div class="title"><span class="node-icon">${nodeData.icon || defaults.icon}</span> ${
+        nodeData.name || defaults.name
+      }</div><div class="content">${nodeData.description || defaults.description}</div>`,
   };
 
   return template;

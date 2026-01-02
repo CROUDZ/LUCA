@@ -8,16 +8,16 @@
  * L'écran se ferme quand un signal OFF est reçu.
  */
 
-import { registerNode } from '../NodeRegistry';
+import { registerNode } from '../../NodeRegistry';
 import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
   NodeMeta,
-} from '../../types/node.types';
-import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
+} from '../../../types/node.types';
+import { getSignalSystem, type Signal, type SignalPropagation } from '../../SignalSystem';
 import { DeviceEventEmitter } from 'react-native';
-import { buildNodeCardHTML } from './templates/nodeCard';
+import { buildNodeCardHTML } from '../nodeCard';
 
 const COLOR_SCREEN_NODE_ACCENT = '#9C27B0';
 
@@ -176,7 +176,7 @@ const ColorScreenNode: NodeDefinition = {
     const accentColor = COLOR_SCREEN_NODE_ACCENT;
     const category = nodeMeta?.category || 'Action';
 
-    // Utiliser buildNodeCardHTML avec un body personnalisé pour le color picker
+    // Utiliser buildNodeCardHTML uniquement (avec un input de type 'color')
     return buildNodeCardHTML({
       title: 'Color Screen',
       subtitle: color,
@@ -184,28 +184,15 @@ const ColorScreenNode: NodeDefinition = {
       category,
       accentColor,
       description: 'Affiche une couleur en plein écran',
-      body: `
-        <div class="color-screen-control" style="padding: 8px 0;">
-          <label style="display: block; font-size: 12px; margin-bottom: 4px; opacity: 0.8;">
-            Couleur d'écran
-          </label>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <input 
-              type="color" 
-              class="color-screen-picker" 
-              value="${color}"
-              style="flex: 0 0 50px; width: 50px; height: 32px; box-sizing: border-box; border: 2px solid ${accentColor}; border-radius: 6px; cursor: pointer;"
-            />
-            <input 
-              type="text" 
-              class="color-screen-input" 
-              value="${color}"
-              placeholder="#FF0000"
-              style="flex: 1; min-width: 0; padding: 6px 10px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: transparent; color: inherit; font-family: monospace; font-size: 13px;"
-            />
-          </div>
-        </div>
-      `,
+      inputs: [
+        {
+          type: 'color',
+          name: 'color',
+          label: "Couleur d'écran",
+          value: color,
+        },
+      ],
+      nodeId: nodeMeta?.id,
     });
   },
 };

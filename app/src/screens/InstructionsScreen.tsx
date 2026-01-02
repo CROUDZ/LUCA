@@ -57,7 +57,7 @@ const InstructionsScreen: React.FC<InstructionsScreenProps> = ({ navigation }) =
         category: 'Nœud',
         excerpt: "Action pour contrôler la lampe torche de l'appareil (allumer/éteindre).",
         content:
-          'Le `FlashLightActionNode` contrôle la lampe torche en mode `toggle` ou `set` selon la config. Il vérifie la permission caméra et émet un événement `flashlight.permission.failed` si nécessaire, affiche une alerte si la permission manque, et met à jour les données du signal (`flashlightState`, `flashlightActionExecuted`).\n\nExemple : `mode=set` pour forcer ON ou `mode=toggle` pour basculer l\'état actuel.\n\nExemple JSON:\n\n```json\n{\n  "mode": "toggle",\n  "value": true,\n  "propagateSignal": true\n}\n```',
+          'Le `FlashLightActionNode` allume la lampe torche lorsqu\'il reçoit un signal (ON) et l\'éteint lorsqu\'il reçoit `OFF`. Il vérifie la permission Caméra et émet un événement `flashlight.permission.failed` si nécessaire. Il ajoute `flashlightState` et `flashlightActionExecuted` aux données du signal.',
       },
       {
         id: 'flashlight-condition-node',

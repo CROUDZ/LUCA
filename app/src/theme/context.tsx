@@ -47,6 +47,25 @@ const getSystemMode = (): ThemeMode => {
 };
 
 /**
+ * Force un rechargement complet de l'app (meilleur effort)
+ */
+const reloadApp = () => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { DevSettings, NativeModules } = require('react-native');
+    if (DevSettings?.reload) {
+      DevSettings.reload();
+      return;
+    }
+    if (NativeModules?.DevSettings?.reload) {
+      NativeModules.DevSettings.reload();
+    }
+  } catch {
+    // DevSettings peut être absent en production/tests
+  }
+};
+
+/**
  * Résout le mode effectif selon la préférence et le système
  */
 const resolveMode = (preference: ThemePreference, system: ThemeMode): ThemeMode => {
@@ -109,17 +128,23 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children, initialM
   );
 
   // Changer la préférence
-  const setPreference = useCallback(async (p: ThemePreference) => {
-    const AsyncStorage = getAsyncStorage();
-    if (AsyncStorage) {
-      try {
-        await AsyncStorage.setItem(THEME_STORAGE_KEY, p);
-      } catch {
-        // Ignorer - mise à jour en mémoire quand même
+  const setPreference = useCallback(
+    async (p: ThemePreference) => {
+      if (p === preference) return;
+
+      const AsyncStorage = getAsyncStorage();
+      if (AsyncStorage) {
+        try {
+          await AsyncStorage.setItem(THEME_STORAGE_KEY, p);
+        } catch {
+          // Ignorer - mise à jour en mémoire quand même
+        }
       }
-    }
-    setPreferenceState(p);
-  }, []);
+      setPreferenceState(p);
+      reloadApp();
+    },
+    [preference]
+  );
 
   // Basculer entre dark et light
   const toggle = useCallback(async () => {

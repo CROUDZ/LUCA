@@ -1,0 +1,7 @@
+# Ignore Android folder and its contents
+/android
+android/
+__mocks__/
+/__mocks__
+node_modules/
+/node_modules

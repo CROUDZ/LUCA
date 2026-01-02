@@ -12,15 +12,15 @@
  * - Propage le signal si le résultat est vrai
  */
 
-import { registerNode } from '../NodeRegistry';
+import { registerNode } from '../../NodeRegistry';
 import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
   NodeMeta,
-} from '../../types/node.types';
-import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
-import { buildNodeCardHTML } from './templates/nodeCard';
+} from '../../../types/node.types';
+import { getSignalSystem, type Signal, type SignalPropagation } from '../../SignalSystem';
+import { buildNodeCardHTML } from '../nodeCard';
 
 // Stocker l'état des entrées et la correspondance source -> entrée pour chaque node
 const nodeInputStates = new Map<number, Map<string, boolean>>();

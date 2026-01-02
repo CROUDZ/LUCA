@@ -2,7 +2,7 @@
  * Hook pour gérer la communication avec la WebView
  */
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { Keyboard } from 'react-native';
 import type { WebView } from 'react-native-webview';
 import type { WebViewMessageEvent } from 'react-native-webview';
@@ -10,7 +10,7 @@ import type { WebViewMessage, DrawflowExport, DrawflowNodeData } from '../types'
 import { ErrorCode } from '../types';
 import { logError, createAppError } from '../utils/errorHandler';
 import { nodeRegistry } from '../engine/NodeRegistry';
-import { buildNodeCardHTML } from '../engine/nodes/templates/nodeCard';
+import { buildNodeCardHTML, setNodeCardTheme } from '../engine/nodes/nodeCard';
 
 interface UseWebViewMessagingOptions {
   onReady?: () => void;
@@ -20,14 +20,34 @@ interface UseWebViewMessagingOptions {
   onNodeSettingsChanged?: (payload: any) => void;
   onNodeInputChanged?: (payload: any) => void;
   onThemeApplied?: (theme: 'light' | 'dark') => void;
+  currentTheme?: 'light' | 'dark';
 }
 
 export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
   const webRef = useRef<WebView>(null);
   const [isReady, setIsReady] = useState(false);
+  const currentThemeRef = useRef<'light' | 'dark'>(options.currentTheme || 'dark');
+  const themeInitializedRef = useRef(false);
   // Use a ref to synchronously reflect readiness to avoid race conditions
   // where `setIsReady(true)` hasn't propagated to the closure yet.
   const isReadyRef = useRef(false);
+
+  // Ensure cached theme is initialized immediately (before any HTML build).
+  if (!themeInitializedRef.current) {
+    const initialTheme = options.currentTheme === 'light' ? 'light' : 'dark';
+    currentThemeRef.current = initialTheme;
+    setNodeCardTheme(initialTheme);
+    themeInitializedRef.current = true;
+  }
+
+  // Synchronise le cache de thème dès l'initialisation (utile avant tout rendu HTML).
+  useEffect(() => {
+    if (options.currentTheme) {
+      const theme = options.currentTheme === 'light' ? 'light' : 'dark';
+      currentThemeRef.current = theme;
+      setNodeCardTheme(theme);
+    }
+  }, [options.currentTheme]);
 
   /**
    * Envoyer un message à la WebView
@@ -107,7 +127,16 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
             options.onNodeInputChanged?.(message.payload);
             break;
           case 'THEME_APPLIED':
-            options.onThemeApplied?.(message.payload?.theme);
+            {
+              const payloadTheme =
+                typeof message.payload?.theme === 'string'
+                  ? message.payload.theme.toLowerCase()
+                  : undefined;
+              const theme = payloadTheme === 'light' ? 'light' : 'dark';
+              currentThemeRef.current = theme;
+              setNodeCardTheme(theme);
+              options.onThemeApplied?.(theme);
+            }
             break;
 
           case 'DISMISS_KEYBOARD':
@@ -186,6 +215,7 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
               iconName: def.icon,
               category: def.category,
               accentColor: def.color,
+              theme: currentThemeRef.current,
             });
       } catch (err) {
         console.warn('Failed to rebuild node HTML', { nodeType, nodeId: idStr, err });
@@ -225,6 +255,7 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
           iconName: nodeDefinition.icon,
           category: nodeDefinition.category,
           accentColor: nodeDefinition.color,
+          theme: currentThemeRef.current,
         });
 
         // Préparer les données pour la WebView
@@ -285,6 +316,8 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
    */
   const setTheme = useCallback(
     (theme: 'dark' | 'light') => {
+      currentThemeRef.current = theme;
+      setNodeCardTheme(theme);
       return sendMessage({
         type: 'SET_THEME',
         payload: { theme },

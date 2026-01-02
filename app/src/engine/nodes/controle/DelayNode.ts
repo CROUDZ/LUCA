@@ -12,14 +12,14 @@
  * - Propage le signal après le délai
  */
 
-import { registerNode } from '../NodeRegistry';
+import { registerNode } from '../../NodeRegistry';
 import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
-} from '../../types/node.types';
-import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
-import { buildNodeCardHTML } from './templates/nodeCard';
+} from '../../../types/node.types';
+import { getSignalSystem, type Signal } from '../../SignalSystem';
+import { buildNodeCardHTML } from '../nodeCard';
 
 const formatDelayDisplay = (delayMs: number): string => {
   const totalSeconds = delayMs / 1000;
@@ -96,13 +96,15 @@ const DelayNode: NodeDefinition = {
       const signalSystem = getSignalSystem();
 
       // Pending delayed propagations par sourceNodeId
-      const pendingDelays: Map<number, Array<{ timeoutId: ReturnType<typeof setTimeout> }>> = new Map();
+      const pendingDelays: Map<
+        number,
+        Array<{ timeoutId: ReturnType<typeof setTimeout> }>
+      > = new Map();
       // Sources qui ont déclenché une activation de cette node (pour pouvoir désactiver si la source s'arrête)
       const activeTriggerSources = new Set<number>();
 
       if (signalSystem) {
         signalSystem.registerHandler(context.nodeId, async (signal: Signal) => {
-
           // Si on reçoit un OFF, annuler tous les délais en attente venant de cette source
           if (signal.state === 'OFF') {
             const pending = pendingDelays.get(signal.sourceNodeId);
@@ -162,9 +164,14 @@ const DelayNode: NodeDefinition = {
               try {
                 // Marquer que cette activation vient de cette source pour permettre le OFF
                 activeTriggerSources.add(signal.sourceNodeId);
-                await signalSystem.activateNode(context.nodeId, { ...signal.data, delayApplied: delayMs }, signal.context, {
-                  forcePropagation: true,
-                });
+                await signalSystem.activateNode(
+                  context.nodeId,
+                  { ...signal.data, delayApplied: delayMs },
+                  signal.context,
+                  {
+                    forcePropagation: true,
+                  }
+                );
               } catch (e) {
                 console.error(`[Delay Node ${context.nodeId}] Error activating delayed node:`, e);
               }
@@ -216,14 +223,6 @@ const DelayNode: NodeDefinition = {
           step: 100,
         },
       ],
-      chips: settings.useVariableDelay && settings.delayVariableName
-        ? [
-            {
-              label: `Variable: ${settings.delayVariableName}`,
-              tone: 'info',
-            },
-          ]
-        : undefined,
     });
   },
 };

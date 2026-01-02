@@ -11,7 +11,7 @@ import { backgroundService } from './src/utils/backgroundService';
 import {
   startMonitoringNativeTorch,
   stopMonitoringNativeTorch,
-} from './src/engine/nodes/FlashLightConditionNode';
+} from './src/engine/nodes/condition/FlashLightConditionNode';
 import ColorScreenOverlay from './src/components/ColorScreenOverlay';
 import './src/engine/nodes';
 import SplashScreen from './src/components/SplashScreen';

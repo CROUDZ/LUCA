@@ -6,14 +6,14 @@
  */
 
 import { registerConditionNode } from '../ConditionHandler';
-import { getSignalSystem } from '../SignalSystem';
+import { getSignalSystem } from '../../SignalSystem';
 import {
   NativeModules,
   DeviceEventEmitter,
   NativeEventEmitter,
   type EmitterSubscription,
 } from 'react-native';
-import permissions from '../../utils/permissions';
+import permissions from '../../../utils/permissions';
 
 let Torch: { switchState?: (on: boolean) => Promise<void> | void } | null = null;
 try {
@@ -228,13 +228,11 @@ export async function hasCameraPermission(): Promise<boolean> {
 // DÉFINITION DE LA NODE VIA FACTORY
 // ============================================================================
 
-const FLASHLIGHT_CONDITION_COLOR = '#FFC107';
 
 const FlashLightConditionNode = registerConditionNode({
   id: 'condition.flashlight',
   name: 'FlashLight',
   description: 'Propage le signal uniquement si la lampe torche est activée',
-  color: FLASHLIGHT_CONDITION_COLOR,
   icon: 'flashlight-on',
 
   // État de la condition
@@ -246,22 +244,6 @@ const FlashLightConditionNode = registerConditionNode({
   eventSubscription: {
     eventName: 'flashlight.changed',
     getConditionFromEvent: (data: any) => data?.enabled ?? false,
-  },
-
-  // Description dynamique
-  getDescription: (settings) => {
-    const invert = settings?.invertSignal ?? false;
-    return `Propage si lampe ${invert ? 'éteinte' : 'allumée'}`;
-  },
-
-  // HTML personnalisé
-  customBodyHTML: (settings) => {
-    const invert = settings?.invertSignal ?? false;
-    return `
-      <div class="condition-status">
-        <span class="status-text">Propage si lampe ${invert ? 'éteinte' : 'allumée'}</span>
-      </div>
-    `;
   },
 });
 

@@ -12,16 +12,16 @@
  * - Propage le signal après l'affichage
  */
 
-import { registerNode } from '../NodeRegistry';
+import { registerNode } from '../../NodeRegistry';
 import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
   NodeMeta,
-} from '../../types/node.types';
-import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
+} from '../../../types/node.types';
+import { getSignalSystem, type Signal, type SignalPropagation } from '../../SignalSystem';
 import { Alert } from 'react-native';
-import { buildNodeCardHTML } from './templates/nodeCard';
+import { buildNodeCardHTML } from '../nodeCard';
 
 const NOTIFICATION_NODE_ACCENT = '#E91E63';
 

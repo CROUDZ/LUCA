@@ -12,7 +12,7 @@ import {
   subscribeToVolumeButtons,
   type VolumeDirection,
   type VolumeButtonEvent,
-} from '../../utils/volumeController';
+} from '../../../utils/volumeController';
 
 // ============================================================================
 // FACTORY POUR CRÉER UNE CONDITION VOLUME

@@ -29,6 +29,8 @@ test('renders text, number and switch inputs', () => {
   // Ensure we post DISMISS_KEYBOARD at least once and also the delayed call exists
   expect(html).toContain('DISMISS_KEYBOARD');
   expect(html).toMatch(/setTimeout\(function\(\)\{[\s\S]*DISMISS_KEYBOARD/);
+  // The node HTML should include the current theme as a data attribute (default to 'dark' in test env)
+  expect(html).toContain('data-luca-theme="dark"');
 });
 
 test('escapes labels and placeholders', () => {

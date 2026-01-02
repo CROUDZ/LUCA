@@ -12,19 +12,16 @@
  * - Propage le signal après la vibration
  */
 
-import { registerNode } from '../NodeRegistry';
+import { registerNode } from '../../NodeRegistry';
 import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
-  NodeMeta,
-} from '../../types/node.types';
-import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
+} from '../../../types/node.types';
+import { getSignalSystem, type Signal, type SignalPropagation } from '../../SignalSystem';
 import { Vibration } from 'react-native';
-import { ensureVibrationPermission } from '../../utils/permissions';
-import { buildNodeCardHTML } from './templates/nodeCard';
-
-const VIBRATION_NODE_ACCENT = '#F97316';
+import { ensureVibrationPermission } from '../../../utils/permissions';
+import { buildNodeCardHTML } from '../nodeCard';
 
 const VibrationNode: NodeDefinition = {
   // ============================================================================
@@ -40,7 +37,6 @@ const VibrationNode: NodeDefinition = {
   // ============================================================================
   icon: 'vibration',
   iconFamily: 'material',
-  color: VIBRATION_NODE_ACCENT,
 
   // ============================================================================
   // INPUTS/OUTPUTS
@@ -51,13 +47,6 @@ const VibrationNode: NodeDefinition = {
       type: 'any',
       label: 'Signal In',
       description: "Signal d'entrée",
-      required: false,
-    },
-    {
-      name: 'duration',
-      type: 'number',
-      label: 'Duration',
-      description: 'Durée en ms',
       required: false,
     },
   ],
@@ -75,11 +64,7 @@ const VibrationNode: NodeDefinition = {
   // CONFIGURATION
   // ============================================================================
   defaultSettings: {
-    vibrationType: 'simple', // 'simple', 'pattern', 'success', 'warning', 'error'
-    duration: 400, // Durée en ms pour simple
-    pattern: [0, 500, 200, 500], // Pattern pour pattern type
-    repeat: false, // Répéter le pattern
-    autoPropagate: true,
+    vibrationType: 'simple', // 'simple', 'success', 'warning', 'error'
   },
 
   // ============================================================================
@@ -95,14 +80,6 @@ const VibrationNode: NodeDefinition = {
           context.nodeId,
           async (signal: Signal): Promise<SignalPropagation> => {
             console.log(`[Vibration Node ${context.nodeId}] Déclenchement vibration`);
-
-            if (signal.state === 'OFF') {
-              return {
-                propagate: settings.autoPropagate !== false,
-                state: 'OFF',
-                data: { ...(signal.data ?? {}), vibrationTriggered: false, vibrationStopped: true },
-              };
-            }
 
             try {
               const hasPermission = await ensureVibrationPermission();
@@ -130,21 +107,12 @@ const VibrationNode: NodeDefinition = {
                 };
               }
 
-              const vibrationType = settings.vibrationType || 'simple';
+              const vibrationType : 'simple' | 'pattern' | 'success' | 'warning' | 'error' = settings.vibrationType || 'simple';
 
               // Déterminer le pattern de vibration
               switch (vibrationType) {
                 case 'simple': {
-                  const duration =
-                    context.inputs.duration !== undefined
-                      ? Number(context.inputs.duration)
-                      : settings.duration || 400;
-                  Vibration.vibrate(duration);
-                  break;
-                }
-                case 'pattern': {
-                  const pattern = settings.pattern || [0, 500, 200, 500];
-                  Vibration.vibrate(pattern, settings.repeat || false);
+                  Vibration.vibrate(400);
                   break;
                 }
                 case 'success': {
@@ -167,7 +135,7 @@ const VibrationNode: NodeDefinition = {
               }
 
               return {
-                propagate: settings.autoPropagate !== false,
+                propagate: true,
                 data: {
                   ...(signal?.data ?? {}),
                   vibrationTriggered: true,
@@ -198,23 +166,29 @@ const VibrationNode: NodeDefinition = {
   // ============================================================================
   // HTML PERSONNALISÉ
   // ============================================================================
-  generateHTML: (settings: Record<string, any>, nodeMeta?: NodeMeta) => {
-    const vibrationType = settings.vibrationType || 'simple';
-    const typeLabels: Record<string, string> = {
-      simple: 'Simple',
-      pattern: 'Pattern',
-      success: '✓',
-      warning: '⚠',
-      error: '✗',
-    };
+  generateHTML: (settings: Record<string, any>, nodeMeta?: Record<string, any>) => {
+    const vibrationType = settings?.vibrationType || 'simple';
 
     return buildNodeCardHTML({
       title: 'Vibration',
-      subtitle: typeLabels[vibrationType] || 'Simple',
+      subtitle: 'Déclenche une vibration',
       iconName: 'vibration',
-      category: nodeMeta?.category || 'Action',
-      accentColor: VIBRATION_NODE_ACCENT,
-      description: 'Déclenche une vibration native selon le pattern choisi.',
+      category: 'Action',
+      nodeId: nodeMeta?.id,
+      inputs: [
+        {
+          type: 'selector',
+          name: 'vibrationType',
+          label: 'Type',
+          value: vibrationType,
+          options: [
+            { label: 'Simple', value: 'simple' },
+            { label: 'Succès ✓', value: 'success' },
+            { label: 'Attention ⚠', value: 'warning' },
+            { label: 'Erreur ✗', value: 'error' },
+          ],
+        }
+      ],
     });
   },
 };

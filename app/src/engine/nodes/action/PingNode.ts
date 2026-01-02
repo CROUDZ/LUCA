@@ -12,15 +12,15 @@
  * - Propage le signal vers l'anchor de sortie (optionnel)
  */
 
-import { registerNode } from '../NodeRegistry';
+import { registerNode } from '../../NodeRegistry';
 import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
-} from '../../types/node.types';
-import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
+} from '../../../types/node.types';
+import { getSignalSystem, type Signal, type SignalPropagation } from '../../SignalSystem';
 import { Alert } from 'react-native';
-import { buildNodeCardHTML } from './templates/nodeCard';
+import { buildNodeCardHTML } from '../nodeCard';
 
 // Compteur de pings pour les statistiques
 let pingCount = 0;
@@ -73,14 +73,6 @@ const PingNode: NodeDefinition = {
     },
   ],
 
-  // ============================================================================
-  // CONFIGURATION
-  // ============================================================================
-  defaultSettings: {
-    showAlert: true, // Afficher une alerte native
-    propagateSignal: true, // Propager le signal après l'action
-    message: 'PING', // Message personnalisable
-  },
 
   // ============================================================================
   // EXÉCUTION
@@ -150,9 +142,7 @@ const PingNode: NodeDefinition = {
                 },
               };
             } else {
-              console.log(
-                `[Ping Node ${context.nodeId}] ⊗ Signal arrêté (propagation désactivée)`
-              );
+              console.log(`[Ping Node ${context.nodeId}] ⊗ Signal arrêté (propagation désactivée)`);
               return {
                 propagate: false,
                 data: signal.data,
@@ -191,11 +181,9 @@ const PingNode: NodeDefinition = {
   // ============================================================================
   // HTML (pour l'affichage dans le graphe)
   // ============================================================================
-  generateHTML: (settings: Record<string, any>): string => {
-    const message = settings?.message || 'PING';
+  generateHTML: (): string => {
     return buildNodeCardHTML({
       title: 'Ping',
-      subtitle: message,
       iconName: 'notifications_active',
       category: 'Action',
       description: 'Émet un signal de test pour valider une portion de graphe.',

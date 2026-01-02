@@ -9,8 +9,11 @@
 
 import { registerNode } from '../../engine/NodeRegistry';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../../engine/SignalSystem';
-import { registerConditionNode, type ConditionNodeConfig } from '../../engine/ConditionHandler';
-import { buildNodeCardHTML } from '../../engine/nodes/templates/nodeCard';
+import {
+  registerConditionNode,
+  type ConditionNodeConfig,
+} from '../../engine/nodes/ConditionHandler';
+import { buildNodeCardHTML } from '../../engine/nodes/nodeCard';
 import type {
   NodeDefinition,
   NodeExecutionContext,

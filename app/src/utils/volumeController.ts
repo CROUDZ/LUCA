@@ -197,7 +197,7 @@ export async function adjustSystemVolume(
 }
 
 export async function setSystemVolume(
-  level: number,
+  percent: number,
   showUI: boolean = false
 ): Promise<VolumeInfo | null> {
   const vn = getVolumeNativeModule();
@@ -210,8 +210,28 @@ export async function setSystemVolume(
   }
 
   try {
-    const clampedLevel = Number.isFinite(level) ? level : 0;
-    const info = await vn.setVolume(clampedLevel, showUI);
+    let maxVolume = 15;
+
+    if (vn.getVolumeInfo) {
+      try {
+        const volumeInfo = await vn.getVolumeInfo();
+        if (typeof volumeInfo?.maxVolume === 'number' && volumeInfo.maxVolume > 0) {
+          maxVolume = volumeInfo.maxVolume;
+        }
+      } catch {
+        if (typeof lastVolumeInfo?.maxVolume === 'number' && lastVolumeInfo.maxVolume > 0) {
+          maxVolume = lastVolumeInfo.maxVolume;
+        }
+      }
+    } else if (typeof lastVolumeInfo?.maxVolume === 'number' && lastVolumeInfo.maxVolume > 0) {
+      maxVolume = lastVolumeInfo.maxVolume;
+    }
+
+    const normalizedPercent = Number.isFinite(percent) ? Math.max(0, Math.min(100, percent)) : 50;
+    const index = normalizedPercent >= 100 ? maxVolume : Math.round((normalizedPercent / 100) * maxVolume);
+    const clampedIndex = Math.max(0, Math.min(maxVolume, index));
+
+    const info = await vn.setVolume(clampedIndex, showUI);
     const normalized = normalizeVolumeInfo(info);
     if (normalized) lastVolumeInfo = normalized;
     return normalized;

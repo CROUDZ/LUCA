@@ -5,7 +5,6 @@
  * quand le graphe est modifié et le SignalSystem reconstruit.
  */
 
-
 type StateListener = (isRunning: boolean) => void;
 
 class ProgramStateManager {

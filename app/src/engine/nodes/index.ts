@@ -1,76 +1,55 @@
-/**
- * Nodes Index - Point d'entrée pour toutes les nodes
- *
- * Pour ajouter une nouvelle node :
- * 1. Créer le fichier dans ce dossier
- * 2. L'importer ici
- * 3. L'exporter si nécessaire
- */
-
 // ============================================================================
 // NODES DE BASE
 // ============================================================================
-import './FlashLightConditionNode';
-import './PingNode';
-import './TriggerNode';
-import './ConfirmNode';
-import './VoiceKeywordConditionNode';
+import './condition/FlashLightConditionNode';
+import './condition/VoiceKeywordConditionNode';
+import './condition/VolumeConditionNodes';
 
-// ============================================================================
-// NODES CONDITIONNELLES
-// ============================================================================
-import './LogicGateNode';
-import './VolumeConditionNodes';
+import './controle/TriggerNode';
+import './controle/LogicGateNode';
+import './controle/DelayNode';
+import './controle/ConfirmNode';
 
-// ============================================================================
-// NODES DE CONTRÔLE DE FLUX
-// ============================================================================
-import './DelayNode';
-
-// ============================================================================
-// NODES D'ACTIONS
-// ============================================================================
-import './NotificationNode';
-import './VibrationNode';
-import './FlashLightActionNode';
-import './VolumeActionNodes';
-import './ColorScreenNode';
-
-console.log('✅ All nodes loaded');
+import './action/PingNode';
+import './action/NotificationNode';
+import './action/VibrationNode';
+import './action/FlashLightActionNode';
+import './action/VolumeActionNodes';
+import './action/ColorScreenNode';
 
 // ============================================================================
 // EXPORTS DES NODES
 // ============================================================================
-export { default as FlashLightConditionNode } from './FlashLightConditionNode';
-export { default as PingNode } from './PingNode';
-export { default as TriggerNode } from './TriggerNode';
-export { default as VoiceKeywordConditionNode } from './VoiceKeywordConditionNode';
-export { default as LogicGateNode } from './LogicGateNode';
-export { VolumeUpConditionNode, VolumeDownConditionNode } from './VolumeConditionNodes';
-export { default as DelayNode } from './DelayNode';
-export { default as NotificationNode } from './NotificationNode';
-export { default as VibrationNode } from './VibrationNode';
-export { default as FlashLightActionNode } from './FlashLightActionNode';
-export { VolumeUpActionNode, VolumeDownActionNode } from './VolumeActionNodes';
-export { default as ConfirmNode } from './ConfirmNode';
-export { default as ColorScreenNode } from './ColorScreenNode';
+export { default as FlashLightConditionNode } from './condition/FlashLightConditionNode';
+export { default as PingNode } from './action/PingNode';
+export { default as TriggerNode } from './controle/TriggerNode';
+export { default as VoiceKeywordConditionNode } from './condition/VoiceKeywordConditionNode';
+export { default as LogicGateNode } from './controle/LogicGateNode';
+export { VolumeUpConditionNode, VolumeDownConditionNode } from './condition/VolumeConditionNodes';
+export { default as DelayNode } from './controle/DelayNode';
+export { default as NotificationNode } from './action/NotificationNode';
+export { default as VibrationNode } from './action/VibrationNode';
+export { default as FlashLightActionNode } from './action/FlashLightActionNode';
+export { default as VolumeActionNode } from './action/VolumeActionNodes';
+export { default as ConfirmNode } from './controle/ConfirmNode';
+export { default as ColorScreenNode } from './action/ColorScreenNode';
 
 // ============================================================================
 // EXPORTS DES HELPERS
 // ============================================================================
 
 // Trigger
-export { triggerNode, triggerAll } from './TriggerNode';
+export { triggerNode, triggerAll } from './controle/TriggerNode';
 // No continuous Source node — helpers removed
 
 // FlashLight
-export { setFlashlightState, getFlashlightState } from './FlashLightConditionNode';
+export { setFlashlightState, getFlashlightState } from './condition/FlashLightConditionNode';
 
 // Ping
-export { getPingCount, resetPingCount } from './PingNode';
+export { getPingCount, resetPingCount } from './action/PingNode';
 
 // Logic Gate
-export { resetLogicGateState, resetAllLogicGateStates } from './LogicGateNode';
+export { resetLogicGateState, resetAllLogicGateStates } from './controle/LogicGateNode';
 
 // Voice Keyword
-export { clearVoiceKeywordRegistry, getActiveListenersCount } from './VoiceKeywordConditionNode';
+export { clearVoiceKeywordRegistry, getActiveListenersCount } from './condition/VoiceKeywordConditionNode';

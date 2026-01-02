@@ -19,7 +19,7 @@ import SaveMenu from '../components/SaveMenu';
 import BottomControlsBar from '../components/BottomControlsBar';
 import TopControlsBar from '../components/TopControlsBar';
 import { nodeInstanceTracker } from '../engine/NodeInstanceTracker';
-import { subscribeNodeAdded } from '../utils/NodePickerEvents'
+import { subscribeNodeAdded } from '../utils/NodePickerEvents';
 import { signalVisualizationBridge } from '../utils/signalVisualizationBridge';
 import { parseDrawflowGraph } from '../engine/engine';
 import {
@@ -27,11 +27,12 @@ import {
   hasCameraPermission,
   clearFlashlightAutoEmitRegistry,
   startMonitoringNativeTorch,
-} from '../engine/nodes/FlashLightConditionNode';
+} from '../engine/nodes/condition/FlashLightConditionNode';
 import { initializeSignalSystem, resetSignalSystem, getSignalSystem } from '../engine/SignalSystem';
 import { nodeRegistry } from '../engine/NodeRegistry';
-import { triggerNode } from '../engine/nodes/TriggerNode';
+import { triggerNode } from '../engine/nodes/controle/TriggerNode';
 import { programState } from '../engine/ProgramState';
+import { setNodeCardTheme } from '../engine/nodes/nodeCard';
 
 type NodeEditorScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'NodeEditor'>;
 
@@ -282,9 +283,11 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
           : inputType === 'switch'
           ? value === true || value === 'true'
           : value;
-      const finalValue =
-        inputType === 'number' && !Number.isFinite(parsedValue) ? 0 : parsedValue;
+      const finalValue = inputType === 'number' && !Number.isFinite(parsedValue) ? 0 : parsedValue;
 
+      console.log(`[NodeInputChanged] Node ${numericId}: ${inputName} = ${finalValue} (type: ${inputType})`);
+
+      // Mettre à jour nodeInputsRef (pour les vraies connexions input/output)
       const currentInputs = nodeInputsRef.current.get(numericId) || {};
       const updatedInputs = { ...currentInputs, [inputName]: finalValue };
       nodeInputsRef.current.set(numericId, updatedInputs);
@@ -297,15 +300,32 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
       const nodeDef = nodeRegistry.getNode(definitionId);
       if (!nodeDef) return;
 
-      const resolvedSettings =
-        nodeSettingsRef.current.get(numericId) ||
-        {
-          ...(nodeDef.defaultSettings || {}),
-          ...((graphNode?.data?.settings as Record<string, any> | undefined) ||
-            graphNode?.data ||
-            {}),
-        };
+      // Récupérer les settings actuels
+      const currentSettings = nodeSettingsRef.current.get(numericId) || {
+        ...(nodeDef.defaultSettings || {}),
+        ...((graphNode?.data?.settings as Record<string, any> | undefined) ||
+          graphNode?.data ||
+          {}),
+      };
 
+      // IMPORTANT: Mettre à jour les settings avec la nouvelle valeur
+      const updatedSettings = {
+        ...currentSettings,
+        [inputName]: finalValue,
+      };
+
+      // Sauvegarder les nouveaux settings dans la ref
+      nodeSettingsRef.current.set(numericId, updatedSettings);
+
+      // IMPORTANT: Persister les settings dans le graphNode pour les rechargements ultérieurs
+      if (graphNode) {
+        if (!graphNode.data) graphNode.data = {};
+        graphNode.data.settings = updatedSettings;
+      }
+
+      console.log(`[NodeInputChanged] Updated settings for node ${numericId}:`, updatedSettings);
+
+      // Désinscrire et réexécuter le nœud avec les nouveaux settings
       if (ss) {
         ss.unregisterHandler(numericId);
       }
@@ -314,7 +334,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
         nodeId: numericId,
         inputs: updatedInputs,
         inputsCount: graphNode?.inputs.length ?? 0,
-        settings: resolvedSettings,
+        settings: updatedSettings,
         log: (msg: string) => console.log(`[Node ${numericId}] ${msg}`),
       });
     } catch (err) {
@@ -333,6 +353,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
     clearGraph: clearWebViewGraph,
     setTheme: setWebViewTheme,
   } = useWebViewMessaging({
+    currentTheme: appTheme.mode,
     onReady: () => {
       if (currentSaveId) {
         const save = saves.find((s) => s.id === currentSaveId);
@@ -411,6 +432,11 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
     programState.start();
     triggerNode(triggerNodeId, { timestamp: Date.now(), source: 'run-button' }, { state: 'start' });
   }, [hasFlashActionInGraph, isReady, triggerNodeId, waitForGraphSync]);
+
+  // Garder le template des nodes synchronisé avec le thème courant même sans DOM.
+  useEffect(() => {
+    setNodeCardTheme(appTheme.mode);
+  }, [appTheme.mode]);
 
   // Sync theme with WebView
   useEffect(() => {

@@ -6,9 +6,9 @@ function isNodeControlInteraction(target) {
   if (!target) return false;
   return Boolean(
     target.closest('.condition-invert-control') ||
-    target.closest('.delay-control') ||
-    target.closest('.voice-keyword-control') ||
-    target.closest('.notification-control')
+      target.closest('.delay-control') ||
+      target.closest('.voice-keyword-control') ||
+      target.closest('.notification-control')
   );
 }
 

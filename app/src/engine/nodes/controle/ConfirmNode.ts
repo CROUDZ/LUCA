@@ -5,13 +5,13 @@
  * Catégorie: Interaction
  */
 
-import { registerNode } from '../NodeRegistry';
+import { registerNode } from '../../NodeRegistry';
 import type {
   NodeDefinition,
   NodeExecutionContext,
   NodeExecutionResult,
-} from '../../types/node.types';
-import { getSignalSystem, type Signal, type SignalPropagation } from '../SignalSystem';
+} from '../../../types/node.types';
+import { getSignalSystem, type Signal, type SignalPropagation } from '../../SignalSystem';
 import { Alert, AppState, InteractionManager } from 'react-native';
 import type { AppStateStatus, NativeEventSubscription } from 'react-native';
 
