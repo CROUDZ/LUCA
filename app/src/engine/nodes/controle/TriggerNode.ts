@@ -199,7 +199,6 @@ const TriggerNode: NodeDefinition = {
       subtitle: 'Point de départ',
       iconName: 'play_circle',
       category: 'Control',
-      description: 'Démarrez le programme avec le bouton PLAY en bas',
     });
   },
 };

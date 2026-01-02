@@ -20,10 +20,8 @@ import type {
   NodeMeta,
 } from '../../../types/node.types';
 import { getSignalSystem, type Signal, type SignalPropagation } from '../../SignalSystem';
-import { Alert } from 'react-native';
 import { buildNodeCardHTML } from '../nodeCard';
-
-const NOTIFICATION_NODE_ACCENT = '#E91E63';
+import NotificationManager from '../../../utils/NotificationManager';
 
 const NotificationNode: NodeDefinition = {
   // ============================================================================
@@ -39,7 +37,6 @@ const NotificationNode: NodeDefinition = {
   // ============================================================================
   icon: 'notifications',
   iconFamily: 'material',
-  color: NOTIFICATION_NODE_ACCENT,
 
   // ============================================================================
   // INPUTS/OUTPUTS
@@ -67,12 +64,9 @@ const NotificationNode: NodeDefinition = {
   // CONFIGURATION
   // ============================================================================
   defaultSettings: {
-    notificationType: 'alert', // 'alert', 'console', 'toast'
+    notificationType: 'standard', // 'standard', 'toast'
     title: 'Notification',
     message: 'Message de notification',
-    useVariableMessage: false,
-    messageVariableName: '',
-    autoPropagate: true,
   },
 
   // ============================================================================
@@ -81,6 +75,9 @@ const NotificationNode: NodeDefinition = {
   execute: async (context: NodeExecutionContext): Promise<NodeExecutionResult> => {
     try {
       const settings = context.settings || {};
+      const title = settings.title;
+      const message = settings.message;
+      const notificationType = settings.notificationType;
       const signalSystem = getSignalSystem();
 
       if (signalSystem) {
@@ -89,47 +86,12 @@ const NotificationNode: NodeDefinition = {
           async (signal: Signal): Promise<SignalPropagation> => {
             console.log(`[Notification Node ${context.nodeId}] Affichage notification`);
 
-            if (signal.state === 'OFF') {
-              return {
-                propagate: settings.autoPropagate !== false,
-                state: 'OFF',
-                data: { ...signal.data, notificationSkipped: 'off' },
-              };
-            }
-
             try {
-              // Déterminer le message
-              let message: string;
-
-              if (context.inputs.message !== undefined) {
-                message = String(context.inputs.message);
-              } else if (settings.useVariableMessage && settings.messageVariableName) {
-                message = String(signalSystem.getVariable(settings.messageVariableName, ''));
-              } else if (signal.data?.message) {
-                message = String(signal.data.message);
-              } else {
-                message = settings.message || 'Notification';
-              }
-
-              const title = settings.title || 'Notification';
-              const notificationType = settings.notificationType || 'alert';
-
-              // Afficher selon le type
-              switch (notificationType) {
-                case 'alert':
-                  Alert.alert(title, message);
-                  break;
-                case 'console':
-                  console.log(`[NOTIFICATION] ${title}: ${message}`);
-                  break;
-                case 'toast':
-                  // Pour l'instant, utiliser console
-                  // TODO: Implémenter avec react-native-toast-message
-                  console.log(`[TOAST] ${message}`);
-                  break;
-                default:
-                  console.log(`[NOTIFICATION] ${message}`);
-              }
+              // Afficher selon le type avec le gestionnaire de notifications
+              NotificationManager.show(notificationType as 'standard' | 'toast', {
+                title,
+                message,
+              });
 
               return {
                 propagate: settings.autoPropagate !== false,
@@ -165,48 +127,28 @@ const NotificationNode: NodeDefinition = {
   // ============================================================================
   generateHTML: (settings: Record<string, any>, nodeMeta?: NodeMeta) => {
     const title = settings.title || 'Notification';
-    const shortTitle = title.length > 22 ? `${title.substring(0, 22)}…` : title;
     const message = settings.message || 'Message de notification';
-    const shortMessage = message.length > 22 ? `${message.substring(0, 22)}…` : message;
     const notificationType = settings.notificationType || 'alert';
-
-    const body = `
-      <div class="notification-control">
-        <label class="notification-field">
-          <span class="notification-label">Titre</span>
-          <input type="text" class="notification-title-input" value="${title}" placeholder="Titre" />
-        </label>
-        <label class="notification-field">
-          <span class="notification-label">Message</span>
-          <input type="text" class="notification-message-input" value="${message}" placeholder="Message" />
-        </label>
-        <label class="notification-field notification-type-field">
-          <span class="notification-label">Type</span>
-          <select class="notification-type-select">
-            <option value="alert" ${notificationType === 'alert' ? 'selected' : ''}>Alert</option>
-            <option value="console" ${
-              notificationType === 'console' ? 'selected' : ''
-            }>Console</option>
-            <option value="toast" ${notificationType === 'toast' ? 'selected' : ''}>Toast</option>
-          </select>
-        </label>
-      </div>
-    `;
 
     return buildNodeCardHTML({
       title: 'Notification',
-      subtitle: shortTitle,
       iconName: 'notifications',
-      category: nodeMeta?.category || 'Action',
-      accentColor: NOTIFICATION_NODE_ACCENT,
-      chips: [
+      nodeId: nodeMeta?.id,
+      category: 'Action',
+      inputs: [
+        { type: 'text', name: 'title', label: 'Titre', value: title },
+        { type: 'text', name: 'message', label: 'Message', value: message },
         {
-          label: notificationType.toUpperCase(),
-          tone: notificationType === 'alert' ? 'warning' : 'info',
+          type: 'selector',
+          name: 'notificationType',
+          label: 'Type',
+          value: notificationType,
+          options: [
+            { label: 'Standard', value: 'standard' },
+            { label: 'Toast', value: 'toast' },
+          ],
         },
       ],
-      description: `Message: ${shortMessage}`,
-      body,
     });
   },
 };

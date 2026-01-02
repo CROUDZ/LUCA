@@ -16,8 +16,6 @@ import {
 import { Alert } from 'react-native';
 import { buildNodeCardHTML } from '../nodeCard';
 
-const FLASHLIGHT_ACTION_COLOR = '#FF9800';
-
 const FlashLightActionNode: NodeDefinition = {
   id: 'action.flashlight',
   name: 'FlashLight Action',
@@ -25,7 +23,6 @@ const FlashLightActionNode: NodeDefinition = {
   category: 'Action',
   icon: 'flashlight-on',
   iconFamily: 'material',
-  color: FLASHLIGHT_ACTION_COLOR,
   inputs: [
     {
       name: 'signal_in',

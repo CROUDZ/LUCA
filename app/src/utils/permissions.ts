@@ -253,6 +253,59 @@ export async function hasMicrophonePermission(): Promise<boolean> {
   }
 }
 
+export async function ensureNotificationPermission(): Promise<boolean> {
+  try {
+    if (Platform?.OS !== 'android') return true;
+
+    // Android 13+ (API 33) nécessite la permission POST_NOTIFICATIONS
+    if (Platform.Version < 33) return true;
+
+    const notifPerm = 'android.permission.POST_NOTIFICATIONS';
+
+    const alreadyGranted = await checkAndroidPermission(notifPerm);
+    if (alreadyGranted) return true;
+
+    const result = await requestAndroidPermission(notifPerm, {
+      title: 'Permission Notifications',
+      message: 'LUCA a besoin de la permission pour afficher des notifications.',
+    });
+
+    if (result.granted) return true;
+
+    if (result.neverAskAgain) {
+      try {
+        Alert.alert(
+          'Permission notifications requise',
+          'Les notifications sont désactivées et ne seront plus demandées. Voulez-vous ouvrir les paramètres pour les réactiver ?',
+          [
+            { text: 'Annuler', style: 'cancel' },
+            { text: 'Ouvrir', onPress: () => Linking?.openSettings?.() },
+          ]
+        );
+      } catch (e) {
+        console.warn('[Permissions] Could not show NEVER_ASK alert (notifications)', e);
+      }
+    }
+
+    return false;
+  } catch (err) {
+    console.warn('[Permissions] ensureNotificationPermission unexpected error', err);
+    return false;
+  }
+}
+
+export async function hasNotificationPermission(): Promise<boolean> {
+  try {
+    if (Platform?.OS !== 'android') return true;
+    if (Platform.Version < 33) return true;
+    const notifPerm = 'android.permission.POST_NOTIFICATIONS';
+    return await checkAndroidPermission(notifPerm);
+  } catch (err) {
+    console.warn('[Permissions] hasNotificationPermission failed', err);
+    return false;
+  }
+}
+
 export default {
   requestAndroidPermission,
   checkAndroidPermission,
@@ -262,4 +315,6 @@ export default {
   hasVibrationPermission,
   ensureMicrophonePermission,
   hasMicrophonePermission,
+  ensureNotificationPermission,
+  hasNotificationPermission,
 };

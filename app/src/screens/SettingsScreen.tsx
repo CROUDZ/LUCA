@@ -14,6 +14,7 @@ import type { RootStackParamList } from '../types/navigation.types';
 import { useTheme } from '../theme';
 import { settingsManager, type AppSettings } from '../utils/settingsManager';
 import { backgroundService } from '../utils/backgroundService';
+import { ensureNotificationPermission } from '../utils/permissions';
 type SettingsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Settings'>;
 
 interface SettingsScreenProps {
@@ -44,6 +45,15 @@ const SettingsScreen: React.FC<SettingsScreenProps> = React.memo(({ navigation }
   }, []);
 
   const handleNotificationControlsToggle = useCallback(async (value: boolean) => {
+    // Si on active la fonctionnalité, vérifier d'abord la permission
+    if (value) {
+      const hasPermission = await ensureNotificationPermission();
+      if (!hasPermission) {
+        console.warn('[Settings] Permission de notification refusée');
+        return; // Ne pas activer si pas de permission
+      }
+    }
+
     await settingsManager.updateSettings({ notificationControlsEnabled: value });
     // La notification sera mise à jour au prochain cycle du service
     backgroundService.updateNotificationControls(value);

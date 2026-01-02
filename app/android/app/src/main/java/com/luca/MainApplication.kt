@@ -21,6 +21,7 @@ class MainApplication : Application(), ReactApplication {
             add(VoiceRecognitionPackage())
             add(BackgroundServicePackage())
             add(ImmersiveModePackage())
+            add(NotificationPackage())
         },
     )
   }
