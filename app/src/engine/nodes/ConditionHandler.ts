@@ -478,12 +478,12 @@ export interface ConditionNodeConfig {
      * Fonction pour s'abonner aux événements externes
      * Doit retourner une fonction de désabonnement
      * @param nodeId - ID de la node
-     * @param settings - Settings de la condition
+     * @param allInputs - Tous les inputs de la node (incluant les inputs personnalisés)
      * @param onConditionChange - Callback à appeler quand la condition change (true = condition vraie)
      */
     subscribe: (
       nodeId: number,
-      settings: ConditionSettings,
+      allInputs: Record<string, any>,
       onConditionChange: (conditionMet: boolean) => void
     ) => () => void;
   };
@@ -612,7 +612,7 @@ export function createConditionNode(config: ConditionNodeConfig): NodeDefinition
         if (externalSubscription) {
           const unsubscribe = externalSubscription.subscribe(
             nodeId,
-            settings,
+            context.inputs, // Passer tous les inputs pour les settings personnalisés
             (conditionMet: boolean) => {
               const conditionState = getConditionState(nodeId);
               if (!conditionState?.hasActiveSignal) return;
@@ -662,7 +662,7 @@ export function createConditionNode(config: ConditionNodeConfig): NodeDefinition
       const allInputs = [...inputs, ...standardInputs];
 
       return buildNodeCardHTML({
-        title: `${name} Condition`,
+        title: name,
         iconName: icon.replace(/-/g, '_'),
         category: 'Condition',
         description: '0 dans le timer = mode switch',

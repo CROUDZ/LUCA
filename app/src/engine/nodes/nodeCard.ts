@@ -157,6 +157,20 @@ function renderInputs(inputs?: NodeCardInput[], nodeId?: string): string {
         : '';
 
       switch (input.type) {
+            case 'text': {
+              const value = typeof input.value === 'string' ? ` value="${escapeHtml(input.value)}"` : '';
+              const placeholder = input.placeholder
+                ? ` placeholder="${escapeHtml(String(input.placeholder))}"`
+                : '';
+              return `<label class="node-card__input node-card__input--text">${label}<input type="text" name="${name}"${value}${placeholder} onchange="${createChangeHandler(
+                input.name,
+                'text'
+              )}" oninput="${createChangeHandler(
+                input.name,
+                'text'
+              )}" onkeypress="if(event.key==='Enter'||event.keyCode===13){${dismissKeyboard}}"/></label>`;
+            }
+
         case 'number': {
           const value = typeof input.value === 'number' ? ` value="${input.value}"` : '';
           const min = typeof input.min === 'number' ? ` min="${input.min}"` : '';

@@ -4,6 +4,7 @@ import {
   matchesKeyword,
   type VoiceRecognitionResult,
 } from '../../../utils/voiceRecognition';
+import { programState } from '../../ProgramState';
 
 // État de la reconnaissance vocale par node
 interface VoiceKeywordNodeState {
@@ -11,17 +12,35 @@ interface VoiceKeywordNodeState {
   exactMatch: boolean;
   isListening: boolean;
   unsubscribe: (() => void) | null;
+  keywordChanged: boolean;
+  onConditionChange: ((detected: boolean) => void) | null; // Callback peut changer à chaque update
 }
 
 const voiceKeywordStates = new Map<number, VoiceKeywordNodeState>();
 
-// Fonction pour initialiser l'état de la node
+// Fonction pour initialiser ou mettre à jour l'état de la node
 function initVoiceKeywordState(nodeId: number, config: any): VoiceKeywordNodeState {
+  const existingState = voiceKeywordStates.get(nodeId);
+  const newKeyword = config.keyword || 'LUCA';
+  const newExactMatch = config.exactMatch ?? false;
+
+  // Si l'état existe déjà, juste mettre à jour le keyword
+  if (existingState) {
+    const keywordHasChanged = existingState.keyword !== newKeyword || existingState.exactMatch !== newExactMatch;
+    existingState.keyword = newKeyword;
+    existingState.exactMatch = newExactMatch;
+    existingState.keywordChanged = keywordHasChanged;
+    return existingState;
+  }
+
+  // Créer un nouvel état
   const state: VoiceKeywordNodeState = {
-    keyword: config.keyword || 'LUCA',
-    exactMatch: config.exactMatch ?? false,
+    keyword: newKeyword,
+    exactMatch: newExactMatch,
     isListening: false,
     unsubscribe: null,
+    keywordChanged: false,
+    onConditionChange: null,
   };
   voiceKeywordStates.set(nodeId, state);
   return state;
@@ -46,27 +65,49 @@ async function startVoiceListening(
   state: VoiceKeywordNodeState,
   onConditionChange: (detected: boolean) => void
 ): Promise<boolean> {
-  if (state.isListening) return true;
+  // Mettre à jour le callback qui peut changer à chaque appel
+  state.onConditionChange = onConditionChange;
+
+  // Si déjà en écoute, pas besoin de recréer le handler
+  if (state.isListening) {
+    console.log(
+      `[VoiceKeyword Node ${nodeId}] Already listening, updated keyword to "${state.keyword}"`
+    );
+    return true;
+  }
 
   const manager = getVoiceRecognitionManager();
 
+  // If the manager thinks it is listening but no listeners are registered, reset it to avoid a stale state.
+  if (getActiveListenersCount() === 0 && manager.isCurrentlyListening()) {
+    try {
+      await manager.stopListening();
+    } catch (error) {
+      console.warn('[VoiceKeyword] Failed to reset stale voice recognition state', error);
+    }
+  }
+
   // S'abonner aux résultats de reconnaissance vocale
+  // Le handler LIT LE KEYWORD depuis le state à chaque appel (pas de capture)
   const unsubscribe = manager.onResult((result: VoiceRecognitionResult) => {
-    const matches = matchesKeyword(result.transcript, state.keyword, {
+    const currentState = voiceKeywordStates.get(nodeId);
+    if (!currentState || !currentState.isListening) return;
+
+    const matches = matchesKeyword(result.transcript, currentState.keyword, {
       caseSensitive: false,
-      exactMatch: state.exactMatch,
+      exactMatch: currentState.exactMatch,
     });
 
     console.log(
-      `[VoiceKeyword Node ${nodeId}] Transcript: "${result.transcript}" | Keyword: "${state.keyword}" | Matches: ${matches}`
+      `[VoiceKeyword Node ${nodeId}] Transcript: "${result.transcript}" | Keyword: "${currentState.keyword}" | Matches: ${matches}`
     );
 
-    // Si le mot-clé est détecté (en tenant compte de l'inversion)
+    // Si le mot-clé est détecté
     if (matches && result.isFinal) {
       console.log(
-        `[VoiceKeyword Node ${nodeId}] Keyword "${state.keyword}" detected! Triggering condition.`
+        `[VoiceKeyword Node ${nodeId}] Keyword "${currentState.keyword}" detected! Triggering condition.`
       );
-      onConditionChange(true);
+      currentState.onConditionChange?.(true);
     }
   });
 
@@ -79,6 +120,8 @@ async function startVoiceListening(
       unsubscribe();
       return false;
     }
+  } else {
+    console.log(`[VoiceKeyword Node ${nodeId}] Reusing active voice recognition session`);
   }
 
   state.isListening = true;
@@ -116,12 +159,33 @@ async function stopVoiceListening(nodeId: number, state: VoiceKeywordNodeState):
   }
 }
 
+// Arrête toutes les écoutes actives et nettoie les handlers.
+async function stopAllVoiceListeners(reason: string = 'cleanup'): Promise<void> {
+  const stopTasks: Array<Promise<void>> = [];
+
+  for (const [nodeId, state] of voiceKeywordStates) {
+    stopTasks.push(
+      stopVoiceListening(nodeId, state).catch((error) => {
+        console.warn(`[VoiceKeyword] Error stopping listener for node ${nodeId} (${reason})`, error);
+      })
+    );
+  }
+
+  await Promise.all(stopTasks);
+  voiceKeywordStates.clear();
+
+  try {
+    const manager = getVoiceRecognitionManager();
+    await manager.stopListening();
+    console.log(`[VoiceKeyword] Voice recognition stopped (${reason})`);
+  } catch (error) {
+    console.warn(`[VoiceKeyword] Failed to stop voice recognition (${reason})`, error);
+  }
+}
+
 // Pour les tests
 export function clearVoiceKeywordRegistry(): void {
-  voiceKeywordStates.forEach((_, nodeId) => {
-    cleanupVoiceKeywordState(nodeId);
-  });
-  voiceKeywordStates.clear();
+  void stopAllVoiceListeners('registry clear');
 }
 
 export function getActiveListenersCount(): number {
@@ -133,6 +197,12 @@ export function getActiveListenersCount(): number {
   }
   return count;
 }
+
+programState.subscribe((isRunning) => {
+  if (!isRunning) {
+    void stopAllVoiceListeners('program stopped');
+  }
+});
 
 const VoiceKeywordConditionNode = registerConditionNode({
   id: 'condition.voice_keyword',
@@ -166,14 +236,14 @@ const VoiceKeywordConditionNode = registerConditionNode({
   // Configuration de l'abonnement externe pour la reconnaissance vocale
   externalSubscription: {
     subscribe: (nodeId: number, settings: any, onConditionChange: (detected: boolean) => void) => {
-      // Initialiser l'état
+      // Initialiser ou mettre à jour l'état (détecte les changements de keyword)
       const config = {
         keyword: settings.keyword || 'LUCA',
         exactMatch: settings.exact_match ?? false,
       };
       const state = initVoiceKeywordState(nodeId, config);
 
-      // Démarrer l'écoute
+      // Démarrer/relancer l'écoute (prend en compte les changements de keyword)
       startVoiceListening(nodeId, state, onConditionChange).catch((error) => {
         console.warn(`[VoiceKeyword Node ${nodeId}] Failed to start listening`, error);
       });

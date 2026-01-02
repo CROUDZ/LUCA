@@ -5,7 +5,7 @@
  * Utilise le ConditionHandler centralisé pour la gestion des modes (continu, timer, switch).
  */
 
-import { registerConditionNode, getConditionState } from '../ConditionHandler';
+import { registerConditionNode } from '../ConditionHandler';
 import {
   getLastVolumeButtonEvent,
   isVolumeButtonPressed,
@@ -50,9 +50,6 @@ function createVolumeConditionNode(options: {
         return subscribeToVolumeButtons((event: VolumeButtonEvent) => {
           if (event.direction !== direction) return;
 
-          const conditionState = getConditionState(nodeId);
-          if (!conditionState?.hasActiveSignal) return;
-
           const pressed = event.action === 'press';
           const condition = settings.invertSignal ? !pressed : pressed;
 
@@ -60,30 +57,11 @@ function createVolumeConditionNode(options: {
             `[VolumeConditionNode] Node ${nodeId} volume ${direction}: action=${event.action}, condition=${condition}`
           );
 
-          if (event.action === 'press' && condition) {
-            onConditionChange(true);
-          } else if (event.action === 'release') {
-            onConditionChange(false);
-          }
+          onConditionChange(condition);
         });
       },
     },
 
-    // Description dynamique
-    getDescription: (settings) => {
-      const invert = settings?.invertSignal ?? false;
-      return `Propage si bouton ${name} ${invert ? 'relâché' : 'appuyé'}`;
-    },
-
-    // HTML personnalisé
-    customBodyHTML: (settings) => {
-      const invert = settings?.invertSignal ?? false;
-      return `
-        <div class="condition-status">
-          <span class="status-text">Propage si ${name} ${invert ? 'relâché' : 'appuyé'}</span>
-        </div>
-      `;
-    },
   });
 }
 

@@ -154,9 +154,7 @@ const PingNode: NodeDefinition = {
 
       return {
         success: true,
-        outputs: {
-          signal_out: `Ping action registered (count: ${pingCount})`,
-        },
+        outputs: {},
       };
     } catch (error) {
       return {
@@ -186,7 +184,6 @@ const PingNode: NodeDefinition = {
       title: 'Ping',
       iconName: 'notifications_active',
       category: 'Action',
-      description: 'Émet un signal de test pour valider une portion de graphe.',
     });
   },
 };
