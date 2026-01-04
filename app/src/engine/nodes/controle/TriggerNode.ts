@@ -104,6 +104,15 @@ const TriggerNode: NodeDefinition = {
   name: 'Trigger',
   description: 'Déclenche manuellement un signal dans le graphe',
   category: 'Control',
+  doc: `excerpt: Le point de départ de votre flux.
+---
+Ce bloc est le déclencheur de votre flux. C'est par ici que tout commence ! Vous pouvez le déclencher manuellement ou configurer pour qu'il se déclenche automatiquement. C'est le seul bloc qui n'a besoin de signal d'entrée.
+
+**Comment l'utiliser :**
+1. Placez ce bloc au début de votre flux
+2. Connectez ses sorties aux autres blocs
+3. Déclenchez-le manuellement ou configurez pour qu'il se déclenche tout seul
+4. Le signal se propagera dans tout votre flux`,
 
   // ============================================================================
   // APPARENCE

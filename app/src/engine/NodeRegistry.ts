@@ -2,8 +2,9 @@
  * NodeRegistry - Gestionnaire centralisé des types de nodes
  */
 
-import type { NodeDefinition } from '../types/node.types';
+import type { NodeDefinition, NodePortDefinition } from '../types/node.types';
 import { nodeInstanceTracker } from './NodeInstanceTracker';
+import { addInstructionDoc } from '../data/instructionDocs';
 
 class NodeRegistry {
   private nodes: Map<string, NodeDefinition> = new Map();
@@ -17,13 +18,80 @@ class NodeRegistry {
       console.warn(`⚠️ Node "${definition.id}" already registered, overwriting...`);
     }
 
-    this.nodes.set(definition.id, definition);
+    // Ajouter les inputs/outputs par défaut s'ils ne sont pas définis
+    const normalizedDefinition = this.normalizeDefinition(definition);
+
+    this.nodes.set(definition.id, normalizedDefinition);
 
     if (definition.category) {
       this.categories.add(definition.category);
     }
 
-    console.log(`✅ Registered node: ${definition.id} (${definition.name})`);
+    if (definition.doc && definition.doc.trim()) {
+      // Parser le doc pour extraire excerpt et content
+      // Format: "excerpt: ...\n---\ncontent: ..."
+      // Si pas de séparateur, tout le doc devient le content
+      const docText = definition.doc.trim();
+      let excerpt = definition.description; // Par défaut, utiliser la description
+      let content = docText;
+
+      // Vérifier si le doc contient un séparateur ---
+      if (docText.includes('\n---\n')) {
+        const parts = docText.split('\n---\n');
+        if (parts.length >= 2) {
+          const excerptMatch = parts[0].match(/^excerpt:\s*(.+)/i);
+          if (excerptMatch) {
+            excerpt = excerptMatch[1].trim();
+            content = parts.slice(1).join('\n---\n').trim();
+            
+            // Retirer "content:" du début si présent
+            content = content.replace(/^content:\s*/i, '');
+          } else {
+            // Pas de "excerpt:", considérer la première partie comme excerpt
+            excerpt = parts[0].trim();
+            content = parts.slice(1).join('\n---\n').trim();
+          }
+        }
+      }
+
+      addInstructionDoc({
+        id: definition.id,
+        title: definition.name,
+        category: 'Nœud',
+        excerpt,
+        content,
+      });
+    }
+  }
+
+  /**
+   * Normaliser une définition de node en ajoutant les inputs/outputs par défaut
+   */
+  private normalizeDefinition(definition: NodeDefinition): NodeDefinition {
+    const defaultInput: NodePortDefinition = {
+      name: 'signal_in',
+      type: 'any',
+      label: 'Signal In',
+      description: "Signal d'entrée",
+      required: false,
+    };
+
+    const defaultOutput: NodePortDefinition = {
+      name: 'signal_out',
+      type: 'any',
+      label: 'Signal Out',
+      description: 'Signal de sortie (propagé automatiquement)',
+    };
+
+    return {
+      ...definition,
+      inputs: definition.inputs && definition.inputs.length > 0 
+        ? definition.inputs 
+        : [defaultInput],
+      outputs: definition.outputs && definition.outputs.length > 0 
+        ? definition.outputs 
+        : [defaultOutput],
+    };
   }
 
   /**

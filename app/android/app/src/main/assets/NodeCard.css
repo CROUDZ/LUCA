@@ -335,6 +335,8 @@
 
 .color-text {
   flex: 1;
+  min-width: 0;
+  max-width: 150px;
   height: 36px;
   padding: 8px 12px;
   border: 1px solid rgba(var(--editor-brand-soft-rgb), 0.35);

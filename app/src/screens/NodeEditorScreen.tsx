@@ -3,13 +3,15 @@
  */
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { View, TouchableOpacity, Text, Alert, DeviceEventEmitter } from 'react-native';
+import { View, TouchableOpacity, Text, Alert, DeviceEventEmitter, AppState, AppStateStatus } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 import { useWebViewMessaging } from '../hooks/useWebViewMessaging';
+import { backgroundService } from '../utils/backgroundService';
+import { settingsManager } from '../utils/settingsManager';
 import { useGraphStorage } from '../hooks/useGraphStorage';
 import { APP_CONFIG } from '../config/constants';
-import type { DrawflowExport, Graph } from '../types';
+import type { DrawflowExport, Graph, NodeSettingsMap } from '../types';
 import type { RootStackParamList } from '../types/navigation.types';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
@@ -70,6 +72,8 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
   const nodeSettingsRef = useRef<Map<number, Record<string, any>>>(new Map());
   const nodeInputsRef = useRef<Map<number, Record<string, any>>>(new Map());
   const isRebuildingRef = useRef(false);
+  const settingsChangeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
   const resolveGraphSync = useCallback((result: GraphInitResult | null) => {
     if (!result || !graphSyncResolvers.current.length) return;
@@ -92,8 +96,12 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
   }, []);
 
   const rebuildSignalSystem = useCallback(
-    async (graphData: DrawflowExport | null, force = false): Promise<GraphInitResult | null> => {
+    async (graphData: DrawflowExport | null, force = false, preserveSettings = false): Promise<GraphInitResult | null> => {
       if (!graphData) return null;
+
+      // Sauvegarder les settings actuels si on veut les préserver
+      const previousSettings = preserveSettings ? new Map(nodeSettingsRef.current) : null;
+      const previousInputs = preserveSettings ? new Map(nodeInputsRef.current) : null;
 
       // Reset cached state so runtime inputs/settings stay in sync with the latest graph
       nodeSettingsRef.current.clear();
@@ -147,15 +155,23 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
           if (!nodeDef) return;
 
           try {
-            const settings = {
+            // Utiliser les settings préservés s'ils existent, sinon utiliser ceux du graphe/défaut
+            const preservedSettings = previousSettings?.get(node.id);
+            const preservedInputs = previousInputs?.get(node.id);
+
+            const settings = preservedSettings || {
               ...(nodeDef.defaultSettings || {}),
               ...(node.data?.settings || node.data || {}),
             };
 
+            const inputs = preservedInputs || {};
+
             nodeSettingsRef.current.set(node.id, settings);
+            nodeInputsRef.current.set(node.id, inputs);
+
             nodeDef.execute({
               nodeId: node.id,
-              inputs: {},
+              inputs,
               inputsCount: node.inputs.length,
               settings,
               log: (msg: string) => console.log(`[Node ${node.id}] ${msg}`),
@@ -189,10 +205,93 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
     setCurrentSaveId,
   } = useGraphStorage();
 
+  /**
+   * Collecter les paramètres de tous les nœuds pour la sauvegarde
+   */
+  const collectNodeSettings = useCallback((): NodeSettingsMap => {
+    const nodeSettingsMap: NodeSettingsMap = {};
+    
+    // Collecter les settings de chaque nœud
+    nodeSettingsRef.current.forEach((settings, nodeId) => {
+      const inputs = nodeInputsRef.current.get(nodeId) || {};
+      nodeSettingsMap[nodeId.toString()] = {
+        settings,
+        inputs,
+      };
+    });
+    
+    console.log('📦 Collected node settings for save:', Object.keys(nodeSettingsMap).length, 'nodes');
+    return nodeSettingsMap;
+  }, []);
+
+  /**
+   * Restaurer les paramètres des nœuds depuis une sauvegarde
+   */
+  const restoreNodeSettings = useCallback((nodeSettings: NodeSettingsMap | undefined, graphData: DrawflowExport) => {
+    if (!nodeSettings) {
+      console.log('📂 No node settings to restore');
+      return;
+    }
+
+    console.log('📂 Restoring node settings for', Object.keys(nodeSettings).length, 'nodes');
+
+    // Restaurer les settings dans les refs
+    Object.entries(nodeSettings).forEach(([nodeIdStr, data]) => {
+      const nodeId = Number(nodeIdStr);
+      if (data.settings) {
+        nodeSettingsRef.current.set(nodeId, data.settings);
+      }
+      if (data.inputs) {
+        nodeInputsRef.current.set(nodeId, data.inputs);
+      }
+
+      // Mettre à jour les données du graphe également pour synchronisation
+      const moduleData = graphData?.drawflow?.Home?.data;
+      if (moduleData && moduleData[nodeIdStr]) {
+        if (!moduleData[nodeIdStr].data) {
+          moduleData[nodeIdStr].data = {};
+        }
+        moduleData[nodeIdStr].data = {
+          ...moduleData[nodeIdStr].data,
+          settings: data.settings,
+        };
+      }
+    });
+  }, []);
+
+  /**
+   * Déclencher une sauvegarde automatique des paramètres (debounced)
+   * Appelé après chaque changement de paramètre dans une node
+   */
+  const debouncedSaveSettings = useCallback(() => {
+    // Annuler le timeout précédent s'il existe
+    if (settingsChangeDebounceRef.current) {
+      clearTimeout(settingsChangeDebounceRef.current);
+    }
+
+    // Déclencher une sauvegarde après 500ms d'inactivité
+    settingsChangeDebounceRef.current = setTimeout(async () => {
+      if (!currentSaveId || !currentGraph) {
+        console.log('💾 No active save or graph for settings auto-save');
+        return;
+      }
+
+      const nodeSettings = collectNodeSettings();
+      console.log('💾 Auto-saving node settings...', Object.keys(nodeSettings).length, 'nodes');
+      await autoSave(currentGraph, nodeSettings);
+    }, 500);
+  }, [currentSaveId, currentGraph, collectNodeSettings, autoSave]);
+
   const handleGraphExport = useCallback(
     async (data: DrawflowExport) => {
       try {
-        await autoSave(data);
+        // Synchroniser le tracker avec le graphe exporté
+        nodeInstanceTracker.rebuildFromGraph(data);
+        
+        // Collecter les paramètres des nœuds pour la sauvegarde
+        const nodeSettings = collectNodeSettings();
+        
+        await autoSave(data, nodeSettings);
         setCurrentGraph(data);
 
         if (pendingSaveNameRef.current) {
@@ -200,7 +299,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
           pendingSaveNameRef.current = null;
 
           try {
-            const save = await createSave(saveName, data);
+            const save = await createSave(saveName, data, undefined, nodeSettings);
             if (save) {
               setNewSaveName('');
               setShowNewSaveInput(false);
@@ -233,7 +332,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
         console.error('Failed to handle graph export', error);
       }
     },
-    [autoSave, createSave, rebuildSignalSystem, resolveGraphSync, rejectGraphSync]
+    [autoSave, createSave, collectNodeSettings, rebuildSignalSystem, resolveGraphSync, rejectGraphSync]
   );
 
   const handleNodeSettingsChanged = useCallback((payload: any) => {
@@ -266,10 +365,13 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
         settings: resolvedSettings,
         log: (msg: string) => console.log(`[Node ${numericId}] ${msg}`),
       });
+
+      // Déclencher une sauvegarde automatique des paramètres
+      debouncedSaveSettings();
     } catch (err) {
       console.error('Failed to handle node setting change:', err);
     }
-  }, []);
+  }, [debouncedSaveSettings]);
 
   const handleNodeInputChanged = useCallback((payload: any) => {
     try {
@@ -337,10 +439,13 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
         settings: updatedSettings,
         log: (msg: string) => console.log(`[Node ${numericId}] ${msg}`),
       });
+
+      // Déclencher une sauvegarde automatique des paramètres
+      debouncedSaveSettings();
     } catch (err) {
       console.error('Failed to handle node input change:', err);
     }
-  }, []);
+  }, [debouncedSaveSettings]);
 
   const {
     webRef,
@@ -358,9 +463,17 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
       if (currentSaveId) {
         const save = saves.find((s) => s.id === currentSaveId);
         if (save) {
+          nodeInstanceTracker.rebuildFromGraph(save.data);
+          
+          // Restaurer les paramètres des nœuds sauvegardés
+          if (save.nodeSettings) {
+            restoreNodeSettings(save.nodeSettings, save.data);
+          }
+          
           loadGraph(save.data);
           setCurrentGraph(save.data);
-          rebuildSignalSystem(save.data).catch((e) => console.warn('Failed to rebuild graph', e));
+          // Passer preserveSettings=true pour utiliser les settings restaurés
+          rebuildSignalSystem(save.data, false, true).catch((e) => console.warn('Failed to rebuild graph', e));
         }
       }
     },
@@ -464,6 +577,7 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
     // If the WebView is ready, load it immediately; otherwise set the current
     // save and let the existing `onReady` handler (above) load it when ready.
     nodeInstanceTracker.reset();
+    nodeInstanceTracker.rebuildFromGraph(save.data);
     setCurrentGraph(save.data);
     setCurrentSaveId(save.id);
 
@@ -508,12 +622,60 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
     }
   }, [currentGraph]);
 
+  // Background execution: Listen to AppState for background handling
+  useEffect(() => {
+    // Handle app state changes (background/foreground)
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      const previousState = appStateRef.current;
+      appStateRef.current = nextAppState;
+
+      console.log(`[Background] App state changed: ${previousState} -> ${nextAppState}`);
+
+      // App went to background while program is running
+      if (
+        previousState === 'active' &&
+        (nextAppState === 'background' || nextAppState === 'inactive') &&
+        programState.isRunning
+      ) {
+        console.log('[Background] App moved to background with program running - keeping alive');
+        // The BackgroundService with WakeLock keeps the JS running
+        // Update notification to show running state
+        backgroundService.updateTriggerState(true);
+      }
+
+      // App came back to foreground
+      if (
+        (previousState === 'background' || previousState === 'inactive') &&
+        nextAppState === 'active'
+      ) {
+        console.log('[Background] App returned to foreground');
+        // Sync the notification state with current program state
+        backgroundService.updateTriggerState(programState.isRunning);
+      }
+    };
+
+    const appStateSub = AppState.addEventListener('change', handleAppStateChange);
+
+    // Ensure BackgroundService is started if settings allow
+    const settings = settingsManager.getSettings();
+    if (settings.backgroundServiceEnabled && !backgroundService.isRunning()) {
+      backgroundService.start();
+    }
+
+    return () => {
+      appStateSub.remove();
+    };
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       flashlightEventUnsubRef.current?.();
       rejectGraphSync(new Error('NodeEditorScreen unmounted'));
-      resetSignalSystem();
+      // Don't reset signal system if program is still running in background
+      if (!programState.isRunning) {
+        resetSignalSystem();
+      }
     };
   }, [rejectGraphSync]);
 
@@ -534,14 +696,21 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
       const save = loadSave(saveId);
       if (save) {
         nodeInstanceTracker.reset();
+        
+        // Restaurer les paramètres des nœuds avant de charger le graphe
+        if (save.nodeSettings) {
+          restoreNodeSettings(save.nodeSettings, save.data);
+        }
+        
         loadGraph(save.data);
         setCurrentGraph(save.data);
-        rebuildSignalSystem(save.data).catch((e) => console.error('Failed to rebuild', e));
+        // Passer preserveSettings=true pour utiliser les settings restaurés
+        rebuildSignalSystem(save.data, false, true).catch((e) => console.error('Failed to rebuild', e));
         setShowSaveMenu(false);
         Alert.alert('Loaded', `Loaded "${save.name}"`);
       }
     },
-    [loadSave, loadGraph, rebuildSignalSystem]
+    [loadSave, loadGraph, restoreNodeSettings, rebuildSignalSystem]
   );
 
   const handleDeleteSave = useCallback(

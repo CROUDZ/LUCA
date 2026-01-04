@@ -9,6 +9,7 @@ import { getSignalSystem, Signal, SignalPropagation } from '../engine/SignalSyst
 
 const INSTALLED_MODS_KEY = '@luca_installed_mods';
 
+
 export interface InstalledMod {
   id: string;
   name: string;

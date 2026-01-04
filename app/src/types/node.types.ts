@@ -54,6 +54,13 @@ export interface NodeExecutionContext {
   settings: Record<string, any>;
   // Fonction pour console
   log?: (message: string) => void;
+  // Informations sur le signal (ajouté par SignalSystem)
+  signal?: {
+    sourceNodeId: number; // ID de la node qui a émis le signal
+    state: 'ON' | 'OFF'; // État du signal
+    data?: any; // Données du signal
+    timestamp: number; // Timestamp du signal
+  };
 }
 
 export interface NodeExecutionResult {
@@ -75,6 +82,7 @@ export interface NodeDefinition {
   name: string;
   description: string;
   category: string;
+  doc?: string; // Documentation longue optionnelle pour l'écran d'instructions
 
   // Apparence
   icon: string;
@@ -84,9 +92,9 @@ export interface NodeDefinition {
   // Limites et contraintes
   maxInstances?: number; // Nombre maximum d'instances de CE TYPE de node dans le graphe (undefined = illimité)
 
-  // Ports
-  inputs: NodePortDefinition[];
-  outputs: NodePortDefinition[];
+  // Ports (optionnels, des ports par défaut seront ajoutés automatiquement)
+  inputs?: NodePortDefinition[];
+  outputs?: NodePortDefinition[];
 
   // Configuration par défaut
   defaultSettings?: Record<string, any>;

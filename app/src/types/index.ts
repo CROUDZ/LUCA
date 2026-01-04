@@ -108,6 +108,16 @@ export interface NodeType {
 // Types de sauvegarde
 // ============================================================================
 
+/**
+ * Paramètres sauvegardés pour chaque nœud
+ */
+export interface NodeSettingsMap {
+  [nodeId: string]: {
+    settings: Record<string, any>;
+    inputs: Record<string, any>;
+  };
+}
+
 export interface SavedGraph {
   id: string;
   name: string;
@@ -115,6 +125,8 @@ export interface SavedGraph {
   timestamp: number;
   description?: string;
   tags?: string[];
+  /** Paramètres des nœuds (settings et inputs) */
+  nodeSettings?: NodeSettingsMap;
 }
 
 export interface Save {

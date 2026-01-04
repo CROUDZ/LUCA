@@ -121,28 +121,6 @@ body {
   color: #5a2af5;
 }
 
-/* Light theme anchor box-shadow */
-:root.light-theme .drawflow .drawflow-node .input,
-:root.light-theme .drawflow .drawflow-node .output {
-  background: rgba(180, 190, 220, 0.4);
-  border-color: rgba(140, 150, 190, 0.8);
-  box-shadow: 0 0 0 4px #f8faff, 0 0 8px rgba(90, 42, 245, 0.15);
-}
-
-:root.light-theme .drawflow .drawflow-node .input:hover,
-:root.light-theme .drawflow .drawflow-node .output:hover {
-  background: rgba(90, 42, 245, 0.25);
-  border-color: rgba(90, 42, 245, 0.7);
-  box-shadow: 0 0 0 4px #f8faff, 0 0 12px rgba(90, 42, 245, 0.3);
-}
-
-:root.light-theme .drawflow .drawflow-node .input.connected,
-:root.light-theme .drawflow .drawflow-node .output.connected {
-  background: rgba(90, 42, 245, 0.3);
-  border-color: rgba(90, 42, 245, 0.85);
-  box-shadow: 0 0 0 4px #f8faff, 0 0 12px rgba(90, 42, 245, 0.35);
-}
-
 /* Light theme connections */
 :root.light-theme .drawflow .connection .main-path {
   stroke: rgba(90, 42, 245, 0.6);
@@ -152,18 +130,6 @@ body {
 :root.light-theme .drawflow .connection .main-path:hover {
   stroke: rgba(90, 42, 245, 0.85);
   filter: drop-shadow(0 0 8px rgba(90, 42, 245, 0.35));
-}
-
-:root.light-theme .drawflow .connection .point {
-  fill: rgba(180, 190, 220, 0.5);
-  stroke: rgba(140, 150, 190, 0.8);
-  box-shadow: 0 0 0 4px #f8faff, 0 0 6px rgba(90, 42, 245, 0.15);
-}
-
-:root.light-theme .drawflow .connection .point:hover,
-:root.light-theme .drawflow .connection .point.selected {
-  fill: rgba(90, 42, 245, 0.4);
-  stroke: rgba(90, 42, 245, 0.85);
 }
 
 .drawflow .parent-drawflow {
@@ -189,42 +155,157 @@ body {
   z-index: 2;
 }
 
+/* ============================================
+   ANCHORS - Positionnés au centre vertical
+   Les anchors sont invisibles mais positionnés au milieu
+   pour que les connexions arrivent au centre des nodes
+   ============================================ */
 .drawflow .drawflow-node .inputs,
 .drawflow .drawflow-node .outputs {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
   width: 0;
+  height: 0;
+  overflow: visible;
+  visibility: visible;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.drawflow .drawflow-node .inputs {
+  left: 0;
+}
+
+.drawflow .drawflow-node .outputs {
+  right: 0;
 }
 
 .drawflow .drawflow-node .input,
 .drawflow .drawflow-node .output {
-  position: relative;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--node-anchor-default, rgba(var(--node-neutral-rgb), 0.25));
-  border: 2px solid var(--node-anchor-border, rgba(var(--node-neutral-rgb), 0.75));
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  top: 0;
+}
+
+/* ============================================
+   SYSTÈME DE LIAISON SIMPLIFIÉ
+   Toucher une node pour la sélectionner,
+   toucher une autre pour créer la connexion
+   ============================================ */
+
+/* Node sélectionnée comme source de liaison */
+.drawflow .drawflow-node.link-source-selected {
+  border-color: var(--editor-brand, #9382ff) !important;
+  box-shadow: 
+    0 0 0 3px rgba(var(--editor-brand-soft-rgb, 147, 130, 255), 0.4),
+    0 0 30px rgba(var(--editor-brand-soft-rgb, 147, 130, 255), 0.5),
+    0 20px 50px rgba(var(--editor-brand-soft-rgb, 147, 130, 255), 0.25) !important;
+  transform: scale(1.02);
+  z-index: 100 !important;
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+/* Animation de pulsation pour le node source */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 
+      0 0 0 3px rgba(var(--editor-brand-soft-rgb, 147, 130, 255), 0.4),
+      0 0 30px rgba(var(--editor-brand-soft-rgb, 147, 130, 255), 0.5),
+      0 20px 50px rgba(var(--editor-brand-soft-rgb, 147, 130, 255), 0.25);
+  }
+  50% {
+    box-shadow: 
+      0 0 0 5px rgba(var(--editor-brand-soft-rgb, 147, 130, 255), 0.5),
+      0 0 40px rgba(var(--editor-brand-soft-rgb, 147, 130, 255), 0.65),
+      0 20px 60px rgba(var(--editor-brand-soft-rgb, 147, 130, 255), 0.35);
+  }
+}
+
+/* Nodes cibles disponibles pour la liaison */
+.drawflow .drawflow-node.link-target-available {
+  border-color: rgba(var(--node-success-rgb, 31, 200, 169), 0.6) !important;
+  box-shadow: 
+    0 0 0 2px rgba(var(--node-success-rgb, 31, 200, 169), 0.25),
+    0 0 20px rgba(var(--node-success-rgb, 31, 200, 169), 0.2) !important;
+  transition: all 0.2s ease;
+}
+
+.drawflow .drawflow-node.link-target-available:hover {
+  border-color: rgba(var(--node-success-rgb, 31, 200, 169), 0.9) !important;
+  box-shadow: 
+    0 0 0 3px rgba(var(--node-success-rgb, 31, 200, 169), 0.4),
+    0 0 30px rgba(var(--node-success-rgb, 31, 200, 169), 0.35) !important;
+  transform: scale(1.01);
+}
+
+/* Feedback d'erreur si la connexion échoue */
+.drawflow .drawflow-node.link-error {
+  border-color: var(--node-error, #ff6b81) !important;
+  box-shadow: 
+    0 0 0 3px rgba(var(--node-error-rgb, 255, 107, 129), 0.4),
+    0 0 20px rgba(var(--node-error-rgb, 255, 107, 129), 0.3) !important;
+  animation: shake-error 0.3s ease;
+}
+
+@keyframes shake-error {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* Mode liaison actif - curseur personnalisé */
+body.link-mode-active {
   cursor: crosshair;
-  z-index: 3;
-  box-shadow: 0 0 0 4px var(--editor-bg, rgba(var(--luca-background-dark-rgb, 5, 3, 15), 0.98)),
-    0 0 8px var(--node-connection-shadow, rgba(var(--editor-brand-soft-rgb), 0.35));
-  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease,
-    transform 0.2s ease;
 }
 
-.drawflow .drawflow-node .input:hover,
-.drawflow .drawflow-node .output:hover {
-  background: var(--node-anchor-hover, rgba(var(--editor-brand-soft-rgb), 0.25));
-  border-color: rgba(var(--editor-brand-soft-rgb), 0.85);
-  box-shadow: 0 0 0 4px var(--editor-bg, rgba(var(--luca-background-dark-rgb, 5, 3, 15), 0.98)),
-    0 0 12px rgba(var(--editor-brand-soft-rgb), 0.55);
-  transform: scale(1.05);
+body.link-mode-active .drawflow .drawflow-node {
+  cursor: pointer;
 }
 
-.drawflow .drawflow-node .input.connected,
-.drawflow .drawflow-node .output.connected {
-  background: var(--node-anchor-connected, rgba(var(--editor-brand-rgb), 0.35));
-  border-color: var(--node-anchor-connected-border, rgba(var(--editor-brand-rgb), 0.85));
-  box-shadow: 0 0 0 4px var(--editor-bg, rgba(var(--luca-background-dark-rgb, 5, 3, 15), 0.98)),
-    0 0 12px rgba(var(--editor-brand-rgb), 0.55);
+body.link-mode-active .drawflow .drawflow-node.link-source-selected {
+  cursor: default;
+}
+
+/* Désactiver les inputs/contrôles interactifs pendant le mode liaison */
+body.link-mode-active .node-card input,
+body.link-mode-active .node-card select,
+body.link-mode-active .node-card textarea,
+body.link-mode-active .node-card .toggle-switch,
+body.link-mode-active .node-card .switch-label,
+body.link-mode-active .node-card .delay-control,
+body.link-mode-active .node-card .condition-settings {
+  pointer-events: none !important;
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+
+/* ============================================
+   LIGHT THEME - Overrides pour le système de liaison
+   ============================================ */
+:root.light-theme .drawflow .drawflow-node.link-source-selected {
+  border-color: #5a2af5 !important;
+  box-shadow: 
+    0 0 0 3px rgba(90, 42, 245, 0.35),
+    0 0 30px rgba(90, 42, 245, 0.25),
+    0 20px 50px rgba(90, 42, 245, 0.15) !important;
+}
+
+:root.light-theme .drawflow .drawflow-node.link-target-available {
+  border-color: rgba(31, 200, 169, 0.7) !important;
+  box-shadow: 
+    0 0 0 2px rgba(31, 200, 169, 0.2),
+    0 0 20px rgba(31, 200, 169, 0.15) !important;
+}
+
+:root.light-theme .drawflow .drawflow-node.link-target-available:hover {
+  border-color: rgba(31, 200, 169, 1) !important;
+  box-shadow: 
+    0 0 0 3px rgba(31, 200, 169, 0.35),
+    0 0 30px rgba(31, 200, 169, 0.25) !important;
 }
 
 .drawflow .drawflow-node .node-card {
@@ -510,42 +591,36 @@ body {
   transform: scale(1.01);
   box-shadow: 0 16px 40px rgba(var(--editor-brand-soft-rgb), 0.32);
 }
-body.creating-connection .drawflow .drawflow-node .input {
-  border-color: var(--node-anchor-connected-border, rgba(var(--editor-brand-rgb), 0.85));
-  background: var(--node-anchor-active, rgba(var(--editor-brand-soft-rgb), 0.45));
-}
-
-/* Quand on crée une connexion depuis un input, mettre en évidence les outputs */
-body.creating-connection-from-input .drawflow .drawflow-node .input {
-  border-color: var(--node-anchor-border, rgba(var(--node-neutral-rgb), 0.75));
-  background: var(--node-anchor-default, rgba(var(--node-neutral-rgb), 0.25));
-}
-body.creating-connection-from-input .drawflow .drawflow-node .output {
-  border-color: var(--node-anchor-connected-border, rgba(var(--editor-brand-rgb), 0.85));
-  background: var(--node-anchor-active, rgba(var(--editor-brand-soft-rgb), 0.45));
-}
-
-/* Zone de drop élargie pour les nœuds lors de la création de connexion */
-body.creating-connection .drawflow .drawflow-node,
-body.creating-connection-from-input .drawflow .drawflow-node {
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-body.creating-connection .drawflow .drawflow-node:hover,
-body.creating-connection-from-input .drawflow .drawflow-node:hover {
-  border-color: var(--node-anchor-connected-border, rgba(var(--editor-brand-rgb), 0.7));
-  box-shadow: 0 0 20px rgba(var(--editor-brand-rgb), 0.3);
-}
 
 .drawflow .connection .main-path {
   fill: none;
   stroke-width: 5px;
   stroke: var(--node-connection, rgba(var(--editor-brand-soft-rgb), 0.85));
-  pointer-events: all;
+  pointer-events: stroke;
   filter: drop-shadow(
     0 0 6px var(--node-connection-shadow, rgba(var(--editor-brand-soft-rgb), 0.45))
   );
   stroke-linecap: round;
   transition: stroke 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
+  cursor: pointer;
+}
+
+/* Zone de touch élargie pour les connexions (invisible) */
+.drawflow .connection {
+  position: absolute;
+  pointer-events: all;
+  z-index: 1;
+}
+
+/* Ajouter une zone de touch invisible plus large autour des connexions */
+.drawflow .connection::before {
+  content: '';
+  position: absolute;
+  top: -15px;
+  left: -15px;
+  right: -15px;
+  bottom: -15px;
+  pointer-events: none;
 }
 
 .drawflow svg {
@@ -554,15 +629,29 @@ body.creating-connection-from-input .drawflow .drawflow-node:hover {
   z-index: 0;
 }
 
-.drawflow .connection {
-  position: absolute;
-  pointer-events: none;
-  z-index: 1;
-}
-
 .drawflow .connection .main-path:hover {
   stroke: var(--node-connection-hover, rgba(var(--editor-brand-rgb), 0.95));
   filter: drop-shadow(0 0 10px rgba(var(--editor-brand-rgb), 0.55));
+  stroke-width: 7px;
+}
+
+/* Connexion en surbrillance (détectée par proximité du touch) */
+.drawflow .connection.hover-highlight .main-path {
+  stroke: var(--node-error, #ff6b81) !important;
+  stroke-width: 8px !important;
+  filter: drop-shadow(0 0 15px rgba(var(--node-error-rgb, 255, 107, 129), 0.7)) !important;
+  animation: connection-pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes connection-pulse {
+  from {
+    stroke-width: 8px;
+    filter: drop-shadow(0 0 15px rgba(var(--node-error-rgb, 255, 107, 129), 0.7));
+  }
+  to {
+    stroke-width: 10px;
+    filter: drop-shadow(0 0 25px rgba(var(--node-error-rgb, 255, 107, 129), 0.9));
+  }
 }
 
 .drawflow .connection .main-path.selected {
@@ -570,23 +659,10 @@ body.creating-connection-from-input .drawflow .drawflow-node:hover {
   filter: drop-shadow(0 0 12px rgba(var(--node-success-rgb), 0.5));
 }
 
+/* Points de connexion cachés (système simplifié) */
 .drawflow .connection .point {
-  cursor: move;
-  stroke: var(--node-anchor-border, rgba(var(--node-neutral-rgb), 0.75));
-  stroke-width: 2px;
-  fill: var(--node-anchor-default, rgba(var(--node-neutral-rgb), 0.25));
-  pointer-events: all;
-  box-shadow: 0 0 0 4px var(--editor-bg, rgba(var(--luca-background-dark-rgb, 5, 3, 15), 0.98)),
-    0 0 6px var(--node-connection-shadow, rgba(var(--editor-brand-soft-rgb), 0.45));
-  transition: fill 0.2s ease, stroke 0.2s ease, box-shadow 0.2s ease;
-}
-
-.drawflow .connection .point:hover,
-.drawflow .connection .point.selected {
-  fill: var(--node-anchor-active, rgba(var(--editor-brand-soft-rgb), 0.45));
-  stroke: var(--node-anchor-connected-border, rgba(var(--editor-brand-rgb), 0.85));
-  box-shadow: 0 0 0 4px var(--editor-bg, rgba(var(--luca-background-dark-rgb, 5, 3, 15), 0.98)),
-    0 0 10px rgba(var(--editor-brand-rgb), 0.55);
+  display: none;
+  pointer-events: none;
 }
 
 /* Override Drawflow's default hover fill */

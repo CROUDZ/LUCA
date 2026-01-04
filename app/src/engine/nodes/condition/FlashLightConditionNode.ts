@@ -231,8 +231,17 @@ export async function hasCameraPermission(): Promise<boolean> {
 
 const FlashLightConditionNode = registerConditionNode({
   id: 'condition.flashlight',
-  name: 'FlashLight',
+  name: 'FlashLight Condition',
   description: 'Propage le signal uniquement si la lampe torche est activée',
+  doc: `excerpt: Vérifie si la lampe torche est activée.
+---
+Ce bloc vérifie l'état de la lampe torche de votre téléphone. Si elle est allumée, il laisse passer le signal. Si elle est éteinte, il l'arrête.
+
+**Comment l'utiliser :**
+1. Connectez ce bloc à d'autres blocs dans votre flux
+2. Il vérifiera automatiquement si la lampe torche est allumée ou éteinte
+3. Le signal ne passera que si la lampe est allumée
+4. Parfait pour créer des actions conditionnelles !`,
   icon: 'flashlight-on',
 
   // État de la condition

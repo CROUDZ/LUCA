@@ -204,7 +204,12 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
         color: def.color,
       } as const;
 
-      const settings = nodeData.data || {};
+      // Fusionner les settings sauvegardés avec les données du node
+      // Les settings peuvent être dans nodeData.data.settings ou directement dans nodeData.data
+      const settings = {
+        ...(nodeData.data || {}),
+        ...(nodeData.data?.settings || {}),
+      };
 
       try {
         nodeData.html = def.generateHTML
@@ -263,8 +268,8 @@ export function useWebViewMessaging(options: UseWebViewMessagingOptions = {}) {
           name: nodeDefinition.name,
           description: nodeDefinition.description,
           icon: nodeDefinition.icon,
-          inputs: nodeDefinition.inputs.length,
-          outputs: nodeDefinition.outputs.length,
+          inputs: nodeDefinition.inputs?.length,
+          outputs: nodeDefinition.outputs?.length,
           class: `${nodeDefinition.category.toLowerCase()}-node`,
           data: { type: nodeType, ...data },
           html: nodeDefinition.generateHTML

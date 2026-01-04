@@ -12,33 +12,22 @@ import { getSignalSystem, type Signal } from '../../SignalSystem';
 import { setSystemVolume } from '../../../utils/volumeController';
 import { buildNodeCardHTML } from '../nodeCard';
 
-const VOLUME_ACTION_COLOR = '#FF9800';
-
 const VolumeActionNode: NodeDefinition = {
   id: 'action.volume',
   name: 'Volume',
   description: 'Définit le volume du système à un pourcentage spécifique',
   category: 'Action',
+  doc: `excerpt: Règle le volume sonore de votre téléphone.
+---
+Ce bloc vous permet de régler automatiquement le volume du son à un niveau spécifique. Vous pouvez choisir n'importe quel volume entre 0% (silencieux) et 100% (maximum).
+
+**Comment l'utiliser :**
+1. Entrez le pourcentage de volume souhaité (par exemple 50% pour demi-volume)
+2. Activez "Afficher UI système" si vous voulez voir l'indicateur de volume qui s'affiche normalement quand vous réglez le volume
+3. Le bloc se charge du reste !`,
+
   icon: 'volume-up',
   iconFamily: 'material',
-  color: VOLUME_ACTION_COLOR,
-  inputs: [
-    {
-      name: 'signal_in',
-      type: 'any',
-      label: 'Signal In',
-      description: "Signal d'entrée qui déclenche l'ajustement du volume",
-      required: false,
-    },
-  ],
-  outputs: [
-    {
-      name: 'signal_out',
-      type: 'any',
-      label: 'Signal Out',
-      description: 'Signal de sortie avec les informations du volume',
-    },
-  ],
   defaultSettings: {
     volumePercent: 50,
     showSystemUI: false,

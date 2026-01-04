@@ -62,8 +62,19 @@ class BackgroundService : Service() {
     val manager = getSystemService(Context.POWER_SERVICE) as PowerManager
     val lock = manager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "LUCA::BackgroundServiceWakelock")
     lock.setReferenceCounted(false)
-    lock.acquire()
+    // Acquire with 10 minute timeout for safety, will be re-acquired on notification updates
+    lock.acquire(10 * 60 * 1000L)
     wakeLock = lock
+  }
+
+  // Re-acquire wake lock to extend duration when program is active
+  private fun extendWakeLock() {
+    wakeLock?.let {
+      if (it.isHeld) {
+        it.release()
+      }
+      it.acquire(10 * 60 * 1000L)
+    }
   }
 
   private fun registerActionReceiver() {
@@ -72,6 +83,7 @@ class BackgroundService : Service() {
         when (intent?.action) {
           ACTION_PLAY -> {
             triggerRunning = true
+            extendWakeLock() // Extend wake lock when starting from notification
             updateNotification()
             emitTriggerEvent("play")
           }
@@ -126,7 +138,12 @@ class BackgroundService : Service() {
   }
 
   fun updateTriggerState(running: Boolean) {
+    val wasRunning = triggerRunning
     triggerRunning = running
+    // Extend wake lock when program starts or is still running
+    if (running) {
+      extendWakeLock()
+    }
     updateNotification()
   }
 

@@ -208,6 +208,15 @@ const VoiceKeywordConditionNode = registerConditionNode({
   id: 'condition.voice_keyword',
   name: 'Voice Keyword',
   description: 'Propage le signal lorsque le mot-clé vocal est détecté (ex: "LUCA")',
+  doc: `excerpt: Détecte quand vous dites un mot-clé spécifique.
+---
+Ce bloc écoute votre voix et vérifie si vous dites un mot-clé spécifique (par exemple "LUCA"). Quand il détecte le mot, il déclenche le signal pour faire passer votre flux à l'action suivante.
+
+**Comment l'utiliser :**
+1. Choisissez le mot-clé que vous voulez détecter (par défaut "LUCA")
+2. Le bloc commence à écouter quand le flux arrive à ce bloc
+3. Dites le mot-clé à voix haute
+4. Le bloc reconnaît votre parole et déclenche la suite !`,
   icon: 'mic',
   iconFamily: 'material',
 

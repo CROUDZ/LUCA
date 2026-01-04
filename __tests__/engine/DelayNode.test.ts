@@ -3,7 +3,7 @@ import {
   resetSignalSystem,
   getSignalSystem,
 } from '../../app/src/engine/SignalSystem';
-import DelayNode from '../../app/src/engine/nodes/DelayNode';
+import DelayNode from '../../app/src/engine/nodes/controle/DelayNode';
 import type { Graph } from '../../app/src/types';
 
 afterEach(() => {

@@ -15,6 +15,7 @@ const dismissKeyboard = `
 const CATEGORY_ACCENT_MAP: Record<string, string> = {
   control: '#2196F3',
   action: '#4CAF50',
+  condition: '#FF9800',
 };
 
 export type NodeCardChipTone = 'default' | 'success' | 'warning' | 'danger' | 'info';
@@ -198,7 +199,7 @@ function renderInputs(inputs?: NodeCardInput[], nodeId?: string): string {
           return `<label class="node-card__input node-card__input--color">${label}<div class="color-input-wrapper"><input type="color" name="${name}" id="color-picker-${nodeId}" class="color-picker"${value} onchange="(function(e){try{var txt=e.target.parentNode.querySelector('#color-text-${nodeId}');if(txt)txt.value=e.target.value;}catch(err){}${createChangeHandler(
             input.name,
             'color'
-          )}})(event)"/><input type="text" name="${name}_text" id="color-text-${nodeId}" class="color-text" placeholder="#000000"${value} onchange="(function(e){try{var v=e.target.value;if(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v)){var pick=e.target.parentNode.querySelector('#color-picker-${nodeId}');if(pick)pick.value=v;${createChangeHandler(
+          )}})(event)"/><input type="text" name="${name}_text" id="color-text-${nodeId}" class="color-text" placeholder="#000000" maxlength="7"${value} onchange="(function(e){try{var v=e.target.value;if(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v)){var pick=e.target.parentNode.querySelector('#color-picker-${nodeId}');if(pick)pick.value=v;${createChangeHandler(
             input.name,
             'color'
           )}}}catch(err){}})(event)" onkeypress="if(event.key==='Enter'||event.keyCode===13){${dismissKeyboard}}"/></div></label>`;

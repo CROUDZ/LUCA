@@ -1,4 +1,4 @@
-import { buildNodeCardHTML } from '../../app/src/engine/nodes/templates/nodeCard';
+import { buildNodeCardHTML } from '../../app/src/engine/nodes/nodeCard';
 
 test('renders text, number and switch inputs', () => {
   const html = buildNodeCardHTML({

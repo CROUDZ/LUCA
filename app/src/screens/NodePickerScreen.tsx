@@ -24,6 +24,13 @@ interface NodePickerScreenProps {
   route: NodePickerScreenRouteProp;
 }
 
+const CATEGORY_ACCENT_MAP: Record<string, string> = {
+  control: '#2196F3',
+  action: '#4CAF50',
+  condition: '#FF9800',
+  mod : '#9C27B0',
+};
+
 const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
   const [categories, setCategories] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -57,6 +64,21 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
       loadCategories();
     }, [loadCategories])
   );
+
+  // Fonction pour obtenir la couleur associée à une catégorie
+  const getCategoryColor = useCallback((category: string): string => {
+    // D'abord, vérifier si la catégorie entière existe dans le map
+    if (CATEGORY_ACCENT_MAP[category]) {
+      return CATEGORY_ACCENT_MAP[category];
+    }
+    // Si c'est une catégorie de mod (ex: "Mods/MyMod"), extraire le préfixe
+    const prefix = category.split('/')[0].toLowerCase();
+    if (CATEGORY_ACCENT_MAP[prefix]) {
+      return CATEGORY_ACCENT_MAP[prefix];
+    }
+    // Sinon, utiliser la couleur primaire par défaut
+    return theme.colors.primary;
+  }, [theme.colors.primary]);
 
   // Filtrage des catégories / nœuds selon le terme de recherche
   const filteredCategories = useMemo(() => {
@@ -170,10 +192,11 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
           ) : (
             filteredCategories.map(({ category, nodes }) => (
               <View key={category}>
-                <Text style={styles.categoryTitle}>{category}</Text>
+                <Text style={[styles.categoryTitle, { color: getCategoryColor(category) }]}>{category}</Text>
                 {nodes.map((nodeType) => {
                   const checkResult = nodeRegistry.canAddNode(nodeType.id);
                   const isDisabled = !checkResult.canAdd;
+                  console.log(nodeType);
 
                   return (
                     <TouchableOpacity
@@ -190,7 +213,7 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
                             color={
                               isDisabled
                                 ? theme.colors.textSecondary
-                                : nodeType.color || theme.colors.primary
+                                : nodeType.color || getCategoryColor(category)
                             }
                           />
                         ) : (
@@ -200,7 +223,7 @@ const NodePickerScreen: React.FC<NodePickerScreenProps> = ({ navigation }) => {
                             color={
                               isDisabled
                                 ? theme.colors.textSecondary
-                                : nodeType.color || theme.colors.primary
+                                : nodeType.color || getCategoryColor(category)
                             }
                           />
                         )}
@@ -351,7 +374,6 @@ export const createStyles = (theme: AppTheme) => {
     categoryTitle: {
       fontSize: 16,
       fontWeight: '700',
-      color: theme.colors.primary,
       marginTop: 16,
       marginBottom: 12,
       marginLeft: 4,

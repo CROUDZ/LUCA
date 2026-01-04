@@ -74,11 +74,19 @@ export interface EventSubscription {
 // État des nodes
 // ============================================================================
 
+export interface SourceData {
+  state: SignalState;
+  data?: any;
+  timestamp: number;
+}
+
 interface NodeState {
   state: SignalState;
   data?: any;
   lastUpdate: number;
   activeConnections: Set<number>; // IDs des nodes sources qui maintiennent cet état ON
+  // Données par source pour permettre aux nodes de savoir ce que chaque entrée envoie
+  sourceData: Map<number, SourceData>;
 }
 
 // ============================================================================
@@ -110,6 +118,7 @@ export class SignalSystem {
         state: 'OFF',
         lastUpdate: Date.now(),
         activeConnections: new Set(),
+        sourceData: new Map(),
       });
     });
   }
@@ -145,6 +154,37 @@ export class SignalSystem {
    */
   getNodeData(nodeId: number): any {
     return this.nodeStates.get(nodeId)?.data;
+  }
+
+  /**
+   * Obtenir les données de toutes les sources actives d'une node
+   * Retourne un Map<sourceNodeId, SourceData>
+   */
+  getNodeSourceData(nodeId: number): Map<number, SourceData> {
+    return this.nodeStates.get(nodeId)?.sourceData ?? new Map();
+  }
+
+  /**
+   * Obtenir les données d'une source spécifique pour une node
+   */
+  getSourceDataFor(nodeId: number, sourceNodeId: number): SourceData | undefined {
+    return this.nodeStates.get(nodeId)?.sourceData.get(sourceNodeId);
+  }
+
+  /**
+   * Obtenir toutes les sources actives (ON) d'une node
+   */
+  getActiveSourcesFor(nodeId: number): number[] {
+    const nodeState = this.nodeStates.get(nodeId);
+    if (!nodeState) return [];
+    return Array.from(nodeState.activeConnections);
+  }
+
+  /**
+   * Obtenir le nombre de sources actives pour une node
+   */
+  getActiveSourceCount(nodeId: number): number {
+    return this.nodeStates.get(nodeId)?.activeConnections.size ?? 0;
   }
 
   /**
@@ -254,6 +294,7 @@ export class SignalSystem {
         state: 'OFF',
         lastUpdate: Date.now(),
         activeConnections: new Set(),
+        sourceData: new Map(),
       });
     }
   }
@@ -270,6 +311,7 @@ export class SignalSystem {
         state: 'OFF',
         lastUpdate: Date.now(),
         activeConnections: new Set(),
+        sourceData: new Map(),
       });
     }
   }
@@ -321,6 +363,7 @@ export class SignalSystem {
         data,
         lastUpdate: Date.now(),
         activeConnections: new Set(),
+        sourceData: new Map(),
       });
     }
 
@@ -532,45 +575,69 @@ export class SignalSystem {
                 (this.stats.averageExecutionTime + Date.now() - startTime) / 2;
 
               const propagatedState = result.state ?? signal.state;
-              this.emitEvent('signal.propagated', {
-                fromNodeId: currentNodeId,
-                toNodeId: outputNodeId,
-                signalId: signal.id,
-                state: propagatedState,
-              });
 
-              const outputNodeState = this.nodeStates.get(outputNodeId);
-              let stateChanged = false;
-              let oldState: SignalState = 'OFF';
+              // Ne mettre à jour l'état que si le handler propage le signal
+              if (result.propagate) {
+                this.emitEvent('signal.propagated', {
+                  fromNodeId: currentNodeId,
+                  toNodeId: outputNodeId,
+                  signalId: signal.id,
+                  state: propagatedState,
+                });
 
-              if (outputNodeState) {
-                oldState = outputNodeState.state;
+                const outputNodeState = this.nodeStates.get(outputNodeId);
+                let stateChanged = false;
+                let oldState: SignalState = 'OFF';
 
-                if (propagatedState === 'ON') {
-                  const wasNew = !outputNodeState.activeConnections.has(currentNodeId);
-                  outputNodeState.activeConnections.add(currentNodeId);
-                  if (oldState !== 'ON' || wasNew) stateChanged = true;
-                  outputNodeState.state = 'ON';
-                  outputNodeState.data = result.data ?? signal.data;
-                  outputNodeState.lastUpdate = Date.now();
-                } else if (propagatedState === 'OFF') {
-                  outputNodeState.activeConnections.delete(currentNodeId);
-                  if (outputNodeState.activeConnections.size === 0) {
-                    if (oldState !== 'OFF') stateChanged = true;
-                    outputNodeState.state = 'OFF';
+                if (outputNodeState) {
+                  oldState = outputNodeState.state;
+
+                  // Mettre à jour les données de cette source spécifique
+                  outputNodeState.sourceData.set(currentNodeId, {
+                    state: propagatedState,
+                    data: result.data ?? signal.data,
+                    timestamp: Date.now(),
+                  });
+
+                  if (propagatedState === 'ON') {
+                    const wasNew = !outputNodeState.activeConnections.has(currentNodeId);
+                    outputNodeState.activeConnections.add(currentNodeId);
+                    if (oldState !== 'ON' || wasNew) stateChanged = true;
+                    outputNodeState.state = 'ON';
                     outputNodeState.data = result.data ?? signal.data;
                     outputNodeState.lastUpdate = Date.now();
+                  } else if (propagatedState === 'OFF') {
+                    outputNodeState.activeConnections.delete(currentNodeId);
+                    // Supprimer les données de cette source quand elle passe à OFF
+                    outputNodeState.sourceData.delete(currentNodeId);
+                    
+                    // Si c'est un OFF explicite, forcer l'arrêt même s'il y a d'autres connexions actives
+                    if (signal.explicitOff) {
+                      if (oldState !== 'OFF') stateChanged = true;
+                      outputNodeState.state = 'OFF';
+                      outputNodeState.data = result.data ?? signal.data;
+                      outputNodeState.lastUpdate = Date.now();
+                      outputNodeState.activeConnections.clear();
+                      outputNodeState.sourceData.clear();
+                    } else if (outputNodeState.activeConnections.size === 0) {
+                      if (oldState !== 'OFF') stateChanged = true;
+                      outputNodeState.state = 'OFF';
+                      outputNodeState.data = result.data ?? signal.data;
+                      outputNodeState.lastUpdate = Date.now();
+                      // Vider toutes les données sources quand la node passe à OFF
+                      outputNodeState.sourceData.clear();
+                    }
                   }
                 }
-              }
 
-              if (result.propagate) {
                 let shouldPropagate = stateChanged || propagatedState === 'ON';
 
+                // Ne pas bloquer la propagation si c'est un OFF explicite
                 if (
                   outputNodeState &&
                   propagatedState === 'OFF' &&
-                  outputNodeState.activeConnections.size > 0
+                  outputNodeState.activeConnections.size > 0 &&
+                  !signal.explicitOff
                 ) {
                   shouldPropagate = false;
                 }
@@ -587,6 +654,9 @@ export class SignalSystem {
                     state: propagatedState,
                     data: result.data ?? signal.data,
                     context: signal.context,
+                    // Propager le flag explicitOff pour que les nodes suivantes sachent
+                    // que c'est un arrêt explicite (trigger arrêté)
+                    explicitOff: signal.explicitOff && propagatedState === 'OFF',
                   };
 
                   if (result.targetOutputs?.length) {
@@ -616,6 +686,13 @@ export class SignalSystem {
             if (outputNodeState) {
               let shouldPropagate = true;
 
+              // Toujours mettre à jour les données de cette source spécifique
+              outputNodeState.sourceData.set(currentNodeId, {
+                state: signal.state,
+                data: signal.data,
+                timestamp: Date.now(),
+              });
+
               if (signal.state === 'ON') {
                 outputNodeState.activeConnections.add(currentNodeId);
                 outputNodeState.state = 'ON';
@@ -623,10 +700,22 @@ export class SignalSystem {
                 outputNodeState.lastUpdate = Date.now();
               } else {
                 outputNodeState.activeConnections.delete(currentNodeId);
-                if (outputNodeState.activeConnections.size === 0) {
+                // Supprimer les données de cette source quand elle passe à OFF
+                outputNodeState.sourceData.delete(currentNodeId);
+                
+                // Si c'est un OFF explicite, forcer l'arrêt même s'il y a d'autres connexions actives
+                if (signal.explicitOff) {
                   outputNodeState.state = 'OFF';
                   outputNodeState.data = signal.data;
                   outputNodeState.lastUpdate = Date.now();
+                  outputNodeState.activeConnections.clear();
+                  outputNodeState.sourceData.clear();
+                } else if (outputNodeState.activeConnections.size === 0) {
+                  outputNodeState.state = 'OFF';
+                  outputNodeState.data = signal.data;
+                  outputNodeState.lastUpdate = Date.now();
+                  // Vider toutes les données sources quand la node passe à OFF
+                  outputNodeState.sourceData.clear();
                 } else {
                   shouldPropagate = false;
                 }
@@ -667,6 +756,7 @@ export class SignalSystem {
       state.data = undefined;
       state.lastUpdate = Date.now();
       state.activeConnections.clear();
+      state.sourceData.clear();
     });
 
     this.stats.totalSignals = 0;

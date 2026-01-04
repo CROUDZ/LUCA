@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { SavedGraph, DrawflowExport } from '../types';
+import type { SavedGraph, DrawflowExport, NodeSettingsMap } from '../types';
 import { ErrorCode } from '../types';
 import { APP_CONFIG } from '../config/constants';
 import {
@@ -68,7 +68,7 @@ export function useGraphStorage() {
    * Créer une nouvelle sauvegarde
    */
   const createSave = useCallback(
-    async (name: string, data: DrawflowExport, description?: string) => {
+    async (name: string, data: DrawflowExport, description?: string, nodeSettings?: NodeSettingsMap) => {
       if (!name.trim()) {
         handleError(
           createAppError(ErrorCode.STORAGE_ERROR, 'Save name cannot be empty'),
@@ -84,6 +84,7 @@ export function useGraphStorage() {
         timestamp: Date.now(),
         description,
         tags: [],
+        nodeSettings,
       };
 
       const updatedSaves = [...saves, newSave];
@@ -104,9 +105,9 @@ export function useGraphStorage() {
    * Mettre à jour une sauvegarde existante
    */
   const updateSave = useCallback(
-    async (saveId: string, data: DrawflowExport) => {
+    async (saveId: string, data: DrawflowExport, nodeSettings?: NodeSettingsMap) => {
       const updatedSaves = saves.map((save) =>
-        save.id === saveId ? { ...save, data, timestamp: Date.now() } : save
+        save.id === saveId ? { ...save, data, timestamp: Date.now(), nodeSettings } : save
       );
 
       const success = await savesToStorage(updatedSaves);
@@ -125,13 +126,13 @@ export function useGraphStorage() {
    * Sauvegarder automatiquement si une sauvegarde est active
    */
   const autoSave = useCallback(
-    async (data: DrawflowExport) => {
+    async (data: DrawflowExport, nodeSettings?: NodeSettingsMap) => {
       if (!currentSaveId) {
         console.log('💾 No active save for auto-save');
         return false;
       }
 
-      return await updateSave(currentSaveId, data);
+      return await updateSave(currentSaveId, data, nodeSettings);
     },
     [currentSaveId, updateSave]
   );

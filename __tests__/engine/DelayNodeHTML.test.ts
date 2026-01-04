@@ -1,4 +1,4 @@
-import DelayNode from '../../app/src/engine/nodes/DelayNode';
+import DelayNode from '../../app/src/engine/nodes/controle/DelayNode';
 
 test('DelayNode.generateHTML uses number input for delay_ms', () => {
   const html = DelayNode.generateHTML({ delayMs: 1500 });

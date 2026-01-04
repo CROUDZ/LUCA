@@ -38,8 +38,6 @@ const formatDelayDisplay = (delayMs: number): string => {
   return `${secondsValue}s`;
 };
 
-const DELAY_NODE_ACCENT = '#FF9800';
-
 const DelayNode: NodeDefinition = {
   // ============================================================================
   // IDENTIFICATION
@@ -48,35 +46,21 @@ const DelayNode: NodeDefinition = {
   name: 'Delay',
   description: 'Introduit un délai avant de propager le signal',
   category: 'Control',
+  doc: `excerpt: Attend une certaine durée avant de continuer.
+---
+Ce bloc pause votre flux pendant un temps que vous définissez. C'est utile pour créer des délais entre deux actions ou laisser le temps au téléphone de faire quelque chose.
+
+**Comment l'utiliser :**
+1. Entrez le délai en millisecondes (par exemple 1000 = 1 seconde)
+2. Ou entrez directement en secondes (par ex. 2s = 2 secondes)
+3. Le bloc attend ce temps puis continue vers l'action suivante
+4. Parfait pour créer des séquences avec du timing !`,
 
   // ============================================================================
   // APPARENCE
   // ============================================================================
   icon: 'schedule',
   iconFamily: 'material',
-  color: DELAY_NODE_ACCENT,
-
-  // ============================================================================
-  // INPUTS/OUTPUTS
-  // ============================================================================
-  inputs: [
-    {
-      name: 'signal_in',
-      type: 'any',
-      label: 'Signal In',
-      description: "Signal d'entrée",
-      required: false,
-    },
-  ],
-
-  outputs: [
-    {
-      name: 'signal_out',
-      type: 'any',
-      label: 'Signal Out',
-      description: 'Signal de sortie (après délai)',
-    },
-  ],
 
   // ============================================================================
   // CONFIGURATION
@@ -203,15 +187,12 @@ const DelayNode: NodeDefinition = {
   generateHTML: (settings: Record<string, any>, nodeMeta?: Record<string, any>) => {
     const delayMs = Number.isFinite(Number(settings.delayMs)) ? Number(settings.delayMs) : 1000;
     const safeDelay = Math.max(0, delayMs);
-    const displayDelay = formatDelayDisplay(safeDelay);
 
     return buildNodeCardHTML({
       title: 'Delay',
-      subtitle: displayDelay,
       iconName: 'schedule',
       category: 'Control',
-      accentColor: DELAY_NODE_ACCENT,
-      nodeId: nodeMeta?.id || 'delay-node', // Utiliser l'ID du node pour identifier les messages
+      nodeId: nodeMeta?.id, // Utiliser l'ID du node pour identifier les messages
       inputs: [
         {
           type: 'number',

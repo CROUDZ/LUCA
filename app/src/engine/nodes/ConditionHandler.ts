@@ -285,10 +285,11 @@ export function createConditionSignalHandler(
     const ss = getSignalSystem();
     const { invertSignal = false, timerDuration = 0 } = settings;
 
-    console.log(`[ConditionHandler] Node ${nodeId} received signal: state=${signal.state}`);
+    console.log(`[ConditionHandler] Node ${nodeId} received signal: state=${signal.state}, explicitOff=${signal.explicitOff}`);
 
     // ========== Signal OFF ==========
     if (signal.state === 'OFF') {
+      const wasActive = state.isOutputActive;
       state.hasActiveSignal = false;
       state.lastSignalData = null;
 
@@ -298,10 +299,13 @@ export function createConditionSignalHandler(
         state.timerHandle = null;
       }
 
-      // Désactiver la sortie si elle était active
-      if (state.isOutputActive) {
-        state.isOutputActive = false;
-        const additionalData = callbacks.getSignalData?.() ?? {};
+      state.isOutputActive = false;
+      const additionalData = callbacks.getSignalData?.() ?? {};
+
+      // Si c'est un OFF explicite (trigger arrêté), TOUJOURS propager pour arrêter tout le graphe
+      // Sinon, ne propager que si cette condition avait propagé un ON
+      if (signal.explicitOff || wasActive) {
+        console.log(`[ConditionHandler] Node ${nodeId} propagating OFF (explicitOff=${signal.explicitOff}, wasActive=${wasActive})`);
         return {
           propagate: true,
           state: 'OFF',
@@ -309,7 +313,9 @@ export function createConditionSignalHandler(
         };
       }
 
-      return { propagate: true, state: 'OFF', data: signal.data };
+      // Condition n'était pas active et pas un OFF explicite, ne pas propager
+      console.log(`[ConditionHandler] Node ${nodeId} NOT propagating OFF (was not active, not explicit)`);
+      return { propagate: false, data: signal.data };
     }
 
     // ========== Signal ON ==========
@@ -435,6 +441,8 @@ export interface ConditionNodeConfig {
   name: string;
   /** Description courte */
   description: string;
+  /** Documentation détaillée (excerpt + content séparés par ---) */
+  doc?: string;
   /** Couleur de la node */
   color?: string;
   /** Nom de l'icône Material */
@@ -530,6 +538,7 @@ export function createConditionNode(config: ConditionNodeConfig): NodeDefinition
     id,
     name,
     description,
+    doc,
     color,
     icon,
     iconFamily = 'material',
@@ -546,29 +555,11 @@ export function createConditionNode(config: ConditionNodeConfig): NodeDefinition
     id,
     name,
     description,
+    doc,
     category: 'Condition',
     icon,
     iconFamily: iconFamily as 'material' | 'fontawesome',
     color,
-
-    inputs: [
-      {
-        name: 'signal_in',
-        type: 'any',
-        label: 'Signal In',
-        description: "Signal d'entrée à filtrer",
-        required: false,
-      },
-    ],
-
-    outputs: [
-      {
-        name: 'signal_out',
-        type: 'any',
-        label: 'Signal Out',
-        description: 'Signal propagé si la condition est vraie',
-      },
-    ],
 
     defaultSettings: {
       invertSignal: false,
@@ -641,25 +632,36 @@ export function createConditionNode(config: ConditionNodeConfig): NodeDefinition
       return ss ? true : 'Signal system not initialized';
     },
 
-    generateHTML: (_: Record<string, any>, nodeMeta?: NodeMeta): string => {
+    generateHTML: (settings: Record<string, any>, nodeMeta?: NodeMeta): string => {
+      // Récupérer les valeurs sauvegardées ou utiliser les valeurs par défaut
+      const savedInvertSignal = settings?.invert_signal ?? settings?.invertSignal ?? false;
+      const savedTimerDuration = settings?.timer_duration ?? settings?.timerDuration ?? 0;
+
       // Inputs standard pour toutes les conditions
       const standardInputs = [
         {
           type: 'switch' as const,
           name: 'invert_signal',
           label: 'Inverser le signal',
-          value: false,
+          value: savedInvertSignal,
         },
         {
           type: 'number' as const,
           name: 'timer_duration',
           label: 'Durée du timer (secondes)',
-          value: 0,
+          value: savedTimerDuration,
         },
       ];
 
       // Fusionner les inputs additionnels avec les inputs standard
-      const allInputs = [...inputs, ...standardInputs];
+      // et appliquer les valeurs sauvegardées aux inputs personnalisés
+      const allInputs = [
+        ...inputs.map(input => ({
+          ...input,
+          value: settings?.[input.name] ?? input.value,
+        })),
+        ...standardInputs,
+      ];
 
       return buildNodeCardHTML({
         title: name,

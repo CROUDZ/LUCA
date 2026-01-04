@@ -19,7 +19,6 @@ import { getSignalSystem, type Signal, type SignalPropagation } from '../../Sign
 import { DeviceEventEmitter } from 'react-native';
 import { buildNodeCardHTML } from '../nodeCard';
 
-const COLOR_SCREEN_NODE_ACCENT = '#9C27B0';
 
 const ColorScreenNode: NodeDefinition = {
   // ============================================================================
@@ -29,35 +28,21 @@ const ColorScreenNode: NodeDefinition = {
   name: 'Color Screen',
   description: 'Affiche une couleur en plein écran tant que le signal est actif',
   category: 'Action',
+  doc: `excerpt: Remplit l'écran avec une couleur.
+---
+Ce bloc affiche votre écran entièrement dans la couleur que vous choisissez. C'est utile pour signaler quelque chose visuellement - par exemple en rouge pour une alerte, en vert pour un succès, etc.
+
+**Comment l'utiliser :**
+1. Choisissez la couleur que vous voulez afficher
+2. Quand le bloc reçoit un signal, l'écran s'affiche avec cette couleur
+3. Quand le signal s'arrête, l'écran revient à la normale
+4. Parfait pour des alertes visuelles !`,
 
   // ============================================================================
   // APPARENCE
   // ============================================================================
   icon: 'screen-rotation',
   iconFamily: 'material',
-  color: COLOR_SCREEN_NODE_ACCENT,
-
-  // ============================================================================
-  // INPUTS/OUTPUTS
-  // ============================================================================
-  inputs: [
-    {
-      name: 'signal_in',
-      type: 'any',
-      label: 'Signal In',
-      description: "Signal d'entrée",
-      required: false,
-    },
-  ],
-
-  outputs: [
-    {
-      name: 'signal_out',
-      type: 'any',
-      label: 'Signal Out',
-      description: 'Signal de sortie (propagé automatiquement)',
-    },
-  ],
 
   // ============================================================================
   // CONFIGURATION
@@ -173,17 +158,12 @@ const ColorScreenNode: NodeDefinition = {
   // ============================================================================
   generateHTML: (settings: Record<string, any>, nodeMeta?: NodeMeta) => {
     const color = settings.color || '#FF0000';
-    const accentColor = COLOR_SCREEN_NODE_ACCENT;
-    const category = nodeMeta?.category || 'Action';
 
     // Utiliser buildNodeCardHTML uniquement (avec un input de type 'color')
     return buildNodeCardHTML({
       title: 'Color Screen',
-      subtitle: color,
       iconName: 'screen-rotation',
-      category,
-      accentColor,
-      description: 'Affiche une couleur en plein écran',
+      category : 'Action',
       inputs: [
         {
           type: 'color',

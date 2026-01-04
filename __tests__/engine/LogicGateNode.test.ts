@@ -6,7 +6,7 @@ import {
 import LogicGateNode, {
   resetLogicGateState,
   resetAllLogicGateStates,
-} from '../../app/src/engine/nodes/LogicGateNode';
+} from '../../app/src/engine/nodes/controle/LogicGateNode';
 import type { Graph } from '../../app/src/types';
 
 afterEach(() => {

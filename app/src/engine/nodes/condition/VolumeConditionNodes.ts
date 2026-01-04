@@ -23,7 +23,7 @@ function createVolumeConditionNode(options: {
   name: string;
   description: string;
   direction: VolumeDirection;
-  color: string;
+  color?: string;
   icon: string;
 }) {
   const { id, name, description, direction, color, icon } = options;
@@ -32,6 +32,15 @@ function createVolumeConditionNode(options: {
     id,
     name,
     description,
+    doc: `excerpt: Détecte quand vous appuyez sur les boutons de volume.
+---
+Ce bloc vérifie si vous appuyez sur le bouton de volume (augmenter ou diminuer). Quand il détecte l'appui, il déclenche le signal pour continuer votre flux.
+
+**Comment l'utiliser :**
+1. Choisissez si vous voulez détecter le bouton volume + ou volume -
+2. Le bloc attend que vous appuyiez sur ce bouton
+3. Quand vous l'appuyez, il déclenche la suite de votre flux
+4. Parfait pour créer des raccourcis avec les boutons physiques du téléphone !`,
     color,
     icon,
 
@@ -74,7 +83,6 @@ const VolumeUpConditionNode = createVolumeConditionNode({
   name: 'Volume +',
   description: 'Propage si le bouton volume + est appuyé',
   direction: 'up',
-  color: '#4CAF50',
   icon: 'volume-up',
 });
 
@@ -83,7 +91,6 @@ const VolumeDownConditionNode = createVolumeConditionNode({
   name: 'Volume -',
   description: 'Propage si le bouton volume - est appuyé',
   direction: 'down',
-  color: '#03A9F4',
   icon: 'volume-down',
 });
 

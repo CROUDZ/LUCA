@@ -31,34 +31,20 @@ const VibrationNode: NodeDefinition = {
   name: 'Vibration',
   description: 'Déclenche une vibration sur le téléphone',
   category: 'Action',
+  doc: `excerpt: Fait vibrer votre téléphone.
+---
+Ce bloc fait vibrer votre téléphone pour vous prévenir ou vous donner un retour tactile. Vous pouvez choisir le type de vibration qui vous convient le mieux.
+
+**Comment l'utiliser :**
+1. Sélectionnez le type de vibration : simple, succès, avertissement ou erreur
+2. Le bloc fait vibrer le téléphone quand il est activé
+3. Pratique pour créer des alertes sans faire de bruit !`,
 
   // ============================================================================
   // APPARENCE
   // ============================================================================
   icon: 'vibration',
   iconFamily: 'material',
-
-  // ============================================================================
-  // INPUTS/OUTPUTS
-  // ============================================================================
-  inputs: [
-    {
-      name: 'signal_in',
-      type: 'any',
-      label: 'Signal In',
-      description: "Signal d'entrée",
-      required: false,
-    },
-  ],
-
-  outputs: [
-    {
-      name: 'signal_out',
-      type: 'any',
-      label: 'Signal Out',
-      description: 'Signal de sortie après vibration',
-    },
-  ],
 
   // ============================================================================
   // CONFIGURATION

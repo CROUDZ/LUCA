@@ -56,6 +56,37 @@ class NodeInstanceTracker {
     });
     return result;
   }
+
+  /**
+   * Reconstruire le tracker à partir d'un graphe exporté
+   */
+  rebuildFromGraph(graphData: any): void {
+    this.reset();
+    
+    if (!graphData?.drawflow?.Home?.data) {
+      console.log('🔄 NodeInstanceTracker: No graph data to rebuild from');
+      return;
+    }
+
+    const nodes = graphData.drawflow.Home.data;
+    const typeCounts: Record<string, number> = {};
+
+    // Compter chaque type de nœud
+    Object.values(nodes).forEach((node: any) => {
+      const nodeType = node?.data?.type;
+      if (nodeType) {
+        typeCounts[nodeType] = (typeCounts[nodeType] || 0) + 1;
+      }
+    });
+
+    // Mettre à jour le tracker
+    Object.entries(typeCounts).forEach(([nodeType, count]) => {
+      this.instances.set(nodeType, count);
+      console.log(`🔄 NodeInstanceTracker: Rebuilt ${nodeType} count: ${count}`);
+    });
+
+    console.log('✅ NodeInstanceTracker: Rebuild complete', this.getAll());
+  }
 }
 
 // Instance singleton

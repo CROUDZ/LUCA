@@ -31,34 +31,21 @@ const NotificationNode: NodeDefinition = {
   name: 'Notification',
   description: 'Affiche une notification ou une alerte',
   category: 'Action',
+  doc: `excerpt: Affiche une notification sur votre téléphone.
+---
+Ce bloc envoie une notification à votre téléphone avec un titre et un message que vous personnalisez. Parfait pour prévenir l'utilisateur que quelque chose s'est passé !
+
+**Comment l'utiliser :**
+1. Entrez un titre pour votre notification
+2. Entrez le message que vous voulez afficher
+3. Choisissez le type (notification standard ou toast)
+4. Le bloc affichera la notification quand il est activé`,
 
   // ============================================================================
   // APPARENCE
   // ============================================================================
   icon: 'notifications',
   iconFamily: 'material',
-
-  // ============================================================================
-  // INPUTS/OUTPUTS
-  // ============================================================================
-  inputs: [
-    {
-      name: 'signal_in',
-      type: 'any',
-      label: 'Signal In',
-      description: "Signal d'entrée",
-      required: false,
-    },
-  ],
-
-  outputs: [
-    {
-      name: 'signal_out',
-      type: 'any',
-      label: 'Signal Out',
-      description: 'Signal de sortie après notification',
-    },
-  ],
 
   // ============================================================================
   // CONFIGURATION

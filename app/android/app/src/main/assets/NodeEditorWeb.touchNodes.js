@@ -1,20 +1,24 @@
-/* global MouseEvent, confirm */
-// GESTION DES NŒUDS
+/* global confirm */
+// GESTION DES NŒUDS - SYSTÈME DE LIAISON SIMPLIFIÉ
+// Nouveau système : toucher une node pour la sélectionner, toucher une autre pour créer une connexion
+// Plus besoin de manipuler les anchors - tout est automatique !
 
 const NODE_DRAG = { active: false, node: null, startX: 0, startY: 0, nodeX: 0, nodeY: 0 };
-const CONNECTION = {
-  active: null,
-  reconnecting: false,
-  source: null,
-  output: null,
-  original: null,
-  fromInput: false,
-  tempLine: null,
-  startPos: null,
-};
 const TAP = { time: 0, node: null, delay: 300 };
-const LONG_PRESS = { timer: null, delay: 400 };
 const LONG_PRESS_NODE = { timer: null, delay: 800, node: null, startX: 0, startY: 0 };
+const LONG_PRESS_CONNECTION = { timer: null, delay: 800, connection: null, startX: 0, startY: 0 };
+
+// Système de liaison simplifié
+const LINK_MODE = {
+  selectedNode: null,      // Le premier node sélectionné pour la liaison
+  selectedNodeId: null,    // ID du premier node
+  tapThreshold: 200,       // Temps max pour un tap rapide (ms)
+  moveThreshold: 15,       // Distance max pour considérer un tap (px)
+  tapStartTime: 0,
+  tapStartX: 0,
+  tapStartY: 0,
+  isTap: false,
+};
 
 function shouldIgnoreForPinch(event) {
   if (!event) return false;
@@ -28,134 +32,122 @@ function vibrate(pattern) {
   if (navigator.vibrate) navigator.vibrate(pattern);
 }
 
-function simulateMouseEvent(type, touch, target = document) {
-  const event = new MouseEvent(type, {
-    bubbles: true,
-    cancelable: true,
-    view: window,
-    clientX: touch.clientX,
-    clientY: touch.clientY,
-  });
-  target.dispatchEvent(event);
-}
-
 /**
- * Crée une ligne SVG temporaire pour visualiser la connexion en cours de création
- * @param {number} x1 - Position X de départ
- * @param {number} y1 - Position Y de départ
- * @returns {SVGElement} - L'élément SVG créé
+ * Calcule la distance minimale entre un point et un chemin SVG (courbe de Bézier)
+ * Utilise une méthode optimisée avec échantillonnage adaptatif
+ * @param {number} px - Position X du point (coordonnées canvas)
+ * @param {number} py - Position Y du point (coordonnées canvas)
+ * @param {SVGPathElement} path - L'élément path SVG
+ * @returns {number} - Distance minimale en pixels
  */
-function createTempConnectionLine(x1, y1) {
-  // Trouver ou créer le conteneur SVG
-  let svg = document.querySelector('#drawflow svg.temp-connection-svg');
-  if (!svg) {
-    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.classList.add('temp-connection-svg');
-    svg.style.cssText =
-      'position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; overflow: visible;';
-    document.getElementById('drawflow').appendChild(svg);
-  }
-
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.classList.add('temp-connection-path');
-  path.style.cssText =
-    'fill: none; stroke-width: 5px; stroke: rgba(var(--editor-brand-soft-rgb, 147, 130, 255), 0.85); stroke-linecap: round; filter: drop-shadow(0 0 6px rgba(var(--editor-brand-soft-rgb, 147, 130, 255), 0.45));';
-  path.setAttribute('d', `M ${x1} ${y1} L ${x1} ${y1}`);
-  svg.appendChild(path);
-
-  return path;
-}
-
-/**
- * Met à jour la ligne temporaire de connexion
- * @param {SVGElement} path - L'élément path SVG
- * @param {number} x1 - Position X de départ
- * @param {number} y1 - Position Y de départ
- * @param {number} x2 - Position X de fin
- * @param {number} y2 - Position Y de fin
- */
-function updateTempConnectionLine(path, x1, y1, x2, y2) {
-  if (!path) return;
-
-  // Créer une courbe de Bézier similaire à Drawflow
-  const curvature = 0.5;
-  const hx1 = x1 + Math.abs(x2 - x1) * curvature;
-  const hx2 = x2 - Math.abs(x2 - x1) * curvature;
-
-  path.setAttribute('d', `M ${x1} ${y1} C ${hx1} ${y1} ${hx2} ${y2} ${x2} ${y2}`);
-}
-
-/**
- * Supprime la ligne temporaire de connexion
- */
-function removeTempConnectionLine() {
-  if (CONNECTION.tempLine) {
-    CONNECTION.tempLine.remove();
-    CONNECTION.tempLine = null;
-  }
-  CONNECTION.startPos = null;
-}
-
-function removeConnection(sourceNodeId, targetNodeId, outputName, inputName) {
+function getDistanceToPath(px, py, path) {
   try {
-    window.DrawflowEditor.editor.removeSingleConnection(
-      sourceNodeId,
-      parseInt(targetNodeId, 10),
-      outputName,
-      inputName
-    );
-    window.DrawflowEditor.analyzeGraph();
-    window.DrawflowEditor.updateConnectedInputs();
-  } catch (err) {
-    console.error('Error removing connection:', err);
+    const totalLength = path.getTotalLength();
+    if (totalLength === 0) return Infinity;
+    
+    let minDistance = Infinity;
+    
+    // Premier passage : échantillonnage grossier
+    const coarseStep = Math.max(20, totalLength / 20);
+    let bestLength = 0;
+    
+    for (let i = 0; i <= totalLength; i += coarseStep) {
+      const point = path.getPointAtLength(i);
+      const dx = px - point.x;
+      const dy = py - point.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance < minDistance) {
+        minDistance = distance;
+        bestLength = i;
+      }
+    }
+    
+    // Deuxième passage : affinage autour du meilleur point
+    const fineStart = Math.max(0, bestLength - coarseStep);
+    const fineEnd = Math.min(totalLength, bestLength + coarseStep);
+    const fineStep = 5;
+    
+    for (let i = fineStart; i <= fineEnd; i += fineStep) {
+      const point = path.getPointAtLength(i);
+      const dx = px - point.x;
+      const dy = py - point.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance < minDistance) {
+        minDistance = distance;
+      }
+    }
+    
+    return minDistance;
+  } catch (e) {
+    return Infinity;
   }
 }
 
-// Duplicate convenience function for external code/tests
-function duplicateNode(nodeId) {
-  const data = window.DrawflowEditor.editor?.drawflow?.drawflow?.Home?.data?.[nodeId];
-  if (!data) return null;
-  const name = data.name || (data.data && data.data.type) || 'node';
-  const inputsCount = Object.keys(data.inputs || {}).length || 0;
-  const outputsCount = Object.keys(data.outputs || {}).length || 0;
-  const newX = (data.pos_x || 0) + 40;
-  const newY = (data.pos_y || 0) + 40;
-  const klass = data.class || '';
-  const nodeData = data.data || {};
-  const html = data.html || '';
-  window.DrawflowEditor.editor.addNode(
-    name,
-    inputsCount,
-    outputsCount,
-    newX,
-    newY,
-    klass,
-    nodeData,
-    html
-  );
-  setTimeout(() => {
-    window.DrawflowEditor.analyzeGraph();
-  }, 10);
-  return true;
+/**
+ * Convertit les coordonnées écran en coordonnées canvas
+ */
+function screenToCanvas(screenX, screenY) {
+  const container = document.getElementById('drawflow');
+  if (!container) return { x: screenX, y: screenY };
+  
+  const containerRect = container.getBoundingClientRect();
+  const zoom = window.DrawflowEditor?.ZOOM?.current || 1;
+  const pan = window.DrawflowEditor?.PAN || { x: 0, y: 0 };
+  
+  return {
+    x: (screenX - containerRect.left - pan.x) / zoom,
+    y: (screenY - containerRect.top - pan.y) / zoom
+  };
 }
 
-function restoreConnection() {
-  if (!CONNECTION.original) return;
-
-  setTimeout(() => {
-    try {
-      window.DrawflowEditor.editor.addConnection(
-        parseInt(CONNECTION.original.sourceNodeId, 10),
-        parseInt(CONNECTION.original.nodeId, 10),
-        CONNECTION.original.sourceOutputName,
-        CONNECTION.original.inputName
-      );
-      window.DrawflowEditor.analyzeGraph();
-      window.DrawflowEditor.updateConnectedInputs();
-    } catch (err) {
-      console.error('Error restoring connection:', err);
+/**
+ * Trouve la connexion la plus proche d'un point de touch
+ * @param {number} touchX - Position X du touch (coordonnées écran)
+ * @param {number} touchY - Position Y du touch (coordonnées écran)
+ * @param {number} maxDistance - Distance maximale pour considérer une connexion (en pixels canvas)
+ * @returns {{connection: Element|null, distance: number}} - La connexion la plus proche et sa distance
+ */
+function findNearestConnection(touchX, touchY, maxDistance = 70) {
+  const container = document.getElementById('drawflow');
+  if (!container) return { connection: null, distance: Infinity };
+  
+  const { x: canvasX, y: canvasY } = screenToCanvas(touchX, touchY);
+  
+  const connections = container.querySelectorAll('.connection');
+  let nearestConnection = null;
+  let nearestDistance = maxDistance;
+  
+  connections.forEach(connection => {
+    const path = connection.querySelector('.main-path');
+    if (!path) return;
+    
+    const distance = getDistanceToPath(canvasX, canvasY, path);
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearestConnection = connection;
     }
-  }, 50);
+  });
+  
+  return { connection: nearestConnection, distance: nearestDistance };
+}
+
+/**
+ * Met en surbrillance la connexion la plus proche (feedback visuel)
+ */
+function highlightNearestConnection(touchX, touchY) {
+  // Retirer la surbrillance précédente
+  document.querySelectorAll('.connection.hover-highlight').forEach(c => {
+    c.classList.remove('hover-highlight');
+  });
+  
+  const { connection, distance } = findNearestConnection(touchX, touchY, 70);
+  
+  if (connection && distance < 70) {
+    connection.classList.add('hover-highlight');
+    return connection;
+  }
+  
+  return null;
 }
 
 /**
@@ -188,84 +180,198 @@ function findFirstAvailableOutput(nodeId) {
   if (!nodeData || !nodeData.outputs) return null;
 
   const outputKeys = Object.keys(nodeData.outputs).sort();
-  // Les outputs peuvent avoir plusieurs connexions, donc on retourne simplement le premier
   return outputKeys.length > 0 ? outputKeys[0] : null;
 }
 
 /**
- * Connecte automatiquement au premier anchor disponible d'un nœud cible
- * @param {string} sourceNodeId - ID du nœud source
- * @param {string} sourceAnchor - Nom de l'anchor source (output_X ou input_X)
- * @param {string} targetNodeId - ID du nœud cible
- * @param {boolean} fromInput - Si true, la connexion part d'un input (inverse)
+ * Sélectionne un node pour commencer la liaison
+ * @param {HTMLElement} node - L'élément DOM du node
+ * @param {string} nodeId - L'ID du node
+ */
+function selectNodeForLink(node, nodeId) {
+  // Désélectionner le précédent si existant
+  clearLinkSelection();
+  
+  LINK_MODE.selectedNode = node;
+  LINK_MODE.selectedNodeId = nodeId;
+  node.classList.add('link-source-selected');
+  
+  // Ajouter une classe au body pour indiquer qu'on est en mode liaison
+  document.body.classList.add('link-mode-active');
+  
+  vibrate(40);
+  
+  // Feedback visuel : tous les autres nodes deviennent des cibles potentielles
+  document.querySelectorAll('.drawflow-node').forEach(n => {
+    if (n !== node) {
+      n.classList.add('link-target-available');
+    }
+  });
+}
+
+/**
+ * Annule la sélection de liaison en cours
+ */
+function clearLinkSelection() {
+  if (LINK_MODE.selectedNode) {
+    LINK_MODE.selectedNode.classList.remove('link-source-selected');
+  }
+  
+  // Retirer les classes de tous les nodes
+  document.querySelectorAll('.drawflow-node').forEach(n => {
+    n.classList.remove('link-source-selected');
+    n.classList.remove('link-target-available');
+  });
+  
+  document.body.classList.remove('link-mode-active');
+  
+  LINK_MODE.selectedNode = null;
+  LINK_MODE.selectedNodeId = null;
+}
+
+/**
+ * Crée une connexion entre deux nodes
+ * @param {string} sourceNodeId - ID du node source
+ * @param {string} targetNodeId - ID du node cible
  * @returns {boolean} - True si la connexion a réussi
  */
-function autoConnectToNode(sourceNodeId, sourceAnchor, targetNodeId, fromInput) {
+function createConnectionBetweenNodes(sourceNodeId, targetNodeId) {
   try {
-    if (fromInput) {
-      // Connexion inverse: on part d'un input, on cherche un output sur le nœud cible
-      const targetOutput = findFirstAvailableOutput(targetNodeId);
-      if (!targetOutput) return false;
-
-      window.DrawflowEditor.editor.addConnection(
-        parseInt(targetNodeId, 10),
-        parseInt(sourceNodeId, 10),
-        targetOutput,
-        sourceAnchor
-      );
-    } else {
-      // Connexion normale: on part d'un output, on cherche un input sur le nœud cible
-      const targetInput = findFirstAvailableInput(targetNodeId);
-      if (!targetInput) return false;
-
-      window.DrawflowEditor.editor.addConnection(
-        parseInt(sourceNodeId, 10),
-        parseInt(targetNodeId, 10),
-        sourceAnchor,
-        targetInput
-      );
+    // Trouver les anchors disponibles
+    const sourceOutput = findFirstAvailableOutput(sourceNodeId);
+    const targetInput = findFirstAvailableInput(targetNodeId);
+    
+    if (!sourceOutput || !targetInput) {
+      console.warn('Impossible de créer la connexion: anchors non trouvés');
+      return false;
     }
-
+    
+    window.DrawflowEditor.editor.addConnection(
+      parseInt(sourceNodeId, 10),
+      parseInt(targetNodeId, 10),
+      sourceOutput,
+      targetInput
+    );
+    
     window.DrawflowEditor.analyzeGraph();
     window.DrawflowEditor.updateConnectedInputs();
+    
+    vibrate([30, 20, 30]); // Double vibration pour confirmer
+    
     return true;
   } catch (err) {
-    console.error('Error auto-connecting to node:', err);
+    console.error('Erreur lors de la création de la connexion:', err);
     return false;
   }
 }
 
-function startReconnection(nodeId, inputName, connection) {
-  const sourceNodeId = connection.node;
-  const sourceOutputName = connection.input;
-
-  removeConnection(sourceNodeId, nodeId, sourceOutputName, inputName);
-
-  CONNECTION.reconnecting = true;
-  CONNECTION.source = document.getElementById('node-' + sourceNodeId);
-  CONNECTION.output = CONNECTION.source?.querySelector('.' + sourceOutputName);
-  CONNECTION.original = { nodeId, inputName, sourceNodeId: String(sourceNodeId), sourceOutputName };
-
-  if (CONNECTION.output) {
-    document.body.classList.add('creating-connection');
-    CONNECTION.output.classList.add('connection-active');
-    CONNECTION.active = CONNECTION.output;
-
-    const rect = CONNECTION.output.getBoundingClientRect();
-    simulateMouseEvent(
-      'mousedown',
-      {
-        clientX: rect.left + rect.width / 2,
-        clientY: rect.top + rect.height / 2,
-      },
-      CONNECTION.output
+/**
+ * Supprime une connexion entre deux nodes
+ */
+function removeConnection(sourceNodeId, targetNodeId, outputName, inputName) {
+  try {
+    window.DrawflowEditor.editor.removeSingleConnection(
+      sourceNodeId,
+      parseInt(targetNodeId, 10),
+      outputName,
+      inputName
     );
-
-    vibrate([40, 30, 40]);
+    window.DrawflowEditor.analyzeGraph();
+    window.DrawflowEditor.updateConnectedInputs();
+  } catch (err) {
+    console.error('Error removing connection:', err);
   }
 }
 
-// const container = window.DrawflowEditor.container; // not used here; keep available in other modules
+/**
+ * Supprime une connexion à partir de son élément SVG
+ * @param {SVGElement} connectionElement - L'élément SVG de la connexion
+ */
+function removeConnectionByElement(connectionElement) {
+  try {
+    // Extraire les infos de la connexion depuis les classes
+    const classList = connectionElement.classList;
+    let nodeIn = null;
+    let nodeOut = null;
+    let inputClass = null;
+    let outputClass = null;
+    
+    classList.forEach(cls => {
+      if (cls.startsWith('node_in_node-')) {
+        nodeIn = cls.replace('node_in_node-', '');
+      } else if (cls.startsWith('node_out_node-')) {
+        nodeOut = cls.replace('node_out_node-', '');
+      } else if (cls.startsWith('input_')) {
+        inputClass = cls;
+      } else if (cls.startsWith('output_')) {
+        outputClass = cls;
+      }
+    });
+    
+    if (nodeIn && nodeOut && inputClass && outputClass) {
+      window.DrawflowEditor.editor.removeSingleConnection(
+        parseInt(nodeOut, 10),
+        parseInt(nodeIn, 10),
+        outputClass,
+        inputClass
+      );
+      window.DrawflowEditor.analyzeGraph();
+      window.DrawflowEditor.updateConnectedInputs();
+      vibrate([40, 30, 40]);
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.error('Error removing connection by element:', err);
+    return false;
+  }
+}
+
+/**
+ * Duplique un node
+ */
+function duplicateNode(nodeId) {
+  const data = window.DrawflowEditor.editor?.drawflow?.drawflow?.Home?.data?.[nodeId];
+  if (!data) return null;
+  const name = data.name || (data.data && data.data.type) || 'node';
+  const inputsCount = Object.keys(data.inputs || {}).length || 0;
+  const outputsCount = Object.keys(data.outputs || {}).length || 0;
+  const newX = (data.pos_x || 0) + 40;
+  const newY = (data.pos_y || 0) + 40;
+  const klass = data.class || '';
+  const nodeData = data.data || {};
+  const html = data.html || '';
+  window.DrawflowEditor.editor.addNode(
+    name,
+    inputsCount,
+    outputsCount,
+    newX,
+    newY,
+    klass,
+    nodeData,
+    html
+  );
+  setTimeout(() => {
+    window.DrawflowEditor.analyzeGraph();
+  }, 10);
+  return true;
+}
+
+/**
+ * Vérifie si un tap est un tap rapide (vs un drag ou long press)
+ */
+function isTapGesture(startTime, startX, startY, endX, endY) {
+  const elapsed = Date.now() - startTime;
+  const dx = Math.abs(endX - startX);
+  const dy = Math.abs(endY - startY);
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  
+  return elapsed < LINK_MODE.tapThreshold && distance < LINK_MODE.moveThreshold;
+}
+
+// ============================================
+// GESTION DES ÉVÉNEMENTS TACTILES
+// ============================================
 
 document.addEventListener(
   'touchstart',
@@ -273,7 +379,10 @@ document.addEventListener(
     if (shouldIgnoreForPinch(e)) {
       return;
     }
-    // Ignorer les événements sur les contrôles interactifs
+    
+    // Ignorer les événements sur les contrôles interactifs (sauf en mode liaison)
+    const isLinkModeActive = LINK_MODE.selectedNodeId !== null;
+    
     if (
       e.target.closest('.invert-signal-toggle') ||
       e.target.closest('.switch-label') ||
@@ -287,82 +396,65 @@ document.addEventListener(
       e.target.tagName === 'SELECT' ||
       e.target.tagName === 'TEXTAREA'
     ) {
-      return;
-    }
-
-    const node = e.target.closest('.drawflow-node');
-    const input = e.target.closest('.input');
-    const output = e.target.closest('.output');
-
-    // Long press sur input connecté (pour reconnecter une connexion existante)
-    if (input && node) {
-      const nodeId = node.id.replace('node-', '');
-      const nodeData = window.DrawflowEditor.editor?.drawflow?.drawflow?.Home?.data?.[nodeId] || {};
-
-      const inputName =
-        Array.from(input.classList).find((c) => c.startsWith('input_')) || 'input_1';
-      const hasConnection = nodeData.inputs?.[inputName]?.connections?.length > 0;
-
-      if (hasConnection) {
-        // Long press pour reconnecter
-        LONG_PRESS.timer = setTimeout(() => {
-          const connection = nodeData?.inputs?.[inputName]?.connections?.[0];
-          startReconnection(nodeId, inputName, connection);
-        }, LONG_PRESS.delay);
-      } else {
-        // Input non connecté: créer une connexion inverse (depuis l'input)
-        document.body.classList.add('creating-connection');
-        document.body.classList.add('creating-connection-from-input');
-        input.classList.add('connection-active');
-        CONNECTION.active = input;
-        CONNECTION.fromInput = true;
-        CONNECTION.sourceNodeId = nodeId;
-        CONNECTION.sourceAnchor = inputName;
-        vibrate(40);
-
-        // Calculer la position de départ dans les coordonnées du drawflow
-        const rect = input.getBoundingClientRect();
-        const container = document.getElementById('drawflow');
-        const containerRect = container.getBoundingClientRect();
-        const zoom = window.DrawflowEditor.ZOOM?.current || 1;
-        const pan = window.DrawflowEditor.PAN || { x: 0, y: 0 };
-
-        // Position du centre de l'input en coordonnées canvas
-        const startX = (rect.left + rect.width / 2 - containerRect.left - pan.x) / zoom;
-        const startY = (rect.top + rect.height / 2 - containerRect.top - pan.y) / zoom;
-
-        CONNECTION.startPos = { x: startX, y: startY };
-        CONNECTION.tempLine = createTempConnectionLine(startX, startY);
-
+      // En mode liaison, on bloque les inputs mais on permet le tap sur le node parent
+      if (isLinkModeActive) {
         e.preventDefault();
+        e.stopPropagation();
+        // Continuer pour permettre la liaison avec le node parent
+      } else {
         return;
       }
     }
 
-    // Touch sur output: créer une connexion normale
-    if (output && node) {
-      const nodeId = node.id.replace('node-', '');
-      const outputName =
-        Array.from(output.classList).find((c) => c.startsWith('output_')) || 'output_1';
-
-      document.body.classList.add('creating-connection');
-      output.classList.add('connection-active');
-      CONNECTION.active = output;
-      CONNECTION.fromInput = false;
-      CONNECTION.sourceNodeId = nodeId;
-      CONNECTION.sourceAnchor = outputName;
-      vibrate(40);
+    const touch = e.touches[0];
+    const node = e.target.closest('.drawflow-node');
+    let connection = e.target.closest('.connection');
+    
+    // Si pas de connexion directement touchée et pas sur un node, chercher une connexion proche
+    // Zone de détection très large (70px) pour faciliter la sélection
+    if (!connection && !node && !isLinkModeActive) {
+      const result = findNearestConnection(touch.clientX, touch.clientY, 70);
+      connection = result.connection;
+      
+      // Feedback visuel immédiat si une connexion est détectée
+      if (connection) {
+        connection.classList.add('hover-highlight');
+        vibrate(20); // Petite vibration pour confirmer la détection
+      }
+    }
+    
+    // Gestion du long press sur une connexion pour la supprimer
+    if (connection && !isLinkModeActive) {
+      LONG_PRESS_CONNECTION.startX = touch.clientX;
+      LONG_PRESS_CONNECTION.startY = touch.clientY;
+      LONG_PRESS_CONNECTION.connection = connection;
+      LONG_PRESS_CONNECTION.timer = setTimeout(() => {
+        // eslint-disable-next-line no-alert
+        if (confirm('Supprimer cette liaison ?')) {
+          removeConnectionByElement(LONG_PRESS_CONNECTION.connection);
+        }
+        LONG_PRESS_CONNECTION.timer = null;
+        LONG_PRESS_CONNECTION.connection = null;
+      }, LONG_PRESS_CONNECTION.delay);
+      e.preventDefault();
       return;
     }
+    
+    // Enregistrer le début du tap
+    LINK_MODE.tapStartTime = Date.now();
+    LINK_MODE.tapStartX = touch.clientX;
+    LINK_MODE.tapStartY = touch.clientY;
+    LINK_MODE.isTap = true;
 
     // Double-tap pour dupliquer
-    if (node && !input && !output) {
+    if (node) {
       const now = Date.now();
       const nodeId = node.id.replace('node-', '');
 
       if (TAP.node === nodeId && now - TAP.time < TAP.delay) {
-        // double-tap detected: duplicate node
+        // Double-tap détecté: dupliquer le node
         duplicateNode(nodeId);
+        clearLinkSelection();
         if (LONG_PRESS_NODE.timer) {
           clearTimeout(LONG_PRESS_NODE.timer);
           LONG_PRESS_NODE.timer = null;
@@ -378,10 +470,10 @@ document.addEventListener(
       TAP.time = now;
     }
 
-    // Setup long-press for node deletion (hold 2s without moving)
-    if (node && !input && !output) {
-      LONG_PRESS_NODE.startX = e.touches[0].clientX;
-      LONG_PRESS_NODE.startY = e.touches[0].clientY;
+    // Setup long-press for node deletion (hold 800ms without moving)
+    if (node) {
+      LONG_PRESS_NODE.startX = touch.clientX;
+      LONG_PRESS_NODE.startY = touch.clientY;
       LONG_PRESS_NODE.node = node.id.replace('node-', '');
       LONG_PRESS_NODE.timer = setTimeout(() => {
         const nodeId = LONG_PRESS_NODE.node;
@@ -390,6 +482,7 @@ document.addEventListener(
           try {
             window.DrawflowEditor.editor.removeNodeId('node-' + nodeId);
             window.DrawflowEditor.analyzeGraph();
+            clearLinkSelection();
           } catch (err) {
             console.error('Error removing node via long-press:', err);
           }
@@ -399,14 +492,12 @@ document.addEventListener(
       }, LONG_PRESS_NODE.delay);
     }
 
-    // Déplacement de nœud
-    if (node && !input && !output) {
+    // Déplacement de nœud (préparation)
+    if (node) {
       NODE_DRAG.active = true;
       NODE_DRAG.node = node;
-      NODE_DRAG.node.classList.add('dragging');
-
-      NODE_DRAG.startX = e.touches[0].clientX;
-      NODE_DRAG.startY = e.touches[0].clientY;
+      NODE_DRAG.startX = touch.clientX;
+      NODE_DRAG.startY = touch.clientY;
 
       const nodeId = node.id.replace('node-', '');
       const data = window.DrawflowEditor.editor.drawflow.drawflow.Home.data[nodeId];
@@ -414,9 +505,6 @@ document.addEventListener(
         NODE_DRAG.nodeX = data.pos_x;
         NODE_DRAG.nodeY = data.pos_y;
       }
-
-      e.preventDefault();
-      e.stopPropagation();
     }
   },
   { passive: false }
@@ -428,67 +516,52 @@ document.addEventListener(
     if (shouldIgnoreForPinch(e)) {
       return;
     }
-    if (LONG_PRESS.timer) {
-      clearTimeout(LONG_PRESS.timer);
-      LONG_PRESS.timer = null;
+    
+    const touch = e.touches[0];
+    
+    // Vérifier si le mouvement dépasse le seuil de tap
+    if (LINK_MODE.isTap) {
+      const dx = Math.abs(touch.clientX - LINK_MODE.tapStartX);
+      const dy = Math.abs(touch.clientY - LINK_MODE.tapStartY);
+      if (dx > LINK_MODE.moveThreshold || dy > LINK_MODE.moveThreshold) {
+        LINK_MODE.isTap = false;
+      }
     }
-    // cancel node long press if user moves finger more than a small threshold
-    if (LONG_PRESS_NODE.timer && e.touches && e.touches.length) {
-      const dx = Math.abs(e.touches[0].clientX - LONG_PRESS_NODE.startX);
-      const dy = Math.abs(e.touches[0].clientY - LONG_PRESS_NODE.startY);
-      const moved = Math.sqrt(dx * dx + dy * dy) > 5; // 5px threshold
+    
+    // Cancel node long press if user moves finger
+    if (LONG_PRESS_NODE.timer) {
+      const dx = Math.abs(touch.clientX - LONG_PRESS_NODE.startX);
+      const dy = Math.abs(touch.clientY - LONG_PRESS_NODE.startY);
+      const moved = Math.sqrt(dx * dx + dy * dy) > 5;
       if (moved) {
         clearTimeout(LONG_PRESS_NODE.timer);
         LONG_PRESS_NODE.timer = null;
         LONG_PRESS_NODE.node = null;
       }
     }
-
-    if (CONNECTION.reconnecting && e.touches.length > 0) {
-      simulateMouseEvent('mousemove', e.touches[0]);
-      e.preventDefault();
-      return;
+    
+    // Cancel connection long press if user moves finger
+    if (LONG_PRESS_CONNECTION.timer) {
+      const dx = Math.abs(touch.clientX - LONG_PRESS_CONNECTION.startX);
+      const dy = Math.abs(touch.clientY - LONG_PRESS_CONNECTION.startY);
+      const moved = Math.sqrt(dx * dx + dy * dy) > 5;
+      if (moved) {
+        clearTimeout(LONG_PRESS_CONNECTION.timer);
+        LONG_PRESS_CONNECTION.timer = null;
+        // Retirer la surbrillance de la connexion
+        if (LONG_PRESS_CONNECTION.connection) {
+          LONG_PRESS_CONNECTION.connection.classList.remove('hover-highlight');
+        }
+        LONG_PRESS_CONNECTION.connection = null;
+      }
     }
 
-    // Gérer le mouvement pendant la création d'une connexion depuis un input (ligne temporaire)
-    if (CONNECTION.active && CONNECTION.fromInput && CONNECTION.tempLine && e.touches.length > 0) {
-      const touch = e.touches[0];
-      const container = document.getElementById('drawflow');
-      const containerRect = container.getBoundingClientRect();
-      const zoom = window.DrawflowEditor.ZOOM?.current || 1;
-      const pan = window.DrawflowEditor.PAN || { x: 0, y: 0 };
-
-      // Position actuelle du doigt en coordonnées canvas
-      const endX = (touch.clientX - containerRect.left - pan.x) / zoom;
-      const endY = (touch.clientY - containerRect.top - pan.y) / zoom;
-
-      updateTempConnectionLine(
-        CONNECTION.tempLine,
-        CONNECTION.startPos.x,
-        CONNECTION.startPos.y,
-        endX,
-        endY
-      );
-
-      e.preventDefault();
-      return;
-    }
-
-    // Gérer le mouvement pendant la création d'une connexion depuis un output
-    if (
-      CONNECTION.active &&
-      !CONNECTION.reconnecting &&
-      !CONNECTION.fromInput &&
-      e.touches.length > 0
-    ) {
-      simulateMouseEvent('mousemove', e.touches[0]);
-      e.preventDefault();
-      return;
-    }
-
-    if (NODE_DRAG.active && NODE_DRAG.node) {
-      const dx = (e.touches[0].clientX - NODE_DRAG.startX) / window.DrawflowEditor.ZOOM.current;
-      const dy = (e.touches[0].clientY - NODE_DRAG.startY) / window.DrawflowEditor.ZOOM.current;
+    // Déplacement de nœud
+    if (NODE_DRAG.active && NODE_DRAG.node && !LINK_MODE.isTap) {
+      NODE_DRAG.node.classList.add('dragging');
+      
+      const dx = (touch.clientX - NODE_DRAG.startX) / window.DrawflowEditor.ZOOM.current;
+      const dy = (touch.clientY - NODE_DRAG.startY) / window.DrawflowEditor.ZOOM.current;
 
       const newX = NODE_DRAG.nodeX + dx;
       const newY = NODE_DRAG.nodeY + dy;
@@ -517,171 +590,81 @@ document.addEventListener(
     if (shouldIgnoreForPinch(e)) {
       return;
     }
-    if (LONG_PRESS.timer) {
-      clearTimeout(LONG_PRESS.timer);
-      LONG_PRESS.timer = null;
-    }
+    
+    // Annuler les timers
     if (LONG_PRESS_NODE.timer) {
       clearTimeout(LONG_PRESS_NODE.timer);
       LONG_PRESS_NODE.timer = null;
       LONG_PRESS_NODE.node = null;
     }
+    
+    if (LONG_PRESS_CONNECTION.timer) {
+      clearTimeout(LONG_PRESS_CONNECTION.timer);
+      LONG_PRESS_CONNECTION.timer = null;
+    }
+    
+    // Toujours retirer la surbrillance des connexions au touchend
+    document.querySelectorAll('.connection.hover-highlight').forEach(c => {
+      c.classList.remove('hover-highlight');
+    });
+    LONG_PRESS_CONNECTION.connection = null;
 
-    if (CONNECTION.reconnecting && e.changedTouches.length > 0) {
-      const touch = e.changedTouches[0];
-      simulateMouseEvent('mouseup', touch);
-
-      const element = document.elementFromPoint(touch.clientX, touch.clientY);
-      const targetInput = element?.closest('.input');
-      const targetNode = element?.closest('.drawflow-node');
-
-      if (targetInput && targetNode) {
-        vibrate(30);
-      } else if (targetNode) {
-        // Lâché sur un nœud sans anchor spécifique: connecter au premier input disponible
-        const targetNodeId = targetNode.id.replace('node-', '');
-        const sourceNodeId = CONNECTION.original?.sourceNodeId;
-        const sourceOutputName = CONNECTION.original?.sourceOutputName;
-
-        if (sourceNodeId && sourceOutputName && targetNodeId !== sourceNodeId) {
-          const connected = autoConnectToNode(sourceNodeId, sourceOutputName, targetNodeId, false);
-          if (connected) {
-            vibrate(30);
+    const touch = e.changedTouches[0];
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+    const node = element?.closest('.drawflow-node');
+    
+    // Vérifier si c'était un tap rapide
+    const wasTap = LINK_MODE.isTap && isTapGesture(
+      LINK_MODE.tapStartTime,
+      LINK_MODE.tapStartX,
+      LINK_MODE.tapStartY,
+      touch.clientX,
+      touch.clientY
+    );
+    
+    if (wasTap) {
+      if (node) {
+        const nodeId = node.id.replace('node-', '');
+        
+        // Si un node est déjà sélectionné
+        if (LINK_MODE.selectedNodeId) {
+          // Si c'est le même node, désélectionner
+          if (LINK_MODE.selectedNodeId === nodeId) {
+            clearLinkSelection();
           } else {
-            restoreConnection();
+            // Créer une connexion entre les deux nodes
+            const success = createConnectionBetweenNodes(LINK_MODE.selectedNodeId, nodeId);
+            clearLinkSelection();
+            
+            if (!success) {
+              // Montrer un feedback d'erreur si la connexion échoue
+              node.classList.add('link-error');
+              setTimeout(() => node.classList.remove('link-error'), 300);
+            }
           }
         } else {
-          restoreConnection();
+          // Sélectionner ce node comme source
+          selectNodeForLink(node, nodeId);
         }
+        
+        e.preventDefault();
       } else {
-        restoreConnection();
+        // Tap dans le vide - annuler la sélection
+        if (LINK_MODE.selectedNodeId) {
+          clearLinkSelection();
+          vibrate(20);
+        }
       }
-
-      document.body.classList.remove('creating-connection');
-      document.body.classList.remove('creating-connection-from-input');
-      if (CONNECTION.active) CONNECTION.active.classList.remove('connection-active');
-
-      CONNECTION.active = null;
-      CONNECTION.reconnecting = false;
-      CONNECTION.source = null;
-      CONNECTION.output = null;
-      CONNECTION.original = null;
-      CONNECTION.fromInput = false;
-      CONNECTION.sourceNodeId = null;
-      CONNECTION.sourceAnchor = null;
-
-      setTimeout(() => {
-        window.DrawflowEditor.analyzeGraph();
-        window.DrawflowEditor.updateConnectedInputs();
-      }, 100);
-
-      e.preventDefault();
-      return;
     }
 
-    if (CONNECTION.active && e.changedTouches.length > 0) {
-      const touch = e.changedTouches[0];
-
-      // Supprimer la ligne temporaire si elle existe
-      removeTempConnectionLine();
-
-      // Ne simuler mouseup que si ce n'est pas une connexion depuis un input
-      if (!CONNECTION.fromInput) {
-        simulateMouseEvent('mouseup', touch);
-      }
-
-      const element = document.elementFromPoint(touch.clientX, touch.clientY);
-      const targetInput = element?.closest('.input');
-      const targetOutput = element?.closest('.output');
-      const targetNode = element?.closest('.drawflow-node');
-
-      let connected = false;
-
-      if (CONNECTION.fromInput) {
-        // Connexion depuis un input: chercher un output sur le nœud cible
-        if (targetOutput && targetNode) {
-          // Lâché sur un output spécifique: créer la connexion
-          const targetNodeId = targetNode.id.replace('node-', '');
-          const targetOutputName =
-            Array.from(targetOutput.classList).find((c) => c.startsWith('output_')) || 'output_1';
-          const sourceNodeId = CONNECTION.sourceNodeId;
-          const sourceAnchor = CONNECTION.sourceAnchor;
-
-          if (sourceNodeId && sourceAnchor && targetNodeId !== sourceNodeId) {
-            try {
-              window.DrawflowEditor.editor.addConnection(
-                parseInt(targetNodeId, 10),
-                parseInt(sourceNodeId, 10),
-                targetOutputName,
-                sourceAnchor
-              );
-              window.DrawflowEditor.analyzeGraph();
-              window.DrawflowEditor.updateConnectedInputs();
-              connected = true;
-              vibrate(30);
-            } catch (err) {
-              console.error('Error creating connection from input:', err);
-            }
-          }
-        } else if (targetNode && !targetInput) {
-          // Lâché sur un nœud sans anchor spécifique: connecter au premier output disponible
-          const targetNodeId = targetNode.id.replace('node-', '');
-          const sourceNodeId = CONNECTION.sourceNodeId;
-          const sourceAnchor = CONNECTION.sourceAnchor;
-
-          if (sourceNodeId && sourceAnchor && targetNodeId !== sourceNodeId) {
-            connected = autoConnectToNode(sourceNodeId, sourceAnchor, targetNodeId, true);
-            if (connected) {
-              vibrate(30);
-            }
-          }
-        }
-      } else {
-        // Connexion depuis un output: chercher un input sur le nœud cible
-        if (targetInput && targetNode) {
-          // Lâché sur un input spécifique (comportement existant de Drawflow)
-          vibrate(30);
-          connected = true;
-        } else if (targetNode && !targetOutput) {
-          // Lâché sur un nœud sans anchor spécifique: connecter au premier input disponible
-          const targetNodeId = targetNode.id.replace('node-', '');
-          const sourceNodeId = CONNECTION.sourceNodeId;
-          const sourceAnchor = CONNECTION.sourceAnchor;
-
-          if (sourceNodeId && sourceAnchor && targetNodeId !== sourceNodeId) {
-            connected = autoConnectToNode(sourceNodeId, sourceAnchor, targetNodeId, false);
-            if (connected) {
-              vibrate(30);
-            }
-          }
-        }
-      }
-
-      document.body.classList.remove('creating-connection');
-      document.body.classList.remove('creating-connection-from-input');
-      if (CONNECTION.active) CONNECTION.active.classList.remove('connection-active');
-
-      CONNECTION.active = null;
-      CONNECTION.fromInput = false;
-      CONNECTION.sourceNodeId = null;
-      CONNECTION.sourceAnchor = null;
-
-      setTimeout(() => {
-        window.DrawflowEditor.analyzeGraph();
-        window.DrawflowEditor.updateConnectedInputs();
-      }, 100);
-
-      e.preventDefault();
-      return;
-    }
-
+    // Fin du déplacement de nœud
     if (NODE_DRAG.active && NODE_DRAG.node) {
       NODE_DRAG.node.classList.remove('dragging');
       NODE_DRAG.active = false;
       NODE_DRAG.node = null;
-      e.preventDefault();
-      e.stopPropagation();
     }
+    
+    LINK_MODE.isTap = false;
   },
   { passive: false }
 );
@@ -689,62 +672,111 @@ document.addEventListener(
 document.addEventListener(
   'touchcancel',
   () => {
-    if (LONG_PRESS.timer) {
-      clearTimeout(LONG_PRESS.timer);
-      LONG_PRESS.timer = null;
-    }
     if (LONG_PRESS_NODE.timer) {
       clearTimeout(LONG_PRESS_NODE.timer);
       LONG_PRESS_NODE.timer = null;
       LONG_PRESS_NODE.node = null;
     }
-
-    if (CONNECTION.reconnecting) restoreConnection();
-
-    // Supprimer la ligne temporaire
-    removeTempConnectionLine();
-
-    if (CONNECTION.active) {
-      document.body.classList.remove('creating-connection');
-      document.body.classList.remove('creating-connection-from-input');
-      CONNECTION.active.classList.remove('connection-active');
-      CONNECTION.active = null;
+    
+    if (LONG_PRESS_CONNECTION.timer) {
+      clearTimeout(LONG_PRESS_CONNECTION.timer);
+      LONG_PRESS_CONNECTION.timer = null;
     }
-
-    CONNECTION.reconnecting = false;
-    CONNECTION.source = null;
-    CONNECTION.output = null;
-    CONNECTION.original = null;
-    CONNECTION.fromInput = false;
-    CONNECTION.sourceNodeId = null;
-    CONNECTION.sourceAnchor = null;
+    
+    // Retirer toutes les surbrillances de connexions
+    document.querySelectorAll('.connection.hover-highlight').forEach(c => {
+      c.classList.remove('hover-highlight');
+    });
+    LONG_PRESS_CONNECTION.connection = null;
 
     if (NODE_DRAG.active && NODE_DRAG.node) {
       NODE_DRAG.node.classList.remove('dragging');
       NODE_DRAG.active = false;
       NODE_DRAG.node = null;
     }
+    
+    LINK_MODE.isTap = false;
   },
   { passive: false }
 );
 
-// Expose some functions for other modules/tests
-window.DrawflowEditor = window.DrawflowEditor || {};
-window.DrawflowEditor.removeConnection = removeConnection;
-window.DrawflowEditor.restoreConnection = restoreConnection;
-window.DrawflowEditor.startReconnection = startReconnection;
-window.DrawflowEditor.duplicateNode = duplicateNode;
-window.DrawflowEditor.findFirstAvailableInput = findFirstAvailableInput;
-window.DrawflowEditor.findFirstAvailableOutput = findFirstAvailableOutput;
-window.DrawflowEditor.autoConnectToNode = autoConnectToNode;
+// ============================================
+// GESTION DES CLICS SOURIS (Desktop)
+// ============================================
 
-// Desktop double-click duplicates the node
+document.addEventListener('click', (e) => {
+  // Ignorer les contrôles interactifs
+  if (
+    e.target.closest('.invert-signal-toggle') ||
+    e.target.closest('.switch-label') ||
+    e.target.closest('.condition-invert-control') ||
+    e.target.closest('.delay-control') ||
+    e.target.closest('.toggle-switch') ||
+    e.target.closest('.condition-settings') ||
+    e.target.tagName === 'INPUT' ||
+    e.target.tagName === 'SELECT' ||
+    e.target.tagName === 'TEXTAREA'
+  ) {
+    return;
+  }
+
+  const node = e.target.closest('.drawflow-node');
+  
+  if (node) {
+    const nodeId = node.id.replace('node-', '');
+    
+    // Si un node est déjà sélectionné
+    if (LINK_MODE.selectedNodeId) {
+      // Si c'est le même node, désélectionner
+      if (LINK_MODE.selectedNodeId === nodeId) {
+        clearLinkSelection();
+      } else {
+        // Créer une connexion
+        const success = createConnectionBetweenNodes(LINK_MODE.selectedNodeId, nodeId);
+        clearLinkSelection();
+        
+        if (!success) {
+          node.classList.add('link-error');
+          setTimeout(() => node.classList.remove('link-error'), 300);
+        }
+      }
+    } else {
+      // Sélectionner ce node comme source
+      selectNodeForLink(node, nodeId);
+    }
+    
+    e.stopPropagation();
+  } else {
+    // Clic dans le vide - annuler la sélection
+    if (LINK_MODE.selectedNodeId) {
+      clearLinkSelection();
+    }
+  }
+});
+
+// Double-clic pour dupliquer (Desktop)
 document.addEventListener('dblclick', (ev) => {
   const node = ev.target.closest('.drawflow-node');
   if (node && node.id) {
     const nodeId = node.id.replace('node-', '');
     duplicateNode(nodeId);
+    clearLinkSelection();
     ev.preventDefault();
     ev.stopPropagation();
   }
 });
+
+// ============================================
+// EXPOSE FUNCTIONS
+// ============================================
+
+window.DrawflowEditor = window.DrawflowEditor || {};
+window.DrawflowEditor.removeConnection = removeConnection;
+window.DrawflowEditor.removeConnectionByElement = removeConnectionByElement;
+window.DrawflowEditor.duplicateNode = duplicateNode;
+window.DrawflowEditor.findFirstAvailableInput = findFirstAvailableInput;
+window.DrawflowEditor.findFirstAvailableOutput = findFirstAvailableOutput;
+window.DrawflowEditor.selectNodeForLink = selectNodeForLink;
+window.DrawflowEditor.clearLinkSelection = clearLinkSelection;
+window.DrawflowEditor.createConnectionBetweenNodes = createConnectionBetweenNodes;
+window.DrawflowEditor.findNearestConnection = findNearestConnection;

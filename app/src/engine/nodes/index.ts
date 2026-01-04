@@ -8,7 +8,6 @@ import './condition/VolumeConditionNodes';
 import './controle/TriggerNode';
 import './controle/LogicGateNode';
 import './controle/DelayNode';
-import './controle/ConfirmNode';
 
 import './action/PingNode';
 import './action/NotificationNode';
@@ -31,7 +30,6 @@ export { default as NotificationNode } from './action/NotificationNode';
 export { default as VibrationNode } from './action/VibrationNode';
 export { default as FlashLightActionNode } from './action/FlashLightActionNode';
 export { default as VolumeActionNode } from './action/VolumeActionNodes';
-export { default as ConfirmNode } from './controle/ConfirmNode';
 export { default as ColorScreenNode } from './action/ColorScreenNode';
 
 // ============================================================================

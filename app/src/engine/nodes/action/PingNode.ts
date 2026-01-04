@@ -44,34 +44,20 @@ const PingNode: NodeDefinition = {
   name: 'Ping',
   description: 'Affiche "PING" sur le téléphone lorsqu\'un signal est reçu',
   category: 'Action',
+  doc: `excerpt: Affiche un message pour tester que votre flux fonctionne.
+---
+Ce bloc est très utile pour vérifier que votre flux fonctionne correctement. Quand il reçoit un signal, il affiche "PING" et compte le nombre de fois qu'il a été déclenché.
+
+**Comment l'utiliser :**
+1. Connectez ce bloc à d'autres blocs pour voir quand ils sont activés
+2. Il affichera un message confirmant que le signal a bien été reçu
+3. Parfait pour déboguer ou tester votre flux !`,
 
   // ============================================================================
   // APPARENCE
   // ============================================================================
   icon: 'notifications-active',
   iconFamily: 'material',
-
-  // ============================================================================
-  // INPUTS/OUTPUTS
-  // ============================================================================
-  inputs: [
-    {
-      name: 'signal_in',
-      type: 'any',
-      label: 'Signal In',
-      description: "Signal d'entrée qui déclenche le ping",
-      required: false,
-    },
-  ],
-
-  outputs: [
-    {
-      name: 'signal_out',
-      type: 'any',
-      label: 'Signal Out',
-      description: "Signal de sortie (pour chaîner avec d'autres actions)",
-    },
-  ],
 
 
   // ============================================================================
