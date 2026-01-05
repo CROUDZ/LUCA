@@ -8,6 +8,10 @@ cd "$(dirname "$0")/../app"
 mkdir -p android/app/src/main/assets
 cp -r src/webInterface/. android/app/src/main/assets/
 
+# Copy Kotlin sources to Android
+mkdir -p android/app/src/main/java/com/luca
+cp -r kotlin/. android/app/src/main/java/com/luca/
+
 DEVTOOLS_PORT=8097
 DEVTOOLS_LOG="${TMPDIR:-/tmp}/rn-devtools.log"
 

@@ -3,11 +3,17 @@
   Écran simple listant des raccourcis (placeholder pour l'instant).
 */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Modal, TextInput, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useGraphStorage } from '../hooks/useGraphStorage';
-import { parseDrawflowGraph } from '../engine/engine';
+import { parseDrawflowGraph, executeGraph } from '../engine/engine';
+import LinearGradient from 'react-native-linear-gradient';
+import {
+  initializeSignalSystem,
+  resetSignalSystem,
+} from '../engine/SignalSystem';
+import { triggerNode } from '../engine/nodes';
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types/navigation.types';
@@ -27,6 +33,59 @@ const ShortcutsScreen: React.FC<ShortcutsScreenProps> = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [newShortcutName, setNewShortcutName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [activeShortcutId, setActiveShortcutId] = useState<string | null>(null);
+  const [activeTriggerNodeId, setActiveTriggerNodeId] = useState<number | null>(null);
+
+  // Fonction pour démarrer/arrêter un raccourci
+  const handleToggleShortcut = useCallback(
+    async (saveId: string, saveData: any) => {
+      // Si ce raccourci est déjà actif, on l'arrête
+      if (activeShortcutId === saveId) {
+        if (activeTriggerNodeId !== null) {
+          triggerNode(activeTriggerNodeId, { timestamp: Date.now(), source: 'shortcut-button' }, { state: 'stop' });
+        }
+        resetSignalSystem();
+        setActiveShortcutId(null);
+        setActiveTriggerNodeId(null);
+        return;
+      }
+
+      // Si un autre raccourci est actif, on l'arrête d'abord
+      if (activeShortcutId !== null && activeTriggerNodeId !== null) {
+        triggerNode(activeTriggerNodeId, { timestamp: Date.now(), source: 'shortcut-button' }, { state: 'stop' });
+        resetSignalSystem();
+      }
+
+      try {
+        // Parser et initialiser le graphe
+        const graph = parseDrawflowGraph(saveData);
+        initializeSignalSystem(graph);
+
+        // Exécuter le graphe (initialise les handlers de chaque node)
+        await executeGraph(graph);
+
+        // Trouver le/les trigger nodes
+        const triggerNodes = Array.from(graph.nodes.values()).filter(
+          (n) => n.type === 'input.trigger'
+        );
+
+        if (triggerNodes.length > 0) {
+          const triggerId = triggerNodes[0].id;
+          setActiveShortcutId(saveId);
+          setActiveTriggerNodeId(triggerId);
+
+          // Déclencher le trigger
+          triggerNode(triggerId, { timestamp: Date.now(), source: 'shortcut-button' }, { state: 'start' });
+        }
+      } catch (e) {
+        console.error('Erreur lors du démarrage du raccourci:', e);
+        resetSignalSystem();
+        setActiveShortcutId(null);
+        setActiveTriggerNodeId(null);
+      }
+    },
+    [activeShortcutId, activeTriggerNodeId]
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -185,127 +244,165 @@ const ShortcutsScreen: React.FC<ShortcutsScreenProps> = ({ navigation }) => {
               alignItems: 'flex-start',
             }}
           >
-            {saves.map((save) => (
-              <View
-                key={save.id}
-                style={{
-                  width: '48%',
-                  marginBottom: 12,
-                  padding: 12,
-                  borderRadius: 10,
-                  height: 120,
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  elevation: 4,
-                }}
-              >
+            {saves.map((save) => {
+              // Determine whether this save has at least one trigger node
+              let hasTrigger = false;
+              try {
+                const graph = parseDrawflowGraph(save.data);
+                hasTrigger = Array.from(graph.nodes.values()).some(
+                  (n) => n.type === 'input.trigger'
+                );
+              } catch (e) {
+                hasTrigger = false;
+              }
+
+              const isActive = activeShortcutId === save.id;
+              const isOtherActive = activeShortcutId !== null && activeShortcutId !== save.id;
+              const isDisabled = !hasTrigger || isOtherActive;
+
+              return (
                 <View
+                  key={save.id}
                   style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: 28,
+                    width: '48%',
+                    marginBottom: 12,
+                    padding: 16,
+                    borderRadius: 12,
+                    backgroundColor: theme.colors.backgroundSecondary,
+                    elevation: 4,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 4,
                   }}
                 >
-                  <TouchableOpacity
-                    style={{ padding: 6 }}
-                    onPress={() => {
-                      // Open NodeEditor with this save pre-selected
-                      setCurrentSaveId(save.id);
-                      navigation?.navigate('NodeEditor', { openSaveId: save.id });
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Icon name="edit" size={18} color={theme.colors.text} />
-                  </TouchableOpacity>
-                  {(() => {
-                    // Determine whether this save has at least one trigger node
-                    let hasTrigger = false;
-                    try {
-                      const graph = parseDrawflowGraph(save.data);
-                      hasTrigger = Array.from(graph.nodes.values()).some(
-                        (n) => n.type === 'input.trigger'
-                      );
-                    } catch (e) {
-                      // If parsing fails, assume no trigger (safe default)
-                      hasTrigger = false;
-                    }
-
-                    return (
-                      <TouchableOpacity
-                        style={{ padding: 6, borderRadius: 6, opacity: hasTrigger ? 1 : 0.4 }}
-                        onPress={() => {
-                          if (!hasTrigger) return;
-                          /* play/stop placeholder */
-                        }}
-                        activeOpacity={hasTrigger ? 0.7 : 1}
-                        disabled={!hasTrigger}
-                        accessibilityLabel={
-                          hasTrigger
-                            ? 'Exécuter le raccourci'
-                            : 'Exécution désactivée (aucun trigger)'
-                        }
-                        accessibilityState={{ disabled: !hasTrigger }}
-                      >
-                        <Icon
-                          name="play-arrow"
-                          size={20}
-                          color={hasTrigger ? theme.colors.text : theme.colors.textSecondary}
-                        />
-                      </TouchableOpacity>
-                    );
-                  })()}
-                </View>
-
-                <View
-                  style={{
-                    width: '100%',
-                    height: 8,
-                    backgroundColor: theme.colors.border,
-                    borderRadius: 6,
-                    overflow: 'hidden',
-                    marginBottom: 10,
-                  }}
-                >
+                  {/* Header avec icône et actions */}
                   <View
                     style={{
-                      height: '100%',
-                      borderRadius: 6,
-                      width: `${Math.round(((save as any).progress || 0) * 100)}%`,
-                      backgroundColor: theme.colors.primary,
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                      marginBottom: 16,
                     }}
-                  />
-                </View>
+                  >
+                    {/* Actions: edit et delete */}
+                    <View style={{ flexDirection: 'row', gap: 4, justifyContent: 'space-between', flex: 1 }}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setCurrentSaveId(save.id);
+                          navigation?.navigate('NodeEditor', { openSaveId: save.id });
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Icon name="edit" size={22} color={theme.colors.text} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={async () => {
+                          try {
+                            await deleteSave(save.id);
+                          } catch (e) {
+                            // noop
+                          }
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Icon name="delete" size={22} color={theme.colors.text} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
 
-                <View style={{ alignItems: 'flex-start' }}>
-                  <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '600' }}>
+                  {/* Nom du raccourci */}
+                  <Text
+                    style={{
+                      color: theme.colors.text,
+                      fontSize: 16,
+                      fontWeight: '700',
+                      marginBottom: 12,
+                    }}
+                    numberOfLines={2}
+                  >
                     {save.name}
                   </Text>
-                </View>
 
-                {/* Trash button: bottom-right corner */}
-                <TouchableOpacity
-                  style={{
-                    position: 'absolute',
-                    right: 8,
-                    bottom: 8,
-                    padding: 6,
-                    borderRadius: 6,
-                  }}
-                  onPress={async () => {
-                    try {
-                      await deleteSave(save.id);
-                    } catch (e) {
-                      // noop - deleteSave will handle errors/confirmation
-                    }
-                  }}
-                  accessibilityLabel={`Supprimer le raccourci ${save.name}`}
-                  accessibilityRole="button"
-                  activeOpacity={0.7}
-                >
-                  <Icon name="delete" size={18} color={theme.colors.text} />
-                </TouchableOpacity>
-              </View>
-            ))}
+                  {/* Footer: statut + bouton play/stop */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: 'auto',
+                    }}
+                  >
+                    {/* Statut */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <View
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: 4,
+                          backgroundColor: isActive
+                            ? '#4ade80'
+                            : isOtherActive
+                            ? '#f59e0b'
+                            : hasTrigger
+                            ? theme.colors.textSecondary
+                            : '#ef4444',
+                        }}
+                      />
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: theme.colors.textSecondary,
+                          fontWeight: '500',
+                        }}
+                      >
+                        {isActive ? 'Actif' : isOtherActive ? 'Autre actif' : hasTrigger ? 'Prêt' : 'Pas de trigger'}
+                      </Text>
+                    </View>
+
+                    {/* Bouton Play/Stop */}
+                    <TouchableOpacity
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 22,
+                        
+                      }}
+                      onPress={() => {
+                        if (isDisabled) return;
+                        handleToggleShortcut(save.id, save.data);
+                      }}
+                      activeOpacity={isDisabled ? 1 : 0.7}
+                      disabled={isDisabled}
+                    >
+                      <LinearGradient
+                        colors={[theme.colors.secondarySoft, theme.colors.primarySoft]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 22,
+                            backgroundColor: isActive
+                            ? '#ef4444'
+                            : isDisabled
+                            ? theme.colors.border
+                            : theme.colors.primary,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          opacity: isDisabled && !isActive ? 0.5 : 1,
+                        }}>
+                      <Icon
+                        name={isActive ? 'stop' : 'play-arrow'}
+                        size={36}
+                        color="#fff"
+                      />
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
           </View>
         )}
       </View>
