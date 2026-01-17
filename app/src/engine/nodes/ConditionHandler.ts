@@ -601,9 +601,11 @@ export function createConditionNode(config: ConditionNodeConfig): NodeDefinition
 
         // S'abonner aux événements externes si configuré
         if (externalSubscription) {
+          // Fusionner settings et inputs pour que les paramètres personnalisés soient accessibles
+          const mergedInputs = { ...context.settings, ...context.inputs };
           const unsubscribe = externalSubscription.subscribe(
             nodeId,
-            context.inputs, // Passer tous les inputs pour les settings personnalisés
+            mergedInputs, // Passer settings + inputs pour les paramètres personnalisés
             (conditionMet: boolean) => {
               const conditionState = getConditionState(nodeId);
               if (!conditionState?.hasActiveSignal) return;

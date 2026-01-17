@@ -566,12 +566,30 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
   }, [isReady, currentGraph, requestExport]);
 
   // If this screen was opened with a specific save id, load it immediately
+  // Ref pour éviter que le rechargement ne se déclenche quand saves change
+  const loadSaveRef = useRef(loadSave);
+  loadSaveRef.current = loadSave;
+  
+  const loadGraphRef = useRef(loadGraph);
+  loadGraphRef.current = loadGraph;
+  
+  const rebuildSignalSystemRef = useRef(rebuildSignalSystem);
+  rebuildSignalSystemRef.current = rebuildSignalSystem;
+
+  // Track if we've already loaded the initial save to prevent re-loading
+  const initialSaveLoadedRef = useRef<string | null>(null);
+
   useEffect(() => {
     const openId = route?.params?.openSaveId;
     if (!openId) return;
+    
+    // Ne pas recharger si on a déjà chargé ce save
+    if (initialSaveLoadedRef.current === openId) return;
 
-    const save = loadSave(openId);
+    const save = loadSaveRef.current(openId);
     if (!save) return;
+    
+    initialSaveLoadedRef.current = openId;
 
     // Make sure we don't try to send messages to the WebView before it's ready.
     // If the WebView is ready, load it immediately; otherwise set the current
@@ -582,14 +600,11 @@ const NodeEditorScreen: React.FC<NodeEditorScreenProps> = ({ navigation, route }
     setCurrentSaveId(save.id);
 
     if (isReady) {
-      loadGraph(save.data);
-      rebuildSignalSystem(save.data).catch((e) => console.error('Failed to rebuild', e));
+      loadGraphRef.current(save.data);
+      rebuildSignalSystemRef.current(save.data).catch((e) => console.error('Failed to rebuild', e));
     }
   }, [
     route?.params?.openSaveId,
-    loadSave,
-    loadGraph,
-    rebuildSignalSystem,
     setCurrentSaveId,
     isReady,
   ]);
@@ -885,7 +900,7 @@ const createStyles = (theme: AppTheme) => {
       top: 60 + topInset,
       left: 10,
       right: 10,
-      backgroundColor: hexToRgba(theme.colors.error, isDark ? 0.9 : 0.98),
+      backgroundColor: hexToRgba(theme.colors.error, isDark ? 0.8 : 0.85),
       borderRadius: 12,
       borderWidth: 1,
       borderColor: hexToRgba(theme.colors.error, 0.6),
@@ -901,14 +916,14 @@ const createStyles = (theme: AppTheme) => {
       shadowOpacity: 0.22,
       shadowRadius: 8,
     },
-    permissionText: { color: theme.colors.text, flex: 1, fontSize: 12 },
+    permissionText: { color: '#FFFFFF', flex: 1, fontSize: 12 },
     permissionButton: {
       paddingVertical: 8,
       paddingHorizontal: 12,
       backgroundColor: theme.colors.error,
       borderRadius: 8,
     },
-    permissionButtonText: { color: theme.colors.background, fontWeight: '700' },
+    permissionButtonText: { color: '#FFFFFF', fontWeight: '700' },
   });
 };
 
